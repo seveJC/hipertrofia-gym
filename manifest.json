@@ -1,0 +1,10 @@
+{
+  "name": "Hipertrofia - Registro de Entrenos",
+  "short_name": "Hipertrofia",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#111318",
+  "theme_color": "#111318",
+  "orientation": "portrait",
+  "icons": []
+}
