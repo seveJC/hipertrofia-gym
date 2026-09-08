@@ -6,7 +6,7 @@ function loadDB() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) return JSON.parse(raw);
   } catch (e) { console.error('DB load error', e); }
-  return { exercises: [], routines: [], sessions: [] };
+  return null;
 }
 
 function saveDB() {
@@ -14,6 +14,21 @@ function saveDB() {
 }
 
 let db = loadDB();
+
+// Si este navegador todavía no tiene datos guardados, se siembra desde el
+// fichero hipertrofia_import.json (publicado junto a la app) para que un
+// dispositivo nuevo no arranque con la app vacía.
+async function ensureDB() {
+  if (db) return;
+  try {
+    const res = await fetch('./hipertrofia_import.json');
+    db = await res.json();
+  } catch (e) {
+    console.error('No se pudo cargar hipertrofia_import.json', e);
+    db = { exercises: [], routines: [], sessions: [] };
+  }
+  saveDB();
+}
 
 // ---------- Colores por músculo ----------
 const MUSCLE_COLORS = {
@@ -94,7 +109,10 @@ function navigate(hash) {
 }
 
 window.addEventListener('hashchange', render);
-window.addEventListener('DOMContentLoaded', render);
+window.addEventListener('DOMContentLoaded', async () => {
+  await ensureDB();
+  render();
+});
 
 function currentRoute() {
   const hash = window.location.hash.slice(1) || '/';
