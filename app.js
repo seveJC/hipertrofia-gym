@@ -130,7 +130,7 @@ async function ensureDB() {
 // ---------- Colores por músculo ----------
 const MUSCLE_COLORS = {
   'Pecho': '#6fa8dc',
-  'Hombro': '#e6a8d7',
+  'Deltoide anterior': '#e6a8d7',
   'Tríceps': '#93c47d',
   'Espalda': '#f6b26b',
   'Bíceps': '#ffe066',
