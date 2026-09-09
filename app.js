@@ -15,6 +15,103 @@ function saveDB() {
 
 let db = loadDB();
 
+// ---------- Copia automática en GitHub ----------
+// El token se guarda solo en el localStorage de este navegador; nunca viaja
+// al código fuente ni se sube al repositorio.
+const GH_OWNER = 'seveJC';
+const GH_REPO = 'hipertrofia-gym';
+const GH_PATH = 'hipertrofia_import.json';
+const GH_TOKEN_KEY = 'hipertrofia_gh_token_v1';
+
+function getGhToken() {
+  try { return localStorage.getItem(GH_TOKEN_KEY) || ''; } catch (e) { return ''; }
+}
+
+function setGhToken(token) {
+  try {
+    if (token) localStorage.setItem(GH_TOKEN_KEY, token);
+    else localStorage.removeItem(GH_TOKEN_KEY);
+  } catch (e) { /* ignore */ }
+}
+
+function utf8ToBase64(str) {
+  return btoa(unescape(encodeURIComponent(str)));
+}
+
+async function pushBackupToGitHub(notify) {
+  const token = getGhToken();
+  if (!token) {
+    if (notify) showToast('Configura primero la copia en GitHub');
+    return false;
+  }
+  const apiUrl = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_PATH}`;
+  const headers = {
+    'Authorization': `Bearer ${token}`,
+    'Accept': 'application/vnd.github+json',
+  };
+  try {
+    const getRes = await fetch(apiUrl, { headers });
+    if (!getRes.ok) throw new Error(`No se pudo leer el fichero en GitHub (${getRes.status})`);
+    const current = await getRes.json();
+    const putRes = await fetch(apiUrl, {
+      method: 'PUT',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: `Backup automático — ${new Date().toISOString()}`,
+        content: utf8ToBase64(JSON.stringify(db, null, 2)),
+        sha: current.sha,
+      }),
+    });
+    if (!putRes.ok) {
+      const detail = await putRes.text().catch(() => '');
+      throw new Error(`GitHub devolvió ${putRes.status}: ${detail.slice(0, 200)}`);
+    }
+    if (notify) showToast('Copia en GitHub actualizada ☁️');
+    return true;
+  } catch (e) {
+    console.error('Backup en GitHub falló', e);
+    if (notify) showToast('No se pudo subir la copia a GitHub');
+    return false;
+  }
+}
+
+function openGhConfigPrompt(onDone) {
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  const hasToken = !!getGhToken();
+  backdrop.innerHTML = `
+    <div class="modal-sheet">
+      <h2>🔗 Copia automática en GitHub</h2>
+      <p style="color:var(--text-dim);font-size:13px;margin-top:-8px;">Pega tu token de acceso personal de GitHub (con permiso de escritura solo en este repositorio). Se guarda únicamente en este navegador.</p>
+      <div class="field">
+        <input id="gh-token-input" type="password" placeholder="github_pat_..." value="${escapeHtml(getGhToken())}" autocomplete="off" />
+      </div>
+      <button class="btn btn-primary btn-block" id="gh-token-save">Guardar</button>
+      <div style="height:8px;"></div>
+      ${hasToken ? '<button class="btn btn-danger btn-block" id="gh-token-remove">Quitar token</button><div style="height:8px;"></div>' : ''}
+      <button class="btn btn-block" id="gh-token-cancel">Cancelar</button>
+    </div>
+  `;
+  document.body.appendChild(backdrop);
+  document.getElementById('gh-token-save').addEventListener('click', () => {
+    const val = document.getElementById('gh-token-input').value.trim();
+    if (!val) { showToast('Pega un token válido'); return; }
+    setGhToken(val);
+    document.body.removeChild(backdrop);
+    showToast('Token guardado');
+    if (onDone) onDone();
+  });
+  const removeBtn = document.getElementById('gh-token-remove');
+  if (removeBtn) removeBtn.addEventListener('click', () => {
+    setGhToken('');
+    document.body.removeChild(backdrop);
+    showToast('Token eliminado');
+    if (onDone) onDone();
+  });
+  document.getElementById('gh-token-cancel').addEventListener('click', () => document.body.removeChild(backdrop));
+  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) document.body.removeChild(backdrop); });
+}
+
 // Si este navegador todavía no tiene datos guardados, se siembra desde el
 // fichero hipertrofia_import.json (publicado junto a la app) para que un
 // dispositivo nuevo no arranque con la app vacía.
@@ -290,6 +387,13 @@ function renderExercises() {
         <button class="btn btn-block" id="import-db-btn">Importar datos</button>
         <input type="file" id="import-db-input" accept="application/json" style="display:none;" />
       </div>
+      <div class="section-title">Copia en GitHub</div>
+      <div class="card">
+        <button class="btn btn-block" id="gh-config-btn">${getGhToken() ? '🔗 Cambiar token de GitHub' : '🔗 Configurar copia en GitHub'}</button>
+        <div style="height:8px;"></div>
+        <button class="btn btn-block" id="gh-sync-now-btn">☁️ Sincronizar ahora</button>
+        <div class="rest-note" style="margin-top:8px;">${getGhToken() ? 'Activado: cada "Guardar sesión" sube una copia a GitHub automáticamente.' : 'Sin configurar todavía: los datos solo se guardan en este dispositivo.'}</div>
+      </div>
     </div>
   `;
 
@@ -331,6 +435,14 @@ function renderExercises() {
   });
   document.getElementById('import-db-input').addEventListener('change', (e) => {
     if (e.target.files[0]) importDBFile(e.target.files[0]);
+  });
+
+  document.getElementById('gh-config-btn').addEventListener('click', () => {
+    openGhConfigPrompt(renderExercises);
+  });
+  document.getElementById('gh-sync-now-btn').addEventListener('click', () => {
+    if (!getGhToken()) { openGhConfigPrompt(() => pushBackupToGitHub(true)); return; }
+    pushBackupToGitHub(true);
   });
 }
 
@@ -1173,6 +1285,7 @@ function renderSession(routineId) {
       saveDB();
       showToast('Sesión guardada');
       navigate('');
+      if (getGhToken()) setTimeout(() => pushBackupToGitHub(true), 2000);
     });
   }
 
