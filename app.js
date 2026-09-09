@@ -1193,6 +1193,7 @@ function renderSession(routineId) {
       <div class="topbar">
         <button class="btn btn-ghost" data-nav="">← Atrás</button>
         <h1>${escapeHtml(routine.name)}</h1>
+        <button class="btn btn-icon" id="discard-session-btn" title="Descartar esta sesión">🗑</button>
         <button class="btn btn-icon" data-nav="routine-edit/${routine.id}" title="Editar rutina">✎</button>
       </div>
       <div class="gym-field">
@@ -1207,6 +1208,12 @@ function renderSession(routineId) {
     `;
 
     app.querySelectorAll('[data-nav]').forEach(el => el.addEventListener('click', () => navigate(el.dataset.nav)));
+
+    document.getElementById('discard-session-btn').addEventListener('click', () => {
+      if (!confirm('¿Descartar esta sesión en curso? Se perderán todas las series registradas todavía sin guardar.')) return;
+      clearSessionDraft(routineId);
+      navigate('');
+    });
 
     document.getElementById('session-gym').addEventListener('input', (e) => { draft.gym = e.target.value; saveDraft(); });
 
