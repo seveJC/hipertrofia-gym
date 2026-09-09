@@ -877,6 +877,8 @@ function formatSetCell(s) {
     ? `${w}×${s.reps}+${s.reps2}`
     : `${w}×${s.reps ?? '?'}`;
   const sub = [];
+  if (s.dropset) sub.push('DROP');
+  if (s.restPause) sub.push('RP');
   if (s.rir !== null && s.rir !== undefined && s.rir !== '') sub.push(`RIR${s.rir}`);
   if (s.restSec !== null && s.restSec !== undefined) sub.push(`⏱${s.restSec}s`);
   return `<div class="cell-main">${escapeHtml(String(main))}</div>${sub.length ? `<div class="cell-sub">${escapeHtml(sub.join(' · '))}</div>` : ''}`;
@@ -1133,6 +1135,22 @@ function renderSession(routineId) {
             : `<input type="text" inputmode="decimal" placeholder="RIR" data-rir="${slot.id}:${sIdx}" value="${set.rir ?? ''}" />`}
           <button class="rm" data-rm-set="${slot.id}:${sIdx}">✕</button>
         </div>
+        ${(set.stages || []).map((st, stIdx) => `
+          <div class="set-row set-row-sub">
+            <div class="set-num">${set.technique === 'dropset' ? 'D' + (stIdx + 1) : 'P' + (stIdx + 1)}</div>
+            ${set.technique === 'dropset'
+              ? `<input type="text" inputmode="decimal" placeholder="kg" data-stage-weight="${slot.id}:${sIdx}:${stIdx}" value="${st.weight ?? ''}" />`
+              : `<div></div>`}
+            <input type="text" inputmode="decimal" placeholder="reps" data-stage-reps="${slot.id}:${sIdx}:${stIdx}" value="${st.reps ?? ''}" />
+            <div></div>
+            <button class="rm" data-rm-stage="${slot.id}:${sIdx}:${stIdx}">✕</button>
+          </div>
+        `).join('')}
+        <div class="technique-actions">
+          ${!set.technique
+            ? `<span class="technique-link" data-add-technique="${slot.id}:${sIdx}:dropset">+ Drop set</span><span class="technique-link" data-add-technique="${slot.id}:${sIdx}:restpause">+ Rest-pause</span>`
+            : `<span class="technique-link" data-add-stage="${slot.id}:${sIdx}">+ ${set.technique === 'dropset' ? 'Otra caída' : 'Otra pausa'}</span>`}
+        </div>
       `;
       }).join('');
       const labelsHtml = entry.sets.length ? `
@@ -1276,6 +1294,41 @@ function renderSession(routineId) {
       paint();
     }));
 
+    app.querySelectorAll('[data-add-technique]').forEach(el => el.addEventListener('click', () => {
+      const [slotId, sIdx, type] = el.dataset.addTechnique.split(':');
+      const set = draft.entries[slotId].sets[Number(sIdx)];
+      set.technique = type;
+      set.stages = [type === 'dropset' ? { weight: '', reps: '' } : { reps: '' }];
+      paint();
+    }));
+
+    app.querySelectorAll('[data-add-stage]').forEach(el => el.addEventListener('click', () => {
+      const [slotId, sIdx] = el.dataset.addStage.split(':');
+      const set = draft.entries[slotId].sets[Number(sIdx)];
+      set.stages.push(set.technique === 'dropset' ? { weight: '', reps: '' } : { reps: '' });
+      paint();
+    }));
+
+    app.querySelectorAll('[data-rm-stage]').forEach(el => el.addEventListener('click', () => {
+      const [slotId, sIdx, stIdx] = el.dataset.rmStage.split(':');
+      const set = draft.entries[slotId].sets[Number(sIdx)];
+      set.stages.splice(Number(stIdx), 1);
+      if (!set.stages.length) { set.technique = null; delete set.stages; }
+      paint();
+    }));
+
+    app.querySelectorAll('[data-stage-weight]').forEach(el => el.addEventListener('input', () => {
+      const [slotId, sIdx, stIdx] = el.dataset.stageWeight.split(':');
+      draft.entries[slotId].sets[Number(sIdx)].stages[Number(stIdx)].weight = normalizeDecimal(el.value);
+      saveDraft();
+    }));
+
+    app.querySelectorAll('[data-stage-reps]').forEach(el => el.addEventListener('input', () => {
+      const [slotId, sIdx, stIdx] = el.dataset.stageReps.split(':');
+      draft.entries[slotId].sets[Number(sIdx)].stages[Number(stIdx)].reps = normalizeDecimal(el.value);
+      saveDraft();
+    }));
+
     app.querySelectorAll('[data-weight]').forEach(el => el.addEventListener('input', () => {
       const [slotId, sIdx] = el.dataset.weight.split(':');
       draft.entries[slotId].sets[Number(sIdx)].weight = normalizeDecimal(el.value);
@@ -1342,13 +1395,25 @@ function renderSession(routineId) {
             exerciseId: e.exerciseId,
             sets: e.sets
               .filter(hasData)
-              .map(s => ({
-                weight: Number(s.weight) || 0,
-                reps: Number(s.reps) || 0,
-                rir: s.rir !== '' && s.rir != null ? Number(s.rir) : null,
-                reps2: s.reps2 !== '' && s.reps2 != null ? Number(s.reps2) : null,
-                restSec: s.restSec ?? null
-              }))
+              .map(s => {
+                const out = {
+                  weight: Number(s.weight) || 0,
+                  reps: Number(s.reps) || 0,
+                  rir: s.rir !== '' && s.rir != null ? Number(s.rir) : null,
+                  reps2: s.reps2 !== '' && s.reps2 != null ? Number(s.reps2) : null,
+                  restSec: s.restSec ?? null
+                };
+                const stages = (s.stages || []).filter(st => (st.reps !== '' && st.reps != null) || (st.weight !== '' && st.weight != null));
+                if (s.technique === 'dropset' && stages.length) {
+                  out.weight = [s.weight, ...stages.map(st => st.weight)].filter(w => w !== '' && w != null).join('/');
+                  out.reps = [s.reps, ...stages.map(st => st.reps)].filter(r => r !== '' && r != null).join('/');
+                  out.dropset = true;
+                } else if (s.technique === 'restpause' && stages.length) {
+                  out.reps = [s.reps, ...stages.map(st => st.reps)].filter(r => r !== '' && r != null).join('+');
+                  out.restPause = true;
+                }
+                return out;
+              })
           };
           if (e._restTarget) entryOut.restNote = e._restTarget;
           return entryOut;

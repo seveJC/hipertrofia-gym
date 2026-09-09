@@ -427,6 +427,34 @@ html, body {
   cursor: pointer;
 }
 
+.set-row-sub {
+  margin-left: 14px;
+  margin-bottom: 6px;
+  opacity: 0.85;
+}
+
+.set-row-sub .set-num {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.set-row-sub input {
+  padding: 6px 4px;
+  font-size: 13px;
+}
+
+.technique-actions {
+  display: flex;
+  gap: 14px;
+  margin: 2px 0 8px 14px;
+}
+
+.technique-link {
+  font-size: 12px;
+  color: var(--accent);
+  cursor: pointer;
+}
+
 .set-labels {
   display: grid;
   grid-template-columns: 22px 1fr 1fr 1fr 26px;
