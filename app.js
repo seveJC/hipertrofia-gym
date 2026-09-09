@@ -15,6 +15,44 @@ function saveDB() {
 
 let db = loadDB();
 
+// ---------- Sesión en curso (autoguardado) ----------
+// Guarda el progreso de una sesión que aún no se ha finalizado, para que
+// sobreviva a una navegación fuera de la pantalla de sesión (por ejemplo,
+// entrar a "Editar rutina" para añadir un ejercicio a mitad de entreno).
+const SESSION_DRAFTS_KEY = 'hipertrofia_session_drafts_v1';
+const DRAFT_MAX_AGE_MS = 12 * 60 * 60 * 1000; // 12 horas: pasado eso se considera abandonada
+
+function loadSessionDrafts() {
+  try { return JSON.parse(localStorage.getItem(SESSION_DRAFTS_KEY)) || {}; } catch (e) { return {}; }
+}
+
+function loadSessionDraft(routineId) {
+  const all = loadSessionDrafts();
+  const draft = all[routineId];
+  if (!draft) return null;
+  if (Date.now() - (draft.sessionStartedAt || 0) > DRAFT_MAX_AGE_MS) {
+    clearSessionDraft(routineId);
+    return null;
+  }
+  return draft;
+}
+
+function saveSessionDraft(routineId, draft) {
+  try {
+    const all = loadSessionDrafts();
+    all[routineId] = draft;
+    localStorage.setItem(SESSION_DRAFTS_KEY, JSON.stringify(all));
+  } catch (e) { /* ignore */ }
+}
+
+function clearSessionDraft(routineId) {
+  try {
+    const all = loadSessionDrafts();
+    delete all[routineId];
+    localStorage.setItem(SESSION_DRAFTS_KEY, JSON.stringify(all));
+  } catch (e) { /* ignore */ }
+}
+
 // ---------- Copia automática en GitHub ----------
 // El token se guarda solo en el localStorage de este navegador; nunca viaja
 // al código fuente ni se sube al repositorio.
@@ -214,6 +252,16 @@ function escapeHtml(str) {
   return String(str).replace(/[&<>"']/g, c => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   }[c]));
+}
+
+// Acepta tanto "," como "." como separador decimal, y añade el 0 delante
+// cuando se deja el número empezando por el separador (".5" o ",5" -> "0.5").
+function normalizeDecimal(str) {
+  if (str == null) return str;
+  let s = String(str).replace(',', '.');
+  if (s.startsWith('.')) s = '0' + s;
+  else if (s.startsWith('-.')) s = '-0' + s.slice(1);
+  return s;
 }
 
 // ---------- Router ----------
@@ -885,7 +933,6 @@ function renderSession(routineId) {
   const routine = getRoutine(routineId);
   if (!routine) { navigate(''); return; }
 
-  const sessionStartedAt = Date.now();
   requestWakeLock();
   const restIntervals = {};
   currentCleanup = () => {
@@ -908,18 +955,28 @@ function renderSession(routineId) {
   // draft.entries[slotId] = { exerciseId, sets: [{weight, reps, rir, reps2, restSec}], uni, _restTarget }
   // El descanso (restStart/pendingRestSec) es global a la sesión: puede empezar
   // en un ejercicio y terminar registrándose en el siguiente.
-  const draft = {
+  // La sesión en curso se autoguarda (ver saveDraft) para que sobreviva a
+  // salir de esta pantalla (p. ej. para editar la rutina) sin perder datos.
+  const restoredDraft = loadSessionDraft(routineId);
+  const draft = restoredDraft || {
     gym: (lastRoutineSession && lastRoutineSession.gym) || '',
     entries: {},
     restStart: null,
     pendingRestSec: null,
     restSourceSlotId: null,
+    sessionStartedAt: Date.now(),
   };
+  const sessionStartedAt = draft.sessionStartedAt;
   routine.slots.forEach(slot => {
+    if (draft.entries[slot.id]) return; // ya existía (sesión restaurada) o se acaba de añadir a la rutina
     const lastHistory = pastSessionsForSlot(slot.id, 1)[0];
     const defaultUni = !!(lastHistory && lastHistory.entry.sets.some(s => s.reps2 != null && s.reps2 !== ''));
     draft.entries[slot.id] = { exerciseId: slot.exerciseId, sets: [], uni: defaultUni, _historyLimit: 3, _restTarget: null };
   });
+
+  function saveDraft() {
+    saveSessionDraft(routineId, draft);
+  }
 
   function openGymPrompt() {
     const backdrop = document.createElement('div');
@@ -1013,6 +1070,7 @@ function renderSession(routineId) {
   }
 
   function paint() {
+    saveDraft();
     const blocks = routine.slots.map((slot, idx) => {
       const plannedEx = getExercise(slot.exerciseId);
       const entry = draft.entries[slot.id];
@@ -1068,11 +1126,11 @@ function renderSession(routineId) {
         ` : ''}
         <div class="set-row">
           <div class="set-num">${sIdx + 1}</div>
-          <input type="number" inputmode="decimal" placeholder="kg" data-weight="${slot.id}:${sIdx}" value="${set.weight ?? ''}" />
-          <input type="number" inputmode="numeric" placeholder="${entry.uni ? 'izq' : 'reps'}" data-reps="${slot.id}:${sIdx}" value="${set.reps ?? ''}" />
+          <input type="text" inputmode="decimal" placeholder="kg" data-weight="${slot.id}:${sIdx}" value="${set.weight ?? ''}" />
+          <input type="text" inputmode="decimal" placeholder="${entry.uni ? 'izq' : 'reps'}" data-reps="${slot.id}:${sIdx}" value="${set.reps ?? ''}" />
           ${entry.uni
-            ? `<input type="number" inputmode="numeric" placeholder="der" data-reps2="${slot.id}:${sIdx}" value="${set.reps2 ?? ''}" />`
-            : `<input type="number" inputmode="decimal" step="0.5" placeholder="RIR" data-rir="${slot.id}:${sIdx}" value="${set.rir ?? ''}" />`}
+            ? `<input type="text" inputmode="decimal" placeholder="der" data-reps2="${slot.id}:${sIdx}" value="${set.reps2 ?? ''}" />`
+            : `<input type="text" inputmode="decimal" placeholder="RIR" data-rir="${slot.id}:${sIdx}" value="${set.rir ?? ''}" />`}
           <button class="rm" data-rm-set="${slot.id}:${sIdx}">✕</button>
         </div>
       `;
@@ -1132,7 +1190,7 @@ function renderSession(routineId) {
 
     app.querySelectorAll('[data-nav]').forEach(el => el.addEventListener('click', () => navigate(el.dataset.nav)));
 
-    document.getElementById('session-gym').addEventListener('input', (e) => { draft.gym = e.target.value; });
+    document.getElementById('session-gym').addEventListener('input', (e) => { draft.gym = e.target.value; saveDraft(); });
 
     app.querySelectorAll('[data-history-limit]').forEach(el => el.addEventListener('change', () => {
       draft.entries[el.dataset.historyLimit]._historyLimit = Number(el.value);
@@ -1151,7 +1209,9 @@ function renderSession(routineId) {
       // Solo se consume un descanso ya parado (pendingRestSec) o uno metido a mano.
       let restSec = draft.pendingRestSec;
       if (restSec == null && manualRestSec !== undefined) restSec = manualRestSec;
-      entry.sets.push({ weight: '', reps: '', rir: '', restSec });
+      const lastSet = entry.sets[entry.sets.length - 1];
+      const defaultWeight = lastSet && lastSet.weight !== '' && lastSet.weight != null ? lastSet.weight : '';
+      entry.sets.push({ weight: defaultWeight, reps: '', rir: '', restSec });
       draft.pendingRestSec = null;
       paint();
     }
@@ -1218,23 +1278,29 @@ function renderSession(routineId) {
 
     app.querySelectorAll('[data-weight]').forEach(el => el.addEventListener('input', () => {
       const [slotId, sIdx] = el.dataset.weight.split(':');
-      draft.entries[slotId].sets[Number(sIdx)].weight = el.value;
+      draft.entries[slotId].sets[Number(sIdx)].weight = normalizeDecimal(el.value);
+      saveDraft();
     }));
     app.querySelectorAll('[data-reps]').forEach(el => el.addEventListener('input', () => {
       const [slotId, sIdx] = el.dataset.reps.split(':');
-      draft.entries[slotId].sets[Number(sIdx)].reps = el.value;
+      draft.entries[slotId].sets[Number(sIdx)].reps = normalizeDecimal(el.value);
+      saveDraft();
     }));
     app.querySelectorAll('[data-rir]').forEach(el => el.addEventListener('input', () => {
       const [slotId, sIdx] = el.dataset.rir.split(':');
-      draft.entries[slotId].sets[Number(sIdx)].rir = el.value;
+      draft.entries[slotId].sets[Number(sIdx)].rir = normalizeDecimal(el.value);
+      saveDraft();
     }));
     app.querySelectorAll('[data-reps2]').forEach(el => el.addEventListener('input', () => {
       const [slotId, sIdx] = el.dataset.reps2.split(':');
-      draft.entries[slotId].sets[Number(sIdx)].reps2 = el.value;
+      draft.entries[slotId].sets[Number(sIdx)].reps2 = normalizeDecimal(el.value);
+      saveDraft();
     }));
     app.querySelectorAll('[data-restsec]').forEach(el => el.addEventListener('input', () => {
       const [slotId, sIdx] = el.dataset.restsec.split(':');
-      draft.entries[slotId].sets[Number(sIdx)].restSec = el.value === '' ? null : Number(el.value);
+      const v = normalizeDecimal(el.value);
+      draft.entries[slotId].sets[Number(sIdx)].restSec = v === '' ? null : Number(v);
+      saveDraft();
     }));
     app.querySelectorAll('[data-toggle-uni]').forEach(el => el.addEventListener('click', () => {
       const entry = draft.entries[el.dataset.toggleUni];
@@ -1302,6 +1368,7 @@ function renderSession(routineId) {
         entries
       });
       saveDB();
+      clearSessionDraft(routineId);
       showToast('Sesión guardada');
       navigate('');
       if (getGhToken()) setTimeout(() => pushBackupToGitHub(true), 2000);
@@ -1309,5 +1376,5 @@ function renderSession(routineId) {
   }
 
   paint();
-  openGymPrompt();
+  if (!restoredDraft) openGymPrompt();
 }
