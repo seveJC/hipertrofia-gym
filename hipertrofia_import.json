@@ -209,6 +209,240 @@
       "name": "Elevación de piernas colgado",
       "muscle": "Abdominales",
       "notes": ""
+    },
+    {
+      "id": "e3e5243e9815",
+      "name": "Press banca barra",
+      "muscle": "Pecho",
+      "notes": ""
+    },
+    {
+      "id": "e84d6f8f625e",
+      "name": "Press inclinado barra",
+      "muscle": "Pecho",
+      "notes": ""
+    },
+    {
+      "id": "e9ffe8384a50",
+      "name": "Aperturas con mancuernas",
+      "muscle": "Pecho",
+      "notes": ""
+    },
+    {
+      "id": "ce01ca608210",
+      "name": "Cruce de poleas",
+      "muscle": "Pecho",
+      "notes": ""
+    },
+    {
+      "id": "2e3364723bce",
+      "name": "Fondos en paralelas",
+      "muscle": "Pecho",
+      "notes": ""
+    },
+    {
+      "id": "9d6ab17a8222",
+      "name": "Press declinado mancuernas",
+      "muscle": "Pecho",
+      "notes": ""
+    },
+    {
+      "id": "60d545b06e4e",
+      "name": "Peso muerto",
+      "muscle": "Espalda",
+      "notes": ""
+    },
+    {
+      "id": "22163179a20e",
+      "name": "Remo con barra",
+      "muscle": "Espalda",
+      "notes": ""
+    },
+    {
+      "id": "a6cd6609ff39",
+      "name": "Remo en polea sentado",
+      "muscle": "Espalda",
+      "notes": ""
+    },
+    {
+      "id": "7e8263140f65",
+      "name": "Pull-over en polea",
+      "muscle": "Espalda",
+      "notes": ""
+    },
+    {
+      "id": "b07511a0f1f8",
+      "name": "Sentadilla libre",
+      "muscle": "Cuádriceps",
+      "notes": ""
+    },
+    {
+      "id": "ad6e7cc6d774",
+      "name": "Zancadas con mancuernas",
+      "muscle": "Cuádriceps",
+      "notes": ""
+    },
+    {
+      "id": "0a1e937c3e6b",
+      "name": "Sentadilla búlgara",
+      "muscle": "Cuádriceps",
+      "notes": ""
+    },
+    {
+      "id": "deb59155cc6d",
+      "name": "Sentadilla goblet",
+      "muscle": "Cuádriceps",
+      "notes": ""
+    },
+    {
+      "id": "67946a78fc00",
+      "name": "Peso muerto rumano",
+      "muscle": "Isquiotibiales",
+      "notes": ""
+    },
+    {
+      "id": "be4bc6e0fff8",
+      "name": "Curl femoral tumbado",
+      "muscle": "Isquiotibiales",
+      "notes": ""
+    },
+    {
+      "id": "3c812538cc33",
+      "name": "Hip thrust con barra",
+      "muscle": "Isquiotibiales",
+      "notes": ""
+    },
+    {
+      "id": "92e0f6f2ffe1",
+      "name": "Buenos días",
+      "muscle": "Isquiotibiales",
+      "notes": ""
+    },
+    {
+      "id": "a60244f73559",
+      "name": "Curl bíceps barra",
+      "muscle": "Bíceps",
+      "notes": ""
+    },
+    {
+      "id": "d35ba9a4395d",
+      "name": "Curl concentrado",
+      "muscle": "Bíceps",
+      "notes": ""
+    },
+    {
+      "id": "8e34727c078b",
+      "name": "Curl predicador",
+      "muscle": "Bíceps",
+      "notes": ""
+    },
+    {
+      "id": "ad291e9a3fbc",
+      "name": "Fondos en banco",
+      "muscle": "Tríceps",
+      "notes": ""
+    },
+    {
+      "id": "46a6e95ec3ec",
+      "name": "Press banca agarre cerrado",
+      "muscle": "Tríceps",
+      "notes": ""
+    },
+    {
+      "id": "77749489d2f9",
+      "name": "Plancha",
+      "muscle": "Abdominales",
+      "notes": ""
+    },
+    {
+      "id": "bcc6166c0da4",
+      "name": "Rueda abdominal",
+      "muscle": "Abdominales",
+      "notes": ""
+    },
+    {
+      "id": "4f9848c8aa97",
+      "name": "Press militar barra",
+      "muscle": "Deltoide anterior",
+      "notes": ""
+    },
+    {
+      "id": "c015d86a44d5",
+      "name": "Press militar mancuernas",
+      "muscle": "Deltoide anterior",
+      "notes": ""
+    },
+    {
+      "id": "c20bc287b18f",
+      "name": "Elevación frontal mancuernas",
+      "muscle": "Deltoide anterior",
+      "notes": ""
+    },
+    {
+      "id": "707597bd2cc4",
+      "name": "Press Arnold",
+      "muscle": "Deltoide anterior",
+      "notes": ""
+    },
+    {
+      "id": "c8056279c040",
+      "name": "Elevación lateral mancuernas",
+      "muscle": "Deltoide lateral",
+      "notes": ""
+    },
+    {
+      "id": "75411c7a4aa7",
+      "name": "Elevación lateral en máquina",
+      "muscle": "Deltoide lateral",
+      "notes": ""
+    },
+    {
+      "id": "747dfb529dae",
+      "name": "Remo al cuello",
+      "muscle": "Deltoide lateral",
+      "notes": ""
+    },
+    {
+      "id": "130d30bfc6c6",
+      "name": "Pájaros con mancuernas",
+      "muscle": "Deltoide posterior",
+      "notes": ""
+    },
+    {
+      "id": "36341586fc97",
+      "name": "Peck deck invertido",
+      "muscle": "Deltoide posterior",
+      "notes": ""
+    },
+    {
+      "id": "0d926c8300a5",
+      "name": "Remo agarre abierto",
+      "muscle": "Deltoide posterior",
+      "notes": ""
+    },
+    {
+      "id": "34475597f503",
+      "name": "Cruce de poleas invertido",
+      "muscle": "Deltoide posterior",
+      "notes": ""
+    },
+    {
+      "id": "b948c11b1233",
+      "name": "Elevación de talones de pie",
+      "muscle": "Gemelos",
+      "notes": ""
+    },
+    {
+      "id": "931dd7e8a91f",
+      "name": "Elevación de talones sentado",
+      "muscle": "Gemelos",
+      "notes": ""
+    },
+    {
+      "id": "94083e9c428b",
+      "name": "Elevación de talones a una pierna",
+      "muscle": "Gemelos",
+      "notes": ""
     }
   ],
   "routines": [

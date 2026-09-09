@@ -127,6 +127,24 @@ async function ensureDB() {
   saveDB();
 }
 
+// Además de la siembra inicial, en cada carga se añaden a la biblioteca los
+// ejercicios nuevos que haya en hipertrofia_import.json (por id) sin tocar
+// rutinas, sesiones ni ejercicios ya existentes o editados localmente.
+async function mergeExerciseLibrary() {
+  try {
+    const res = await fetch('./hipertrofia_import.json', { cache: 'no-store' });
+    const data = await res.json();
+    const existingIds = new Set(db.exercises.map(e => e.id));
+    const newOnes = (data.exercises || []).filter(e => !existingIds.has(e.id));
+    if (newOnes.length) {
+      db.exercises.push(...newOnes);
+      saveDB();
+    }
+  } catch (e) {
+    console.error('No se pudo actualizar la biblioteca de ejercicios', e);
+  }
+}
+
 // ---------- Colores por músculo ----------
 const MUSCLE_COLORS = {
   'Pecho': '#6fa8dc',
@@ -208,6 +226,7 @@ function navigate(hash) {
 window.addEventListener('hashchange', render);
 window.addEventListener('DOMContentLoaded', async () => {
   await ensureDB();
+  await mergeExerciseLibrary();
   render();
 });
 
