@@ -361,37 +361,64 @@ html, body {
   gap: 10px;
 }
 
-.rest-gate {
-  padding: 18px 16px;
-}
-
-.rest-gate .btn {
-  padding: 16px;
-  font-size: 15px;
-}
-
-.rest-widget .btn {
-  padding: 8px 14px;
-  font-size: 13px;
-}
-
 .rest-live {
   font-size: 20px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: var(--accent);
+  color: var(--green);
 }
 
-.rest-pending {
-  font-size: 13px;
-  color: var(--green);
-  flex: 1;
-}
+.rest-live.rest-over { color: var(--accent); }
 
 .rest-target-tag {
   font-size: 12px;
   color: var(--text-dim);
   white-space: nowrap;
+  padding: 4px 8px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.rest-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px 10px;
+}
+
+.rest-bar-info {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rest-bar-cancel {
+  font-size: 16px;
+  padding: 4px 8px;
+}
+
+.slot-rest {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.slot-rest input {
+  width: 44px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 3px 4px;
+  color: var(--text);
+  font-size: 12px;
+  text-align: center;
 }
 
 .uni-toggle {

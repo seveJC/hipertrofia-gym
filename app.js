@@ -335,6 +335,27 @@ function runMigrations() {
     changed = true;
   }
 
+  // El descanso objetivo pasa a vivir en la rutina (slot.restSec). Se siembra
+  // con el último que se usó en cada ejercicio, que hasta ahora se guardaba en
+  // la sesión (restNote).
+  if (!db.meta.restTargetsSeeded) {
+    db.routines.forEach(r => {
+      const sessions = db.sessions.filter(ses => ses.routineId === r.id).sort((a, b) => b.date.localeCompare(a.date));
+      r.slots.forEach(sl => {
+        if (sl.restSec != null) return;
+        for (const ses of sessions) {
+          const e = ses.entries.find(x => x.slotId === sl.id);
+          if (e && e.restNote) {
+            const n = Number(String(e.restNote).split('-')[0]);
+            if (n > 0) { sl.restSec = n; break; }
+          }
+        }
+      });
+    });
+    db.meta.restTargetsSeeded = true;
+    changed = true;
+  }
+
   if (changed) saveDB();
 }
 
@@ -489,8 +510,7 @@ function openRoutineChoice(routineId) {
       gym: resumable.gym || '',
       entries: {},
       restStart: null,
-      pendingRestSec: null,
-      restSourceSlotId: null,
+      restSlotId: null,
       sessionStartedAt: Date.now(),
       continuesSessionId: resumable.id,
       doneFrom: { sessionId: resumable.id, date: resumable.date, slotIds: resumable.entries.map(e => e.slotId) },
@@ -766,6 +786,7 @@ function renderRoutineEditor(routineId) {
         <div class="slot-editor-row" data-idx="${idx}">
           <span class="drag-handle" data-drag-handle="${idx}">⠿</span>
           <div class="name">${idx + 1}. ${ex ? escapeHtml(ex.name) : '(ejercicio eliminado)'}${slot.supersetGroup ? ' <span class="ss-tag">SS</span>' : ''}</div>
+          <label class="slot-rest" title="Descanso objetivo">⏱ <input type="number" inputmode="numeric" data-slot-rest="${idx}" value="${slot.restSec ?? ''}" placeholder="s" />s</label>
           ${editing && draft.slots.length > 1 ? `<button class="rm" data-merge="${idx}" title="Fusionar con otro ejercicio de esta rutina">🔗</button>` : ''}
           <button class="rm" data-rm="${idx}">✕</button>
         </div>`;
@@ -808,6 +829,11 @@ function renderRoutineEditor(routineId) {
     app.querySelectorAll('[data-rm]').forEach(el => el.addEventListener('click', () => {
       draft.slots.splice(Number(el.dataset.rm), 1);
       paint();
+    }));
+
+    app.querySelectorAll('[data-slot-rest]').forEach(el => el.addEventListener('input', () => {
+      const n = Number(el.value);
+      draft.slots[Number(el.dataset.slotRest)].restSec = n > 0 ? n : null;
     }));
 
     app.querySelectorAll('[data-merge]').forEach(el => el.addEventListener('click', () => {
@@ -1361,9 +1387,10 @@ function renderSession(routineId) {
     .filter(s => s.routineId === routineId)
     .sort((a, b) => b.date.localeCompare(a.date))[0];
 
-  // draft.entries[slotId] = { exerciseId, sets: [{weight, reps, rir, reps2, restSec}], uni, _restTarget }
-  // El descanso (restStart/pendingRestSec) es global a la sesión: puede empezar
-  // en un ejercicio y terminar registrándose en el siguiente.
+  // draft.entries[slotId] = { exerciseId, sets: [{weight, reps, rir, reps2, restSec}], uni }
+  // El descanso se mide solo: "+ Serie" arranca el cronómetro (restStart) y la
+  // siguiente serie, sea del ejercicio que sea, guarda el tiempo transcurrido.
+  // restSlotId dice de qué ejercicio sale el objetivo (slot.restSec).
   // La sesión en curso se autoguarda (ver saveDraft) para que sobreviva a
   // salir de esta pantalla (p. ej. para editar la rutina) sin perder datos.
   const restoredDraft = loadSessionDraft(routineId);
@@ -1371,8 +1398,7 @@ function renderSession(routineId) {
     gym: (lastRoutineSession && lastRoutineSession.gym) || '',
     entries: {},
     restStart: null,
-    pendingRestSec: null,
-    restSourceSlotId: null,
+    restSlotId: null,
     sessionStartedAt: Date.now(),
   };
   const sessionStartedAt = draft.sessionStartedAt;
@@ -1380,7 +1406,7 @@ function renderSession(routineId) {
     if (draft.entries[slot.id]) return; // ya existía (sesión restaurada) o se acaba de añadir a la rutina
     const lastHistory = pastSessionsForSlot(slot.id, 1)[0];
     const defaultUni = !!(lastHistory && lastHistory.entry.sets.some(s => s.reps2 != null && s.reps2 !== ''));
-    draft.entries[slot.id] = { exerciseId: slot.exerciseId, sets: [], uni: defaultUni, _historyLimit: 3, _restTarget: null };
+    draft.entries[slot.id] = { exerciseId: slot.exerciseId, sets: [], uni: defaultUni, _historyLimit: 3 };
   });
 
   // draft.supersets[slotId] = idGrupo | null. La rutina guarda el plan habitual;
@@ -1476,63 +1502,45 @@ function renderSession(routineId) {
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter') confirmGym(); });
   }
 
-  function openRestTargetPrompt(slotId, onDone) {
-    const entry = draft.entries[slotId];
-    const lastHistory = pastSessionsForSlot(slotId, 1)[0];
-    const defaultVal = lastHistory && lastHistory.entry.restNote ? lastHistory.entry.restNote.split('-')[0] : '';
-    const ex = getExercise(entry.exerciseId);
+  // Objetivo de descanso del ejercicio: vive en la rutina y se cambia sin
+  // bloquear nada. Vacío = sin objetivo (no pita).
+  function openRestTargetEditor(slotId) {
+    const slot = routine.slots.find(sl => sl.id === slotId);
+    if (!slot) return;
+    const ex = getExercise(draft.entries[slotId].exerciseId);
     const backdrop = document.createElement('div');
     backdrop.className = 'modal-backdrop';
     backdrop.innerHTML = `
       <div class="modal-sheet">
-        <h2>⏱ Descanso objetivo</h2>
-        <p style="color:var(--text-dim);font-size:13px;margin-top:-8px;">${escapeHtml(ex ? ex.name : '')} — en segundos</p>
+        <h2>🎯 Descanso objetivo</h2>
+        <p style="color:var(--text-dim);font-size:13px;margin-top:-8px;">${escapeHtml(ex ? ex.name : '')} — en segundos. Se guarda en la rutina.</p>
         <div class="field">
-          <input id="rest-target-input" type="number" inputmode="numeric" placeholder="Ej. 90" value="${escapeHtml(defaultVal)}" />
+          <input id="rest-target-input" type="number" inputmode="numeric" placeholder="Ej. 90" value="${slot.restSec ?? ''}" />
         </div>
         <button class="btn btn-primary btn-block" id="rest-target-ok">Guardar</button>
         <div style="height:8px;"></div>
-        <button class="btn btn-block" id="rest-target-skip">Omitir</button>
+        <button class="btn btn-block" id="rest-target-cancel">Cancelar</button>
       </div>
     `;
     document.body.appendChild(backdrop);
     const input = document.getElementById('rest-target-input');
     input.focus();
-    const finish = (value) => {
-      entry._restTarget = value;
+    input.select();
+    const finish = () => {
+      const n = Number(input.value);
+      slot.restSec = n > 0 ? n : null;
+      saveDB();
       document.body.removeChild(backdrop);
-      onDone();
+      paint();
     };
-    document.getElementById('rest-target-ok').addEventListener('click', () => finish(input.value.trim()));
-    document.getElementById('rest-target-skip').addEventListener('click', () => finish(''));
-    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') finish(input.value.trim()); });
+    document.getElementById('rest-target-ok').addEventListener('click', finish);
+    document.getElementById('rest-target-cancel').addEventListener('click', () => document.body.removeChild(backdrop));
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') finish(); });
   }
 
-  function openManualRestPrompt(onDone) {
-    const backdrop = document.createElement('div');
-    backdrop.className = 'modal-backdrop';
-    backdrop.innerHTML = `
-      <div class="modal-sheet">
-        <h2>⏱ ¿Cuánto descansaste?</h2>
-        <p style="color:var(--text-dim);font-size:13px;margin-top:-8px;">No usaste el cronómetro — dilo en segundos</p>
-        <div class="field">
-          <input id="manual-rest-input" type="number" inputmode="numeric" placeholder="Ej. 90" />
-        </div>
-        <button class="btn btn-primary btn-block" id="manual-rest-ok">Guardar</button>
-        <div style="height:8px;"></div>
-        <button class="btn btn-block" id="manual-rest-skip">No lo sé</button>
-      </div>
-    `;
-    document.body.appendChild(backdrop);
-    const input = document.getElementById('manual-rest-input');
-    input.focus();
-    const finish = (value) => {
-      document.body.removeChild(backdrop);
-      onDone(value === '' || value == null ? null : Number(value));
-    };
-    document.getElementById('manual-rest-ok').addEventListener('click', () => finish(input.value.trim()));
-    document.getElementById('manual-rest-skip').addEventListener('click', () => finish(null));
-    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') finish(input.value.trim()); });
+  function restTargetOf(slotId) {
+    const slot = routine.slots.find(sl => sl.id === slotId);
+    return slot && slot.restSec > 0 ? slot.restSec : null;
   }
 
   function historyThresholds(total) {
@@ -1725,11 +1733,8 @@ function renderSession(routineId) {
         </div>
       ` : '<div class="history-empty">Sin sesiones anteriores para este ejercicio.</div>';
 
-      const restWidget = draft.restStart != null
-        ? `<span class="rest-live" data-since="${draft.restStart}">⏱ 0:00</span><button class="btn btn-danger" data-stop-rest="1">Parar descanso</button>`
-        : draft.pendingRestSec != null
-          ? `<span class="rest-pending">Descanso: ${draft.pendingRestSec}s — se añadirá a la próxima serie</span><button class="btn-ghost" data-clear-rest="1" style="font-size:16px;">✕</button>`
-          : `<button class="btn" data-start-rest="${slot.id}">▶ Iniciar descanso</button>`;
+      const target = restTargetOf(slot.id);
+      const targetTag = `<button class="btn-ghost rest-target-tag" data-edit-rest="${slot.id}">🎯 ${target ? `${target}s` : 'sin objetivo'}</button>`;
 
       const setsHtml = entry.sets.map((set, sIdx) => {
         const showGap = !(idx === 0 && sIdx === 0);
@@ -1784,21 +1789,15 @@ function renderSession(routineId) {
             <button class="btn btn-ghost" data-swap="${slot.id}" style="font-size:13px;white-space:nowrap;">Sustituir</button>
           </div>
           <div class="history">${historyHtml}${historyMoreHtml}</div>
-          ${entry._restTarget == null ? `
-            <div class="rest-gate">
-              <button class="btn btn-primary btn-block" data-set-target="${slot.id}">🎯 Fijar descanso objetivo para empezar</button>
+          <div class="rest-widget">${targetTag}${uniToggle}</div>
+          <div class="log-area">
+            ${labelsHtml}
+            ${setsHtml}
+            <div class="log-actions">
+              <button class="btn" data-add-set="${slot.id}">+ Serie</button>
+              ${isSub ? `<button class="btn" data-revert="${slot.id}">Deshacer sustitución</button>` : ''}
             </div>
-          ` : `
-            <div class="rest-widget"><span class="rest-target-tag">🎯 ${entry._restTarget ? `obj: ${escapeHtml(entry._restTarget)}s` : 'sin objetivo'}</span>${restWidget}${uniToggle}</div>
-            <div class="log-area">
-              ${labelsHtml}
-              ${setsHtml}
-              <div class="log-actions">
-                <button class="btn" data-add-set="${slot.id}">+ Serie</button>
-                ${isSub ? `<button class="btn" data-revert="${slot.id}">Deshacer sustitución</button>` : ''}
-              </div>
-            </div>
-          `}
+          </div>
         </div>
       `;
     }).join('');
@@ -1817,6 +1816,11 @@ function renderSession(routineId) {
         ${blocks}
       </div>
       <div class="save-bar">
+        <div class="rest-bar" id="rest-bar"${draft.restStart != null ? '' : ' hidden'}>
+          <span class="rest-live" id="rest-live">⏱ 0:00</span>
+          <span class="rest-bar-info" id="rest-bar-info"></span>
+          <button class="btn-ghost rest-bar-cancel" id="rest-cancel" title="Descartar este descanso">✕</button>
+        </div>
         <button class="btn btn-primary btn-block" id="finish-session-btn">Guardar sesión</button>
       </div>
     `;
@@ -1849,66 +1853,48 @@ function renderSession(routineId) {
       paint();
     }));
 
-    function addSetNow(slotId, manualRestSec) {
-      const entry = draft.entries[slotId];
-      // Ojo: si hay un descanso EN MARCHA (restStart) no lo tocamos aquí —
-      // ese cronómetro es para el hueco ANTES de la próxima serie, no de esta.
-      // Solo se consume un descanso ya parado (pendingRestSec) o uno metido a mano.
-      let restSec = draft.pendingRestSec;
-      if (restSec == null && manualRestSec !== undefined) restSec = manualRestSec;
-      const lastSet = entry.sets[entry.sets.length - 1];
-      const defaultWeight = lastSet && lastSet.weight !== '' && lastSet.weight != null ? lastSet.weight : '';
-      entry.sets.push({ weight: defaultWeight, reps: '', rir: '', restSec });
-      draft.pendingRestSec = null;
-      markActivity();
-      paint();
-    }
-
-    app.querySelectorAll('[data-set-target]').forEach(el => el.addEventListener('click', () => {
-      openRestTargetPrompt(el.dataset.setTarget, paint);
-    }));
-
+    // "+ Serie" se pulsa al acabar la serie: cierra el descanso que venía
+    // corriendo (se guarda en esta serie) y arranca el de la siguiente.
     app.querySelectorAll('[data-add-set]').forEach(el => el.addEventListener('click', () => {
       const slotId = el.dataset.addSet;
       const entry = draft.entries[slotId];
-      const idxInRoutine = routine.slots.findIndex(s => s.id === slotId);
-      const isVeryFirstSetOfSession = idxInRoutine === 0 && entry.sets.length === 0;
-      const usedTimer = draft.pendingRestSec != null || draft.restStart != null;
-
-      if (!isVeryFirstSetOfSession && !usedTimer) {
-        openManualRestPrompt((sec) => addSetNow(slotId, sec));
-      } else {
-        addSetNow(slotId);
-      }
-    }));
-
-    app.querySelectorAll('[data-start-rest]').forEach(el => el.addEventListener('click', () => {
+      const now = Date.now();
+      const restSec = draft.restStart != null ? Math.round((now - draft.restStart) / 1000) : null;
+      const lastSet = entry.sets[entry.sets.length - 1];
+      const defaultWeight = lastSet && lastSet.weight !== '' && lastSet.weight != null ? lastSet.weight : '';
+      entry.sets.push({ weight: defaultWeight, reps: '', rir: '', restSec });
       unlockAudio();
-      draft.restStart = Date.now();
-      draft.restSourceSlotId = el.dataset.startRest;
+      draft.restStart = now;
+      draft.restSlotId = slotId;
       draft.restAlerted = false;
+      markActivity();
       paint();
     }));
 
-    app.querySelectorAll('[data-stop-rest]').forEach(el => el.addEventListener('click', () => {
-      draft.pendingRestSec = Math.round((Date.now() - draft.restStart) / 1000);
+    app.querySelectorAll('[data-edit-rest]').forEach(el => el.addEventListener('click', () => {
+      openRestTargetEditor(el.dataset.editRest);
+    }));
+
+    document.getElementById('rest-cancel').addEventListener('click', () => {
       draft.restStart = null;
+      draft.restSlotId = null;
       paint();
-    }));
-
-    app.querySelectorAll('[data-clear-rest]').forEach(el => el.addEventListener('click', () => {
-      draft.pendingRestSec = null;
-      paint();
-    }));
+    });
 
     Object.keys(restIntervals).forEach(k => clearInterval(restIntervals[k]));
     if (draft.restStart != null) {
       const since = draft.restStart;
-      const sourceEntry = draft.restSourceSlotId ? draft.entries[draft.restSourceSlotId] : null;
-      const targetSec = sourceEntry && sourceEntry._restTarget ? Number(sourceEntry._restTarget.toString().split('-')[0]) : null;
+      const targetSec = draft.restSlotId ? restTargetOf(draft.restSlotId) : null;
+      const restEx = draft.restSlotId && draft.entries[draft.restSlotId] ? getExercise(draft.entries[draft.restSlotId].exerciseId) : null;
+      const info = document.getElementById('rest-bar-info');
+      if (info) info.textContent = (targetSec ? `/ ${mmss(targetSec)}` : '') + (restEx ? ` · ${restEx.name}` : '');
       const tick = () => {
         const elapsed = Math.floor((Date.now() - since) / 1000);
-        app.querySelectorAll('.rest-live').forEach(el => { el.textContent = '⏱ ' + mmss(elapsed); });
+        const live = document.getElementById('rest-live');
+        if (live) {
+          live.textContent = '⏱ ' + mmss(elapsed);
+          live.classList.toggle('rest-over', !!targetSec && elapsed >= targetSec);
+        }
         // El "ya he avisado" vive en el draft, no en esta función: si viviera aquí
         // se reiniciaría en cada repintado y volvería a pitar en cada toque.
         if (targetSec && !draft.restAlerted && elapsed >= Math.max(targetSec - 10, 0)) {
@@ -2052,7 +2038,8 @@ function renderSession(routineId) {
                 return out;
               })
           };
-          if (e._restTarget) entryOut.restNote = e._restTarget;
+          const restTarget = restTargetOf(slotId);
+          if (restTarget) entryOut.restNote = String(restTarget);
           // Lo de hoy, no el plan de la rutina: así una sesión guardada conserva
           // si ese día concreto la hiciste enlazada o suelta.
           if (draft.supersets[slotId]) entryOut.supersetGroup = draft.supersets[slotId];
