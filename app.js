@@ -291,6 +291,8 @@ function render() {
   const parts = currentRoute();
   if (parts.length === 0) return renderHome();
   if (parts[0] === 'exercises') return renderExercises();
+  if (parts[0] === 'history') return renderHistory();
+  if (parts[0] === 'session-view' && parts[1]) return renderSessionDetail(parts[1]);
   if (parts[0] === 'routine-new') return renderRoutineEditor(null);
   if (parts[0] === 'routine-edit' && parts[1]) return renderRoutineEditor(parts[1]);
   if (parts[0] === 'session' && parts[1]) return renderSession(parts[1]);
@@ -394,6 +396,7 @@ function renderHome() {
   app.innerHTML = `
     <div class="topbar">
       <h1>Mis rutinas</h1>
+      <button class="btn btn-icon" data-nav="history" title="Historial de sesiones">📅</button>
       <button class="btn btn-icon" data-nav="exercises" title="Ejercicios">🏋️</button>
     </div>
     <div class="container">
@@ -585,7 +588,7 @@ function renderRoutineEditor(routineId) {
       return `
         <div class="slot-editor-row" data-idx="${idx}">
           <span class="drag-handle" data-drag-handle="${idx}">⠿</span>
-          <div class="name">${idx + 1}. ${ex ? escapeHtml(ex.name) : '(ejercicio eliminado)'}</div>
+          <div class="name">${idx + 1}. ${ex ? escapeHtml(ex.name) : '(ejercicio eliminado)'}${slot.supersetGroup ? ' <span class="ss-tag">SS</span>' : ''}</div>
           ${editing && draft.slots.length > 1 ? `<button class="rm" data-merge="${idx}" title="Fusionar con otro ejercicio de esta rutina">🔗</button>` : ''}
           <button class="rm" data-rm="${idx}">✕</button>
         </div>`;
@@ -930,6 +933,190 @@ function playRestBeep() {
   } catch (e) { /* Web Audio blocked, ignore */ }
 }
 
+// ---------- Historial de sesiones guardadas ----------
+// Sube la copia a GitHub tras un rato sin cambios, para no disparar una subida
+// por cada tecla mientras se corrige una sesión.
+let ghPushTimer = null;
+function scheduleGhBackup() {
+  if (!getGhToken()) return;
+  clearTimeout(ghPushTimer);
+  ghPushTimer = setTimeout(() => pushBackupToGitHub(true), 3000);
+}
+
+function renderHistory() {
+  const sessions = [...db.sessions].sort((a, b) => b.date.localeCompare(a.date));
+  const rows = sessions.map(s => {
+    const routine = getRoutine(s.routineId);
+    const totalSets = s.entries.reduce((n, e) => n + e.sets.length, 0);
+    const meta = [
+      `${s.entries.length} ejercicios`,
+      `${totalSets} series`,
+      s.durationSec != null ? formatDurationHuman(s.durationSec) : null,
+      s.gym ? `📍 ${s.gym}` : null,
+    ].filter(Boolean).join(' · ');
+    return `
+      <div class="list-item" data-open-session="${s.id}" style="cursor:pointer;">
+        <div style="flex:1;">
+          <div class="name">${fmtDate(s.date)} · ${escapeHtml(routine ? routine.name : 'Rutina eliminada')}</div>
+          <div class="muscle">${escapeHtml(meta)}</div>
+          ${s.notes ? `<div class="notes-line">${escapeHtml(s.notes)}</div>` : ''}
+        </div>
+        <div class="chevron">›</div>
+      </div>`;
+  }).join('');
+
+  app.innerHTML = `
+    <div class="topbar">
+      <button class="btn btn-ghost" data-nav="">← Atrás</button>
+      <h1>Historial</h1>
+    </div>
+    <div class="container">
+      <div class="card">
+        ${sessions.length ? rows : '<div class="empty-state">Todavía no hay sesiones guardadas.</div>'}
+      </div>
+    </div>
+  `;
+
+  app.querySelectorAll('[data-nav]').forEach(el => el.addEventListener('click', () => navigate(el.dataset.nav)));
+  app.querySelectorAll('[data-open-session]').forEach(el => {
+    el.addEventListener('click', () => navigate(`session-view/${el.dataset.openSession}`));
+  });
+}
+
+// Al editar una sesión guardada: los números se guardan como número, pero se
+// respeta el texto tal cual en casos como los drop sets ("90/77.5").
+function parseSavedValue(raw) {
+  const v = normalizeDecimal(String(raw).trim());
+  if (v === '') return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : v;
+}
+
+function renderSessionDetail(sessionId) {
+  const session = db.sessions.find(s => s.id === sessionId);
+  if (!session) { navigate('history'); return; }
+  const routine = getRoutine(session.routineId);
+
+  function paint() {
+    const blocks = session.entries.map((e, eIdx) => {
+      const ex = getExercise(e.exerciseId);
+      const setsHtml = e.sets.map((set, sIdx) => {
+        const tags = [set.dropset ? 'DROP' : null, set.restPause ? 'RP' : null].filter(Boolean).join(' · ');
+        return `
+        <div class="set-row">
+          <div class="set-num">${sIdx + 1}</div>
+          <input type="text" inputmode="decimal" placeholder="kg" data-hw="${eIdx}:${sIdx}" value="${escapeHtml(set.weight ?? '')}" />
+          <input type="text" inputmode="decimal" placeholder="reps" data-hr="${eIdx}:${sIdx}" value="${escapeHtml(set.reps ?? '')}" />
+          ${set.reps2 != null
+            ? `<input type="text" inputmode="decimal" placeholder="der" data-hr2="${eIdx}:${sIdx}" value="${escapeHtml(set.reps2)}" />`
+            : `<input type="text" inputmode="decimal" placeholder="RIR" data-hrir="${eIdx}:${sIdx}" value="${escapeHtml(set.rir ?? '')}" />`}
+          <button class="rm" data-hrm="${eIdx}:${sIdx}">✕</button>
+        </div>
+        ${tags ? `<div class="rest-tag">${tags}</div>` : ''}`;
+      }).join('');
+
+      return `
+        <div class="exercise-block" style="${muscleBackgroundStyle(ex && ex.muscle)}">
+          ${ex && ex.muscle ? muscleBadgeHtml(ex.muscle) : ''}
+          <div class="exercise-head">
+            <div>
+              <h3>${eIdx + 1}. ${escapeHtml(ex ? ex.name : '(ejercicio eliminado)')}</h3>
+              ${e.supersetGroup ? '<div class="superset-note">🔗 Superserie</div>' : ''}
+              ${e.restNote ? `<div class="rest-note">desc. obj: ${escapeHtml(e.restNote)}s</div>` : ''}
+            </div>
+          </div>
+          <div class="log-area">
+            <div class="set-labels"><span></span><span>Kg</span><span>Reps</span><span>RIR</span><span></span></div>
+            ${setsHtml || '<div class="history-empty">Sin series.</div>'}
+          </div>
+        </div>`;
+    }).join('');
+
+    app.innerHTML = `
+      <div class="topbar">
+        <button class="btn btn-ghost" data-nav="history">← Atrás</button>
+        <h1>${fmtDate(session.date)}</h1>
+      </div>
+      <div class="container">
+        <div class="card">
+          <div style="font-size:13px;color:var(--text-dim);margin-bottom:10px;">${escapeHtml(routine ? routine.name : 'Rutina eliminada')}</div>
+          <div class="field">
+            <label>Duración (minutos)</label>
+            <input id="sd-duration" type="text" inputmode="numeric" value="${session.durationSec != null ? Math.round(session.durationSec / 60) : ''}" placeholder="Ej. 70" />
+          </div>
+          <div class="field">
+            <label>Gimnasio</label>
+            <input id="sd-gym" value="${escapeHtml(session.gym || '')}" placeholder="Ej. Hi-Fitness" />
+          </div>
+          <div class="field">
+            <label>Notas de la sesión</label>
+            <input id="sd-notes" value="${escapeHtml(session.notes || '')}" placeholder="Ej. hombro molestando" />
+          </div>
+        </div>
+        ${blocks}
+        <div class="fab-row">
+          <button class="btn btn-danger btn-block" id="sd-delete">🗑 Eliminar esta sesión</button>
+        </div>
+      </div>
+    `;
+
+    app.querySelectorAll('[data-nav]').forEach(el => el.addEventListener('click', () => navigate(el.dataset.nav)));
+
+    document.getElementById('sd-duration').addEventListener('input', (e) => {
+      const min = Number(normalizeDecimal(e.target.value));
+      session.durationSec = min > 0 ? Math.round(min * 60) : null;
+      saveDB();
+      scheduleGhBackup();
+    });
+    document.getElementById('sd-gym').addEventListener('input', (e) => {
+      session.gym = e.target.value;
+      saveDB();
+      scheduleGhBackup();
+    });
+    document.getElementById('sd-notes').addEventListener('input', (e) => {
+      session.notes = e.target.value;
+      saveDB();
+      scheduleGhBackup();
+    });
+
+    const bindSet = (attr, field) => {
+      app.querySelectorAll(`[data-${attr}]`).forEach(el => el.addEventListener('input', () => {
+        const [eIdx, sIdx] = el.dataset[attr].split(':').map(Number);
+        session.entries[eIdx].sets[sIdx][field] = parseSavedValue(el.value);
+        saveDB();
+        scheduleGhBackup();
+      }));
+    };
+    bindSet('hw', 'weight');
+    bindSet('hr', 'reps');
+    bindSet('hr2', 'reps2');
+    bindSet('hrir', 'rir');
+
+    app.querySelectorAll('[data-hrm]').forEach(el => el.addEventListener('click', () => {
+      const [eIdx, sIdx] = el.dataset.hrm.split(':').map(Number);
+      session.entries[eIdx].sets.splice(sIdx, 1);
+      if (!session.entries[eIdx].sets.length) session.entries.splice(eIdx, 1);
+      saveDB();
+      scheduleGhBackup();
+      if (!session.entries.length) {
+        showToast('La sesión se ha quedado sin series');
+      }
+      paint();
+    }));
+
+    document.getElementById('sd-delete').addEventListener('click', () => {
+      if (!confirm('¿Eliminar esta sesión del histórico? No se puede deshacer.')) return;
+      db.sessions = db.sessions.filter(s => s.id !== sessionId);
+      saveDB();
+      scheduleGhBackup();
+      showToast('Sesión eliminada');
+      navigate('history');
+    });
+  }
+
+  paint();
+}
+
 // ---------- Sesión de entrenamiento ----------
 function renderSession(routineId) {
   const routine = getRoutine(routineId);
@@ -978,6 +1165,53 @@ function renderSession(routineId) {
 
   function saveDraft() {
     saveSessionDraft(routineId, draft);
+  }
+
+  // La duración se mide entre la primera y la última serie registrada, no desde
+  // que se abre la pantalla: abrir la rutina para mirar el histórico y entrenar
+  // horas después no debe inflar el tiempo de la sesión.
+  function markActivity() {
+    const now = Date.now();
+    if (!draft.firstSetAt) draft.firstSetAt = now;
+    draft.lastActivityAt = now;
+  }
+
+  function suggestedDurationSec() {
+    if (draft.firstSetAt && draft.lastActivityAt && draft.lastActivityAt > draft.firstSetAt) {
+      return Math.round((draft.lastActivityAt - draft.firstSetAt) / 1000);
+    }
+    return Math.round((Date.now() - sessionStartedAt) / 1000);
+  }
+
+  function openDurationPrompt(onDone) {
+    const suggestedMin = Math.max(1, Math.round(suggestedDurationSec() / 60));
+    const backdrop = document.createElement('div');
+    backdrop.className = 'modal-backdrop';
+    backdrop.innerHTML = `
+      <div class="modal-sheet">
+        <h2>⏱ Duración del entreno</h2>
+        <p style="color:var(--text-dim);font-size:13px;margin-top:-8px;">Calculado entre tu primera y última serie. Corrígelo si no cuadra.</p>
+        <div class="field">
+          <input id="duration-input" type="text" inputmode="numeric" value="${suggestedMin}" />
+        </div>
+        <button class="btn btn-primary btn-block" id="duration-ok">Guardar sesión</button>
+        <div style="height:8px;"></div>
+        <button class="btn btn-block" id="duration-cancel">Cancelar</button>
+      </div>
+    `;
+    document.body.appendChild(backdrop);
+    const input = document.getElementById('duration-input');
+    input.focus();
+    input.select();
+    const confirmDuration = () => {
+      const min = Number(normalizeDecimal(input.value));
+      if (!min || min <= 0) { showToast('Pon una duración válida en minutos'); return; }
+      document.body.removeChild(backdrop);
+      onDone(Math.round(min * 60));
+    };
+    document.getElementById('duration-ok').addEventListener('click', confirmDuration);
+    document.getElementById('duration-cancel').addEventListener('click', () => document.body.removeChild(backdrop));
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') confirmDuration(); });
   }
 
   function openGymPrompt() {
@@ -1069,6 +1303,89 @@ function renderSession(routineId) {
     const result = steps.filter(s => s < total);
     result.push(total);
     return result;
+  }
+
+  // ---------- Superseries ----------
+  // Los ejercicios que comparten supersetGroup se hacen enlazados. Se guarda en
+  // la rutina (suele repetirse entre sesiones) y también en la sesión guardada.
+  function slotExerciseName(slot) {
+    const entryForSlot = draft.entries[slot.id];
+    const ex = getExercise(entryForSlot ? entryForSlot.exerciseId : slot.exerciseId);
+    return ex ? ex.name : '?';
+  }
+
+  function supersetPartners(slot) {
+    if (!slot.supersetGroup) return [];
+    return routine.slots
+      .map((s, i) => ({ slot: s, idx: i }))
+      .filter(({ slot: s }) => s.id !== slot.id && s.supersetGroup === slot.supersetGroup);
+  }
+
+  function supersetNoteHtml(slot) {
+    const partners = supersetPartners(slot);
+    if (!partners.length) {
+      return `<div class="superset-link" data-superset="${slot.id}">🔗 Enlazar superserie</div>`;
+    }
+    const names = partners
+      .map(({ slot: s, idx: i }) => `${i + 1}. ${escapeHtml(slotExerciseName(s))}`)
+      .join(' · ');
+    return `<div class="superset-note" data-superset="${slot.id}">🔗 Superserie con ${names}</div>`;
+  }
+
+  // Un grupo con un solo ejercicio ya no es una superserie.
+  function cleanupSupersetGroups() {
+    const counts = {};
+    routine.slots.forEach(s => { if (s.supersetGroup) counts[s.supersetGroup] = (counts[s.supersetGroup] || 0) + 1; });
+    routine.slots.forEach(s => { if (s.supersetGroup && counts[s.supersetGroup] < 2) delete s.supersetGroup; });
+  }
+
+  function openSupersetPicker(slotId) {
+    const slot = routine.slots.find(s => s.id === slotId);
+    if (!slot) return;
+    const partners = supersetPartners(slot);
+    const backdrop = document.createElement('div');
+    backdrop.className = 'modal-backdrop';
+    const rows = routine.slots
+      .map((s, i) => ({ slot: s, idx: i }))
+      .filter(({ slot: s }) => s.id !== slotId)
+      .map(({ slot: s, idx: i }) => {
+        const linked = slot.supersetGroup && s.supersetGroup === slot.supersetGroup;
+        return `<div class="pick-row" data-pick-slot="${s.id}">${linked ? '🔗 ' : ''}${i + 1}. ${escapeHtml(slotExerciseName(s))}</div>`;
+      }).join('') || '<div class="empty-state">No hay otros ejercicios en la rutina.</div>';
+    backdrop.innerHTML = `
+      <div class="modal-sheet">
+        <h2>🔗 Superserie</h2>
+        <p style="color:var(--text-dim);font-size:13px;margin-top:-8px;">Elige con qué ejercicio la haces enlazada. Toca uno ya enlazado (🔗) para quitarlo.</p>
+        <div>${rows}</div>
+        ${partners.length ? '<button class="btn btn-danger btn-block" id="superset-clear" style="margin-top:10px;">Deshacer superserie</button><div style="height:8px;"></div>' : '<div style="height:10px;"></div>'}
+        <button class="btn btn-block" id="superset-cancel">Cancelar</button>
+      </div>
+    `;
+    document.body.appendChild(backdrop);
+    backdrop.querySelectorAll('[data-pick-slot]').forEach(el => el.addEventListener('click', () => {
+      const other = routine.slots.find(s => s.id === el.dataset.pickSlot);
+      if (slot.supersetGroup && other.supersetGroup === slot.supersetGroup) {
+        delete other.supersetGroup;
+      } else {
+        const group = slot.supersetGroup || other.supersetGroup || uid();
+        slot.supersetGroup = group;
+        other.supersetGroup = group;
+      }
+      cleanupSupersetGroups();
+      saveDB();
+      document.body.removeChild(backdrop);
+      paint();
+    }));
+    const clearBtn = document.getElementById('superset-clear');
+    if (clearBtn) clearBtn.addEventListener('click', () => {
+      const group = slot.supersetGroup;
+      routine.slots.forEach(s => { if (s.supersetGroup === group) delete s.supersetGroup; });
+      saveDB();
+      document.body.removeChild(backdrop);
+      paint();
+    });
+    document.getElementById('superset-cancel').addEventListener('click', () => document.body.removeChild(backdrop));
+    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) document.body.removeChild(backdrop); });
   }
 
   function paint() {
@@ -1166,6 +1483,7 @@ function renderSession(routineId) {
               <h3>${idx + 1}. ${escapeHtml(currentEx ? currentEx.name : '(ejercicio eliminado)')}</h3>
               ${currentEx && currentEx.notes ? `<div class="notes-line" data-edit-ex-notes="${currentEx.id}">✎ ${escapeHtml(currentEx.notes)}</div>` : currentEx ? `<div class="notes-line notes-line-empty" data-edit-ex-notes="${currentEx.id}">+ añadir observación</div>` : ''}
               ${isSub ? `<div class="sub-note">🔄 Sustituye a: ${escapeHtml(plannedEx ? plannedEx.name : '?')}</div>` : ''}
+              ${supersetNoteHtml(slot)}
             </div>
             <button class="btn btn-ghost" data-swap="${slot.id}" style="font-size:13px;white-space:nowrap;">Sustituir</button>
           </div>
@@ -1227,6 +1545,10 @@ function renderSession(routineId) {
       if (ex) openExerciseEditor(ex, paint);
     }));
 
+    app.querySelectorAll('[data-superset]').forEach(el => el.addEventListener('click', () => {
+      openSupersetPicker(el.dataset.superset);
+    }));
+
     function addSetNow(slotId, manualRestSec) {
       const entry = draft.entries[slotId];
       // Ojo: si hay un descanso EN MARCHA (restStart) no lo tocamos aquí —
@@ -1238,6 +1560,7 @@ function renderSession(routineId) {
       const defaultWeight = lastSet && lastSet.weight !== '' && lastSet.weight != null ? lastSet.weight : '';
       entry.sets.push({ weight: defaultWeight, reps: '', rir: '', restSec });
       draft.pendingRestSec = null;
+      markActivity();
       paint();
     }
 
@@ -1263,6 +1586,7 @@ function renderSession(routineId) {
       unlockAudio();
       draft.restStart = Date.now();
       draft.restSourceSlotId = el.dataset.startRest;
+      draft.restAlerted = false;
       paint();
     }));
 
@@ -1282,12 +1606,14 @@ function renderSession(routineId) {
       const since = draft.restStart;
       const sourceEntry = draft.restSourceSlotId ? draft.entries[draft.restSourceSlotId] : null;
       const targetSec = sourceEntry && sourceEntry._restTarget ? Number(sourceEntry._restTarget.toString().split('-')[0]) : null;
-      let alerted = false;
       const tick = () => {
         const elapsed = Math.floor((Date.now() - since) / 1000);
         app.querySelectorAll('.rest-live').forEach(el => { el.textContent = '⏱ ' + mmss(elapsed); });
-        if (targetSec && !alerted && elapsed >= Math.max(targetSec - 10, 0)) {
-          alerted = true;
+        // El "ya he avisado" vive en el draft, no en esta función: si viviera aquí
+        // se reiniciaría en cada repintado y volvería a pitar en cada toque.
+        if (targetSec && !draft.restAlerted && elapsed >= Math.max(targetSec - 10, 0)) {
+          draft.restAlerted = true;
+          saveDraft();
           playRestBeep();
         }
       };
@@ -1339,21 +1665,25 @@ function renderSession(routineId) {
     app.querySelectorAll('[data-weight]').forEach(el => el.addEventListener('input', () => {
       const [slotId, sIdx] = el.dataset.weight.split(':');
       draft.entries[slotId].sets[Number(sIdx)].weight = normalizeDecimal(el.value);
+      markActivity();
       saveDraft();
     }));
     app.querySelectorAll('[data-reps]').forEach(el => el.addEventListener('input', () => {
       const [slotId, sIdx] = el.dataset.reps.split(':');
       draft.entries[slotId].sets[Number(sIdx)].reps = normalizeDecimal(el.value);
+      markActivity();
       saveDraft();
     }));
     app.querySelectorAll('[data-rir]').forEach(el => el.addEventListener('input', () => {
       const [slotId, sIdx] = el.dataset.rir.split(':');
       draft.entries[slotId].sets[Number(sIdx)].rir = normalizeDecimal(el.value);
+      markActivity();
       saveDraft();
     }));
     app.querySelectorAll('[data-reps2]').forEach(el => el.addEventListener('input', () => {
       const [slotId, sIdx] = el.dataset.reps2.split(':');
       draft.entries[slotId].sets[Number(sIdx)].reps2 = normalizeDecimal(el.value);
+      markActivity();
       saveDraft();
     }));
     app.querySelectorAll('[data-restsec]').forEach(el => el.addEventListener('input', () => {
@@ -1423,6 +1753,8 @@ function renderSession(routineId) {
               })
           };
           if (e._restTarget) entryOut.restNote = e._restTarget;
+          const slotRef = routine.slots.find(s => s.id === slotId);
+          if (slotRef && slotRef.supersetGroup) entryOut.supersetGroup = slotRef.supersetGroup;
           return entryOut;
         });
 
@@ -1431,19 +1763,21 @@ function renderSession(routineId) {
         return;
       }
 
-      db.sessions.push({
-        id: uid(),
-        routineId,
-        date: new Date().toISOString(),
-        durationSec: Math.round((Date.now() - sessionStartedAt) / 1000),
-        gym: draft.gym || '',
-        entries
+      openDurationPrompt((durationSec) => {
+        db.sessions.push({
+          id: uid(),
+          routineId,
+          date: new Date().toISOString(),
+          durationSec,
+          gym: draft.gym || '',
+          entries
+        });
+        saveDB();
+        clearSessionDraft(routineId);
+        showToast('Sesión guardada');
+        navigate('');
+        if (getGhToken()) setTimeout(() => pushBackupToGitHub(true), 2000);
       });
-      saveDB();
-      clearSessionDraft(routineId);
-      showToast('Sesión guardada');
-      navigate('');
-      if (getGhToken()) setTimeout(() => pushBackupToGitHub(true), 2000);
     });
   }
 
