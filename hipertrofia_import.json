@@ -501,12 +501,12 @@
           "exerciseId": "8ae221b7450b"
         },
         {
-          "id": "46eca9fae0fa",
-          "exerciseId": "064fc6a28c64"
-        },
-        {
           "id": "f81e7022e628",
           "exerciseId": "071deb7f5463"
+        },
+        {
+          "id": "46eca9fae0fa",
+          "exerciseId": "064fc6a28c64"
         },
         {
           "id": "0d32e496202e",
@@ -536,7 +536,61 @@
     },
     {
       "id": "064f9dc0095e",
-      "name": "Pierna (Leg)",
+      "name": "Pierna (Hipertrofia)",
+      "slots": [
+        {
+          "id": "6df0dc7664e0",
+          "exerciseId": "cdc3611eb981"
+        },
+        {
+          "id": "39614ab607f2",
+          "exerciseId": "618526128189"
+        },
+        {
+          "id": "fe1161b01d45",
+          "exerciseId": "e3ae6e10d14e"
+        },
+        {
+          "id": "efd2de8b2e2a",
+          "exerciseId": "cea8cd3691f5"
+        },
+        {
+          "id": "990c371b755a",
+          "exerciseId": "f2b4a44057d4"
+        },
+        {
+          "id": "7aca74a244b4",
+          "exerciseId": "8b251ada8a8e"
+        },
+        {
+          "id": "1a3e644f012c",
+          "exerciseId": "fb5ccfe259d5"
+        },
+        {
+          "id": "c56736573d56",
+          "exerciseId": "acd03ed6d5d9"
+        },
+        {
+          "id": "89b5750430d3",
+          "exerciseId": "90508a5a4c02"
+        },
+        {
+          "id": "200cc1873093",
+          "exerciseId": "3f14eb93ab36"
+        },
+        {
+          "id": "544f16f6d130",
+          "exerciseId": "0f643cf7bf4a"
+        },
+        {
+          "id": "796c8138832e",
+          "exerciseId": "660e3d73da5e"
+        }
+      ]
+    },
+    {
+      "id": "mtwxbr0umc3b96",
+      "name": "Pierna (Fuerza)",
       "slots": [
         {
           "id": "6df0dc7664e0",
@@ -1097,7 +1151,7 @@
     },
     {
       "id": "3d62f2d9490e",
-      "routineId": "064f9dc0095e",
+      "routineId": "mtwxbr0umc3b96",
       "date": "2026-08-28T12:00:00.000Z",
       "durationSec": 5100,
       "notes": "Basic-fit",
@@ -2360,7 +2414,7 @@
     },
     {
       "id": "1f98ae859eb3",
-      "routineId": "064f9dc0095e",
+      "routineId": "mtwxbr0umc3b96",
       "date": "2026-09-04T12:00:00.000Z",
       "durationSec": null,
       "notes": "Basic-fit",
@@ -3702,5 +3756,8 @@
         }
       ]
     }
-  ]
+  ],
+  "meta": {
+    "legSplitDone": true
+  }
 }
