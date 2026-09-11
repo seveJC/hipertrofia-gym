@@ -306,9 +306,42 @@ function navigate(hash) {
 }
 
 window.addEventListener('hashchange', render);
+// ---------- Migraciones de datos ----------
+// Cambios puntuales sobre datos ya guardados. Cada una se marca en db.meta
+// para no repetirse, y se decide por nombres/fechas, no por ids, para que
+// funcione igual en cualquier dispositivo.
+function runMigrations() {
+  db.meta = db.meta || {};
+  let changed = false;
+
+  // Pierna se parte en dos rutinas con los mismos ejercicios: Hipertrofia y
+  // Fuerza. Las sesiones del 28/08 y 04/09 de 2026 fueron de fuerza.
+  if (!db.meta.legSplitDone) {
+    const leg = db.routines.find(r => /^Pierna/i.test(r.name) && !/Fuerza|Hipertrofia/i.test(r.name));
+    if (leg) {
+      leg.name = 'Pierna (Hipertrofia)';
+      const fuerza = { id: uid(), name: 'Pierna (Fuerza)', slots: leg.slots.map(sl => ({ ...sl })) };
+      db.routines.splice(db.routines.indexOf(leg) + 1, 0, fuerza);
+      const FUERZA_DAYS = ['2026-08-28', '2026-09-04'];
+      const localDay = (iso) => {
+        const d = new Date(iso);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      };
+      db.sessions.forEach(ses => {
+        if (ses.routineId === leg.id && FUERZA_DAYS.includes(localDay(ses.date))) ses.routineId = fuerza.id;
+      });
+    }
+    db.meta.legSplitDone = true;
+    changed = true;
+  }
+
+  if (changed) saveDB();
+}
+
 window.addEventListener('DOMContentLoaded', async () => {
   await ensureDB();
   await mergeExerciseLibrary();
+  runMigrations();
   render();
 });
 
@@ -680,6 +713,7 @@ function importDBFile(file) {
       if (!confirm('Esto reemplazará TODOS tus datos actuales por los del fichero importado. ¿Continuar?')) return;
       db = parsed;
       saveDB();
+      runMigrations();
       showToast('Datos importados');
       navigate('');
     } catch (e) {
