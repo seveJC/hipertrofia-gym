@@ -407,11 +407,78 @@ html, body {
   cursor: pointer;
 }
 
+/* Fija arriba del todo; el transform lo pone pinRestBarToViewport para
+   anular el zoom. #app.with-rest-bar reserva su hueco. */
 .rest-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 40;
+  transform-origin: 0 0;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 4px 10px;
+  padding: calc(6px + var(--safe-top)) 12px 6px;
+  background: rgba(17, 19, 24, 0.96);
+  border-bottom: 1px solid var(--border);
+  box-sizing: border-box;
+}
+
+#app.with-rest-bar { padding-top: calc(var(--safe-top) + 46px); }
+#app.with-rest-bar .topbar { top: 46px; }
+
+.rest-live.rest-idle { color: var(--text-dim); }
+.rest-live.rest-done { color: var(--green); }
+
+.rest-bar-btn {
+  padding: 6px 12px;
+  font-size: 13px;
+  border-radius: 10px;
+}
+
+.gym-field select {
+  flex: 1;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 10px;
+  color: var(--text);
+  font-size: 13px;
+}
+
+.field select {
+  width: 100%;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.msg-wrap { padding: 0 16px 8px; }
+
+.msg-card {
+  border: 1px solid var(--green);
+  background: rgba(76, 175, 125, 0.10);
+  border-radius: 10px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+}
+
+.msg-text { font-size: 14px; }
+
+.msg-meta {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+.msg-dismiss {
+  color: var(--green);
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .rest-bar-info {
@@ -762,12 +829,7 @@ html, body {
 .pick-row:active { background: var(--bg-card); }
 
 .save-bar {
-  position: sticky;
-  bottom: 0;
   padding: 12px 16px calc(12px + var(--safe-bottom));
-  background: rgba(17,19,24,0.92);
-  backdrop-filter: blur(8px);
-  border-top: 1px solid var(--border);
 }
 
 .toast {

@@ -424,7 +424,52 @@ function runMigrations() {
     changed = true;
   }
 
+  // Lista de gimnasios: se siembra con los que ya aparecen en sesiones más
+  // los que faltaban por dar de alta.
+  if (!db.meta.gymsSeeded) {
+    const seen = new Set(db.gyms || []);
+    db.sessions.forEach(ses => { if (ses.gym && ses.gym.trim()) seen.add(ses.gym.trim()); });
+    ['Basic-Fit Huelva', 'VivaGym Bravo Murillo', 'Quality Fitness (Aljaraque)'].forEach(g => seen.add(g));
+    db.gyms = [...seen].sort((a, b) => a.localeCompare(b, 'es'));
+    db.meta.gymsSeeded = true;
+    changed = true;
+  }
+
+  // Unilaterales: la primera casilla pasa a ser la derecha. Hasta ahora reps
+  // era izq y reps2 der; se intercambian en lo ya guardado para que el
+  // histórico se lea igual que lo nuevo (der primero).
+  if (!db.meta.uniRightFirst) {
+    db.sessions.forEach(ses => ses.entries.forEach(e => e.sets.forEach(st => {
+      if (st.reps2 != null && st.reps2 !== '') { const t = st.reps; st.reps = st.reps2; st.reps2 = t; }
+    })));
+    db.meta.uniRightFirst = true;
+    changed = true;
+  }
+
   if (changed) saveDB();
+}
+
+function gymOptionsHtml(selected) {
+  const gyms = db.gyms || [];
+  return [
+    `<option value="">— Sin gimnasio —</option>`,
+    ...gyms.map(g => `<option value="${escapeHtml(g)}"${g === selected ? ' selected' : ''}>${escapeHtml(g)}</option>`),
+    `<option value="__new__">➕ Añadir gimnasio…</option>`,
+  ].join('');
+}
+
+// Un <select> de gimnasios con la opción de dar de alta uno nuevo. onChange
+// recibe el nombre elegido (ya guardado en db.gyms si es nuevo).
+function bindGymSelect(select, onChange) {
+  select.addEventListener('change', () => {
+    if (select.value !== '__new__') { onChange(select.value); return; }
+    const name = (prompt('Nombre del gimnasio') || '').trim();
+    if (!name) { select.value = ''; onChange(''); return; }
+    db.gyms = db.gyms || [];
+    if (!db.gyms.includes(name)) { db.gyms.push(name); db.gyms.sort((a, b) => a.localeCompare(b, 'es')); saveDB(); }
+    select.innerHTML = gymOptionsHtml(name);
+    onChange(name);
+  });
 }
 
 window.addEventListener('DOMContentLoaded', async () => {
@@ -550,6 +595,27 @@ function computeRoutineSummary(routine) {
   return days;
 }
 
+// Mensajes que te dejaste para esta rutina ("hacer gemelos"). Se borran al
+// marcarlos como leídos.
+function pendingMessagesHtml(routineId) {
+  const msgs = (db.messages || []).filter(m => m.routineId === routineId);
+  if (!msgs.length) return '';
+  return msgs.map(m => `
+    <div class="msg-card">
+      <div class="msg-text">📨 ${escapeHtml(m.text)}</div>
+      <div class="msg-meta">del ${fmtDateShort(m.createdAt)} · <span class="msg-dismiss" data-msg-done="${m.id}">✓ leído</span></div>
+    </div>`).join('');
+}
+
+function bindMessageDismiss(root, afterDismiss) {
+  root.querySelectorAll('[data-msg-done]').forEach(el => el.addEventListener('click', (e) => {
+    e.stopPropagation();
+    db.messages = (db.messages || []).filter(m => m.id !== el.dataset.msgDone);
+    saveDB();
+    afterDismiss();
+  }));
+}
+
 // Al tocar una rutina: ¿entrenar o solo mirarla? Abrir la sesión directamente
 // arrancaba el cronómetro y creaba un borrador aunque solo quisieras consultar.
 function openRoutineChoice(routineId) {
@@ -567,6 +633,7 @@ function openRoutineChoice(routineId) {
   backdrop.innerHTML = `
     <div class="modal-sheet">
       <h2>${escapeHtml(routine.name)}</h2>
+      ${pendingMessagesHtml(routineId)}
       ${inProgress ? '<p style="color:var(--green);font-size:13px;margin-top:-8px;">Tienes un entreno en curso de esta rutina.</p>' : ''}
       ${resumable ? `<button class="btn btn-primary btn-block" id="choice-resume">↪ Continuar la sesión del ${fmtDateShort(resumable.date)}</button><div style="height:8px;"></div>` : ''}
       <button class="btn ${resumable ? '' : 'btn-primary'} btn-block" id="choice-train">🏋️ ${inProgress ? 'Continuar entreno' : 'Empezar entreno'}</button>
@@ -578,6 +645,7 @@ function openRoutineChoice(routineId) {
   `;
   document.body.appendChild(backdrop);
   const close = () => document.body.removeChild(backdrop);
+  bindMessageDismiss(backdrop, () => { close(); openRoutineChoice(routineId); });
   document.getElementById('choice-train').addEventListener('click', () => { close(); navigate(`session/${routineId}`); });
   const resumeBtn = document.getElementById('choice-resume');
   if (resumeBtn) resumeBtn.addEventListener('click', () => {
@@ -1160,6 +1228,7 @@ function openExerciseEditor(ex, onSaved) {
 // ---------- Formateo de series (histórico) ----------
 function formatSetCell(s) {
   const w = s.weight === '' || s.weight == null ? '?' : s.weight;
+  // Unilateral: der+izq (reps = derecha, reps2 = izquierda).
   let main = s.reps2 != null && s.reps2 !== ''
     ? `${w}×${s.reps}+${s.reps2}`
     : `${w}×${s.reps ?? '?'}`;
@@ -1328,9 +1397,9 @@ function renderSessionDetail(sessionId) {
         <div class="set-row">
           <div class="set-num">${sIdx + 1}</div>
           <input type="text" inputmode="decimal" placeholder="kg" data-hw="${eIdx}:${sIdx}" value="${escapeHtml(set.weight ?? '')}" />
-          <input type="text" inputmode="decimal" placeholder="reps" data-hr="${eIdx}:${sIdx}" value="${escapeHtml(set.reps ?? '')}" />
+          <input type="text" inputmode="decimal" placeholder="${set.reps2 != null ? 'der' : 'reps'}" data-hr="${eIdx}:${sIdx}" value="${escapeHtml(set.reps ?? '')}" />
           ${set.reps2 != null
-            ? `<input type="text" inputmode="decimal" placeholder="der" data-hr2="${eIdx}:${sIdx}" value="${escapeHtml(set.reps2)}" />`
+            ? `<input type="text" inputmode="decimal" placeholder="izq" data-hr2="${eIdx}:${sIdx}" value="${escapeHtml(set.reps2)}" />`
             : `<input type="text" inputmode="decimal" placeholder="RIR" data-hrir="${eIdx}:${sIdx}" value="${escapeHtml(set.rir ?? '')}" />`}
           <button class="rm" data-hrm="${eIdx}:${sIdx}">✕</button>
         </div>
@@ -1451,9 +1520,54 @@ function renderSession(routineId) {
 
   requestWakeLock();
   const restIntervals = {};
+
+  // La barra del cronómetro va en position:fixed. Con zoom (pellizco) los
+  // elementos fijos se escalan con la página; aquí se contrarresta con el
+  // visualViewport para que siga arriba y a su tamaño original.
+  function pinRestBarToViewport() {
+    const bar = document.getElementById('rest-bar');
+    const vv = window.visualViewport;
+    if (!bar) return;
+    if (!vv) { bar.style.transform = ''; bar.style.width = ''; return; }
+    bar.style.width = (vv.width * vv.scale) + 'px';
+    bar.style.transform = `translate(${vv.offsetLeft}px, ${vv.offsetTop}px) scale(${1 / vv.scale})`;
+  }
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', pinRestBarToViewport);
+    window.visualViewport.addEventListener('scroll', pinRestBarToViewport);
+  }
+
+  // Al bloquear/desbloquear el móvil la pantalla a veces se recoloca; se
+  // guarda dónde estabas y se vuelve ahí.
+  const SCROLL_KEY = 'hipertrofia_scroll_' + routineId;
+  let scrollSaveTimer = null;
+  const onScroll = () => {
+    clearTimeout(scrollSaveTimer);
+    scrollSaveTimer = setTimeout(() => { try { sessionStorage.setItem(SCROLL_KEY, String(window.scrollY)); } catch (e) {} }, 150);
+  };
+  const restoreScroll = () => {
+    let y = null;
+    try { y = Number(sessionStorage.getItem(SCROLL_KEY)); } catch (e) {}
+    if (y != null && !Number.isNaN(y)) window.scrollTo(0, y);
+  };
+  const onVisible = () => { if (document.visibilityState === 'visible') setTimeout(restoreScroll, 60); };
+  window.addEventListener('scroll', onScroll, { passive: true });
+  document.addEventListener('visibilitychange', onVisible);
+  window.addEventListener('pageshow', restoreScroll);
+
   currentCleanup = () => {
     Object.values(restIntervals).forEach(clearInterval);
     if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
+    if (window.visualViewport) {
+      window.visualViewport.removeEventListener('resize', pinRestBarToViewport);
+      window.visualViewport.removeEventListener('scroll', pinRestBarToViewport);
+    }
+    window.removeEventListener('scroll', onScroll);
+    document.removeEventListener('visibilitychange', onVisible);
+    window.removeEventListener('pageshow', restoreScroll);
+    const bar = document.getElementById('rest-bar');
+    if (bar) bar.remove();
+    document.getElementById('app').classList.remove('with-rest-bar');
   };
 
   function pastSessionsForSlot(slotId, limit) {
@@ -1536,6 +1650,13 @@ function renderSession(routineId) {
           <label>Notas de la sesión (opcional)</label>
           <input id="duration-notes" placeholder="Ej. hombro molestando" value="${escapeHtml(draft.notes || '')}" />
         </div>
+        <div class="field">
+          <label>📨 Mensaje para el próximo entreno (opcional)</label>
+          <input id="duration-msg" placeholder="Ej. hacer gemelos, cuidado con el hombro" />
+          <select id="duration-msg-routine" style="margin-top:6px;">
+            ${db.routines.map(r => `<option value="${r.id}"${r.id === routineId ? ' selected' : ''}>${escapeHtml(r.name)}</option>`).join('')}
+          </select>
+        </div>
         ${missingCount ? `
         <p style="color:var(--text-dim);font-size:13px;margin:4px 0 2px;">Quedan ${missingCount} ejercicio${missingCount === 1 ? '' : 's'} sin series. ¿La sesión es…?</p>
         <label class="choice-row"><input type="radio" name="session-scope" value="partial" checked /> ⏸ Parcial — el resto otro día</label>
@@ -1555,6 +1676,17 @@ function renderSession(routineId) {
       if (!min || min <= 0) { showToast('Pon una duración válida en minutos'); return; }
       const scope = backdrop.querySelector('input[name="session-scope"]:checked');
       draft.notes = document.getElementById('duration-notes').value.trim();
+      const msgText = document.getElementById('duration-msg').value.trim();
+      if (msgText) {
+        db.messages = db.messages || [];
+        db.messages.push({
+          id: uid(),
+          routineId: document.getElementById('duration-msg-routine').value,
+          fromRoutineId: routineId,
+          text: msgText,
+          createdAt: new Date().toISOString(),
+        });
+      }
       document.body.removeChild(backdrop);
       onDone(Math.round(min * 60), !!scope && scope.value === 'partial');
     };
@@ -1570,22 +1702,19 @@ function renderSession(routineId) {
       <div class="modal-sheet">
         <h2>📍 ¿En qué gimnasio entrenas hoy?</h2>
         <div class="field">
-          <input id="gym-prompt-input" placeholder="Ej. Hi-Fitness" value="${escapeHtml(draft.gym || '')}" />
+          <select id="gym-prompt-select">${gymOptionsHtml(draft.gym || '')}</select>
         </div>
         <button class="btn btn-primary btn-block" id="gym-prompt-ok">Continuar</button>
       </div>
     `;
     document.body.appendChild(backdrop);
-    const input = document.getElementById('gym-prompt-input');
-    input.focus();
-    input.select();
-    const confirmGym = () => {
-      draft.gym = input.value.trim();
+    const select = document.getElementById('gym-prompt-select');
+    bindGymSelect(select, (g) => { draft.gym = g; });
+    document.getElementById('gym-prompt-ok').addEventListener('click', () => {
+      if (select.value !== '__new__') draft.gym = select.value;
       document.body.removeChild(backdrop);
       paint();
-    };
-    document.getElementById('gym-prompt-ok').addEventListener('click', confirmGym);
-    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') confirmGym(); });
+    });
   }
 
   // Objetivo de descanso del ejercicio: vive en la rutina y se cambia sin
@@ -1833,9 +1962,9 @@ function renderSession(routineId) {
         <div class="set-row">
           <div class="set-num">${sIdx + 1}</div>
           <input type="text" inputmode="decimal" placeholder="kg" data-weight="${slot.id}:${sIdx}" value="${set.weight ?? ''}" />
-          <input type="text" inputmode="decimal" placeholder="${entry.uni ? 'izq' : 'reps'}" data-reps="${slot.id}:${sIdx}" value="${set.reps ?? ''}" />
+          <input type="text" inputmode="decimal" placeholder="${entry.uni ? 'der' : 'reps'}" data-reps="${slot.id}:${sIdx}" value="${set.reps ?? ''}" />
           ${entry.uni
-            ? `<input type="text" inputmode="decimal" placeholder="der" data-reps2="${slot.id}:${sIdx}" value="${set.reps2 ?? ''}" />`
+            ? `<input type="text" inputmode="decimal" placeholder="izq" data-reps2="${slot.id}:${sIdx}" value="${set.reps2 ?? ''}" />`
             : `<input type="text" inputmode="decimal" placeholder="RIR" data-rir="${slot.id}:${sIdx}" value="${set.rir ?? ''}" />`}
           <button class="rm" data-rm-set="${slot.id}:${sIdx}">✕</button>
         </div>
@@ -1858,7 +1987,7 @@ function renderSession(routineId) {
       `;
       }).join('');
       const labelsHtml = entry.sets.length ? `
-        <div class="set-labels"><span></span><span>Kg</span><span>${entry.uni ? 'Izq' : 'Reps'}</span><span>${entry.uni ? 'Der' : 'RIR'}</span><span></span></div>
+        <div class="set-labels"><span></span><span>Kg</span><span>${entry.uni ? 'Der' : 'Reps'}</span><span>${entry.uni ? 'Izq' : 'RIR'}</span><span></span></div>
       ` : '';
       const uniToggle = `<button class="btn-ghost uni-toggle" data-toggle-uni="${slot.id}">${entry.uni ? '🔀 Unilateral' : '↔ Bilateral'}</button>`;
 
@@ -1880,7 +2009,7 @@ function renderSession(routineId) {
             ${labelsHtml}
             ${setsHtml}
             <div class="log-actions">
-              <button class="btn" data-add-set="${slot.id}">+ Serie</button>
+              <button class="btn" data-add-set="${slot.id}">+ Serie (inicia crono)</button>
               ${isSub ? `<button class="btn" data-revert="${slot.id}">Deshacer sustitución</button>` : ''}
             </div>
           </div>
@@ -1896,23 +2025,42 @@ function renderSession(routineId) {
         <button class="btn btn-icon" data-nav="routine-edit/${routine.id}" title="Editar rutina">✎</button>
       </div>
       <div class="gym-field">
-        📍 <input id="session-gym" placeholder="Gimnasio (opcional)" value="${escapeHtml(draft.gym || '')}" />
+        📍 <select id="session-gym">${gymOptionsHtml(draft.gym || '')}</select>
       </div>
       <div class="gym-field gym-field-notes">
         📝 <input id="session-notes" placeholder="Notas de hoy (ej. hombro molestando)" value="${escapeHtml(draft.notes || '')}" />
       </div>
+      ${pendingMessagesHtml(routineId) ? `<div class="msg-wrap">${pendingMessagesHtml(routineId)}</div>` : ''}
       <div class="container">
         ${blocks}
       </div>
       <div class="save-bar">
-        <div class="rest-bar" id="rest-bar"${draft.restStart != null ? '' : ' hidden'}>
-          <span class="rest-live" id="rest-live">⏱ 0:00</span>
-          <span class="rest-bar-info" id="rest-bar-info"></span>
-          <button class="btn-ghost rest-bar-cancel" id="rest-cancel" title="Descartar este descanso">✕</button>
-        </div>
         <button class="btn btn-primary btn-block" id="finish-session-btn">Guardar sesión</button>
       </div>
     `;
+    // Barra del cronómetro: fija arriba, fuera de #app para que el repintado
+    // de la pantalla no la recree, e inmune al zoom (ver pinRestBarToViewport).
+    let restBar = document.getElementById('rest-bar');
+    if (!restBar) {
+      restBar = document.createElement('div');
+      restBar.id = 'rest-bar';
+      restBar.className = 'rest-bar';
+      document.body.appendChild(restBar);
+    }
+    const restState = draft.restStart != null ? 'running' : draft.restPendingSec != null ? 'stopped' : 'idle';
+    restBar.dataset.state = restState;
+    restBar.innerHTML = restState === 'running' ? `
+        <span class="rest-live" id="rest-live">⏱ 0:00</span>
+        <span class="rest-bar-info" id="rest-bar-info"></span>
+        <button class="btn rest-bar-btn" id="rest-stop">⏹ Parar</button>` :
+      restState === 'stopped' ? `
+        <span class="rest-live rest-done">✔ ${mmss(draft.restPendingSec)}</span>
+        <span class="rest-bar-info">descanso hecho · se guarda en la próxima serie</span>
+        <button class="btn-ghost rest-bar-cancel" id="rest-cancel" title="Descartar">✕</button>` : `
+        <span class="rest-live rest-idle">⏱ —</span>
+        <span class="rest-bar-info">pulsa «+ Serie» al acabar la serie</span>`;
+    document.getElementById('app').classList.add('with-rest-bar');
+    pinRestBarToViewport();
 
     app.querySelectorAll('[data-nav]').forEach(el => el.addEventListener('click', () => navigate(el.dataset.nav)));
 
@@ -1922,7 +2070,8 @@ function renderSession(routineId) {
       navigate('');
     });
 
-    document.getElementById('session-gym').addEventListener('input', (e) => { draft.gym = e.target.value; saveDraft(); });
+    bindGymSelect(document.getElementById('session-gym'), (g) => { draft.gym = g; saveDraft(); });
+    bindMessageDismiss(app, paint);
     document.getElementById('session-notes').addEventListener('input', (e) => { draft.notes = e.target.value; saveDraft(); });
 
     app.querySelectorAll('[data-history-limit]').forEach(el => el.addEventListener('change', () => {
@@ -1944,12 +2093,15 @@ function renderSession(routineId) {
     }));
 
     // "+ Serie" se pulsa al acabar la serie: cierra el descanso que venía
-    // corriendo (se guarda en esta serie) y arranca el de la siguiente.
+    // corriendo (o usa el ya parado con ⏹) y arranca el de la siguiente.
     app.querySelectorAll('[data-add-set]').forEach(el => el.addEventListener('click', () => {
       const slotId = el.dataset.addSet;
       const entry = draft.entries[slotId];
       const now = Date.now();
-      const restSec = draft.restStart != null ? Math.round((now - draft.restStart) / 1000) : null;
+      const restSec = draft.restPendingSec != null
+        ? draft.restPendingSec
+        : draft.restStart != null ? Math.round((now - draft.restStart) / 1000) : null;
+      draft.restPendingSec = null;
       const lastSet = entry.sets[entry.sets.length - 1];
       const defaultWeight = lastSet && lastSet.weight !== '' && lastSet.weight != null ? lastSet.weight : '';
       entry.sets.push({ weight: defaultWeight, reps: '', rir: '', restSec });
@@ -1965,9 +2117,17 @@ function renderSession(routineId) {
       openRestTargetEditor(el.dataset.editRest);
     }));
 
-    document.getElementById('rest-cancel').addEventListener('click', () => {
+    const restStopBtn = document.getElementById('rest-stop');
+    if (restStopBtn) restStopBtn.addEventListener('click', () => {
+      // Se para al empezar la serie: lo que corre desde aquí es ejecución, no descanso.
+      draft.restPendingSec = Math.round((Date.now() - draft.restStart) / 1000);
       draft.restStart = null;
       draft.restSlotId = null;
+      paint();
+    });
+    const restCancelBtn = document.getElementById('rest-cancel');
+    if (restCancelBtn) restCancelBtn.addEventListener('click', () => {
+      draft.restPendingSec = null;
       paint();
     });
 
@@ -2167,5 +2327,7 @@ function renderSession(routineId) {
   }
 
   paint();
+  pinRestBarToViewport();
+  if (restoredDraft) setTimeout(restoreScroll, 0);
   if (!restoredDraft) openGymPrompt();
 }
