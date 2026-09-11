@@ -328,7 +328,7 @@ function render() {
   const parts = currentRoute();
   if (parts.length === 0) return renderHome();
   if (parts[0] === 'exercises') return renderExercises();
-  if (parts[0] === 'history') return renderHistory();
+  if (parts[0] === 'history') return renderHistory(parts[1] || null);
   if (parts[0] === 'session-view' && parts[1]) return renderSessionDetail(parts[1]);
   if (parts[0] === 'routine-new') return renderRoutineEditor(null);
   if (parts[0] === 'routine-edit' && parts[1]) return renderRoutineEditor(parts[1]);
@@ -413,7 +413,7 @@ function openRoutineChoice(routineId) {
   document.body.appendChild(backdrop);
   const close = () => document.body.removeChild(backdrop);
   document.getElementById('choice-train').addEventListener('click', () => { close(); navigate(`session/${routineId}`); });
-  document.getElementById('choice-view').addEventListener('click', () => { close(); navigate(`routine-edit/${routineId}`); });
+  document.getElementById('choice-view').addEventListener('click', () => { close(); navigate(`history/${routineId}`); });
   document.getElementById('choice-cancel').addEventListener('click', close);
   backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
 }
@@ -1033,34 +1033,62 @@ function scheduleGhBackup() {
   ghPushTimer = setTimeout(() => pushBackupToGitHub(true), 3000);
 }
 
-function renderHistory() {
-  const sessions = [...db.sessions].sort((a, b) => b.date.localeCompare(a.date));
-  const rows = sessions.map(s => {
-    const routine = getRoutine(s.routineId);
-    const totalSets = s.entries.reduce((n, e) => n + e.sets.length, 0);
-    const meta = [
-      `${s.entries.length} ejercicios`,
-      `${totalSets} series`,
-      s.durationSec != null ? formatDurationHuman(s.durationSec) : null,
-      s.gym ? `📍 ${s.gym}` : null,
-    ].filter(Boolean).join(' · ');
-    return `
+function sessionRowHtml(s, showRoutine) {
+  const routine = getRoutine(s.routineId);
+  const totalSets = s.entries.reduce((n, e) => n + e.sets.length, 0);
+  const meta = [
+    `${s.entries.length} ejercicios`,
+    `${totalSets} series`,
+    s.durationSec != null ? formatDurationHuman(s.durationSec) : null,
+    s.gym ? `📍 ${s.gym}` : null,
+  ].filter(Boolean).join(' · ');
+  const title = showRoutine
+    ? `${fmtDate(s.date)} · ${escapeHtml(routine ? routine.name : 'Rutina eliminada')}`
+    : fmtDate(s.date);
+  return `
       <div class="list-item" data-open-session="${s.id}" style="cursor:pointer;">
         <div style="flex:1;">
-          <div class="name">${fmtDate(s.date)} · ${escapeHtml(routine ? routine.name : 'Rutina eliminada')}</div>
+          <div class="name">${title}</div>
           <div class="muscle">${escapeHtml(meta)}</div>
           ${s.notes ? `<div class="notes-line">${escapeHtml(s.notes)}</div>` : ''}
         </div>
         <div class="chevron">›</div>
       </div>`;
-  }).join('');
+}
+
+// Sin routineId: todas las sesiones. Con routineId: "consultar rutina", es
+// decir, sus ejercicios y solo sus sesiones.
+function renderHistory(routineId) {
+  const routine = routineId ? getRoutine(routineId) : null;
+  if (routineId && !routine) { navigate(''); return; }
+  const sessions = db.sessions
+    .filter(s => !routine || s.routineId === routine.id)
+    .sort((a, b) => b.date.localeCompare(a.date));
+  const rows = sessions.map(s => sessionRowHtml(s, !routine)).join('');
+
+  const exercisesHtml = routine ? `
+      <div class="card">
+        ${routine.slots.map((slot, idx) => {
+          const ex = getExercise(slot.exerciseId);
+          return `
+          <div class="list-item">
+            <div style="flex:1;">
+              <div class="name">${idx + 1}. ${ex ? escapeHtml(ex.name) : '(ejercicio eliminado)'}${slot.supersetGroup ? ' <span class="ss-tag">SS</span>' : ''}</div>
+              ${ex && ex.muscle ? `<div class="muscle">${escapeHtml(ex.muscle)}</div>` : ''}
+            </div>
+          </div>`;
+        }).join('') || '<div class="empty-state">Rutina sin ejercicios.</div>'}
+      </div>
+      <div class="section-title">Sesiones (${sessions.length})</div>` : '';
 
   app.innerHTML = `
     <div class="topbar">
       <button class="btn btn-ghost" data-nav="">← Atrás</button>
-      <h1>Historial</h1>
+      <h1>${routine ? escapeHtml(routine.name) : 'Historial'}</h1>
+      ${routine ? `<button class="btn btn-icon" data-nav="routine-edit/${routine.id}" title="Editar rutina">✎</button>` : ''}
     </div>
     <div class="container">
+      ${exercisesHtml}
       <div class="card">
         ${sessions.length ? rows : '<div class="empty-state">Todavía no hay sesiones guardadas.</div>'}
       </div>
@@ -1132,7 +1160,7 @@ function renderSessionDetail(sessionId) {
 
     app.innerHTML = `
       <div class="topbar">
-        <button class="btn btn-ghost" data-nav="history">← Atrás</button>
+        <button class="btn btn-ghost" id="sd-back">← Atrás</button>
         <h1>${fmtDate(session.date)}</h1>
       </div>
       <div class="container">
@@ -1159,6 +1187,11 @@ function renderSessionDetail(sessionId) {
     `;
 
     app.querySelectorAll('[data-nav]').forEach(el => el.addEventListener('click', () => navigate(el.dataset.nav)));
+    // Se llega aquí desde el historial global o desde el de una rutina: volver
+    // a donde se estaba, no siempre al global.
+    document.getElementById('sd-back').addEventListener('click', () => {
+      if (history.length > 1) history.back(); else navigate('history');
+    });
 
     document.getElementById('sd-duration').addEventListener('input', (e) => {
       const min = Number(normalizeDecimal(e.target.value));
