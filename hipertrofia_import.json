@@ -452,39 +452,48 @@
       "slots": [
         {
           "id": "5b54515fa82a",
-          "exerciseId": "772ee2f51e71"
+          "exerciseId": "772ee2f51e71",
+          "restSec": 120
         },
         {
           "id": "c9f44007e6f8",
-          "exerciseId": "35feb6cc7030"
+          "exerciseId": "35feb6cc7030",
+          "restSec": 120
         },
         {
           "id": "162ddbdcf606",
-          "exerciseId": "3cb3bc12cec3"
+          "exerciseId": "3cb3bc12cec3",
+          "restSec": 90
         },
         {
           "id": "4f88ef1592b8",
-          "exerciseId": "5447e5a2a540"
+          "exerciseId": "5447e5a2a540",
+          "restSec": 90
         },
         {
           "id": "cb317bf9a6c2",
-          "exerciseId": "3632be784b42"
+          "exerciseId": "3632be784b42",
+          "restSec": 60
         },
         {
           "id": "15caf85ed384",
-          "exerciseId": "a551ade607ad"
+          "exerciseId": "a551ade607ad",
+          "restSec": 60
         },
         {
           "id": "mtu477oxhwgw5o",
-          "exerciseId": "8b251ada8a8e"
+          "exerciseId": "8b251ada8a8e",
+          "restSec": 75
         },
         {
           "id": "6b75a0c02f21",
-          "exerciseId": "c935a6fa886c"
+          "exerciseId": "c935a6fa886c",
+          "restSec": 60
         },
         {
           "id": "5e4dae0982f1",
-          "exerciseId": "f7002e4b2872"
+          "exerciseId": "f7002e4b2872",
+          "restSec": 60
         }
       ]
     },
@@ -494,43 +503,53 @@
       "slots": [
         {
           "id": "d30f5ef595d9",
-          "exerciseId": "1b9297894d74"
+          "exerciseId": "1b9297894d74",
+          "restSec": 90
         },
         {
           "id": "5fdb66c07d6c",
-          "exerciseId": "8ae221b7450b"
+          "exerciseId": "8ae221b7450b",
+          "restSec": 90
         },
         {
           "id": "f81e7022e628",
-          "exerciseId": "071deb7f5463"
+          "exerciseId": "071deb7f5463",
+          "restSec": 90
         },
         {
           "id": "46eca9fae0fa",
-          "exerciseId": "064fc6a28c64"
+          "exerciseId": "064fc6a28c64",
+          "restSec": 60
         },
         {
           "id": "0d32e496202e",
-          "exerciseId": "cd6d3b85bdeb"
+          "exerciseId": "cd6d3b85bdeb",
+          "restSec": 90
         },
         {
           "id": "6455d356141e",
-          "exerciseId": "bf39f9d32035"
+          "exerciseId": "bf39f9d32035",
+          "restSec": 60
         },
         {
           "id": "49026cc76c68",
-          "exerciseId": "fb5ccfe259d5"
+          "exerciseId": "fb5ccfe259d5",
+          "restSec": 60
         },
         {
           "id": "48eab16a4a97",
-          "exerciseId": "4757b985cef6"
+          "exerciseId": "4757b985cef6",
+          "restSec": 90
         },
         {
           "id": "202dcf9f89a1",
-          "exerciseId": "311d1c4305b8"
+          "exerciseId": "311d1c4305b8",
+          "restSec": 60
         },
         {
           "id": "mtvjajrqy95cok",
-          "exerciseId": "a0d5d05caf04"
+          "exerciseId": "a0d5d05caf04",
+          "restSec": 60
         }
       ]
     },
@@ -540,47 +559,58 @@
       "slots": [
         {
           "id": "6df0dc7664e0",
-          "exerciseId": "cdc3611eb981"
+          "exerciseId": "cdc3611eb981",
+          "restSec": 90
         },
         {
           "id": "39614ab607f2",
-          "exerciseId": "618526128189"
+          "exerciseId": "618526128189",
+          "restSec": 90
         },
         {
           "id": "fe1161b01d45",
-          "exerciseId": "e3ae6e10d14e"
+          "exerciseId": "e3ae6e10d14e",
+          "restSec": 90
         },
         {
           "id": "efd2de8b2e2a",
-          "exerciseId": "cea8cd3691f5"
+          "exerciseId": "cea8cd3691f5",
+          "restSec": 90
         },
         {
           "id": "990c371b755a",
-          "exerciseId": "f2b4a44057d4"
+          "exerciseId": "f2b4a44057d4",
+          "restSec": 60
         },
         {
           "id": "7aca74a244b4",
-          "exerciseId": "8b251ada8a8e"
+          "exerciseId": "8b251ada8a8e",
+          "restSec": 60
         },
         {
           "id": "1a3e644f012c",
-          "exerciseId": "fb5ccfe259d5"
+          "exerciseId": "fb5ccfe259d5",
+          "restSec": 60
         },
         {
           "id": "c56736573d56",
-          "exerciseId": "acd03ed6d5d9"
+          "exerciseId": "acd03ed6d5d9",
+          "restSec": 60
         },
         {
           "id": "89b5750430d3",
-          "exerciseId": "90508a5a4c02"
+          "exerciseId": "90508a5a4c02",
+          "restSec": 60
         },
         {
           "id": "200cc1873093",
-          "exerciseId": "3f14eb93ab36"
+          "exerciseId": "3f14eb93ab36",
+          "restSec": 60
         },
         {
           "id": "544f16f6d130",
-          "exerciseId": "0f643cf7bf4a"
+          "exerciseId": "0f643cf7bf4a",
+          "restSec": 90
         },
         {
           "id": "796c8138832e",
@@ -594,19 +624,23 @@
       "slots": [
         {
           "id": "6df0dc7664e0",
-          "exerciseId": "cdc3611eb981"
+          "exerciseId": "cdc3611eb981",
+          "restSec": 180
         },
         {
           "id": "39614ab607f2",
-          "exerciseId": "618526128189"
+          "exerciseId": "618526128189",
+          "restSec": 120
         },
         {
           "id": "fe1161b01d45",
-          "exerciseId": "e3ae6e10d14e"
+          "exerciseId": "e3ae6e10d14e",
+          "restSec": 150
         },
         {
           "id": "efd2de8b2e2a",
-          "exerciseId": "cea8cd3691f5"
+          "exerciseId": "cea8cd3691f5",
+          "restSec": 120
         },
         {
           "id": "990c371b755a",
@@ -614,7 +648,8 @@
         },
         {
           "id": "7aca74a244b4",
-          "exerciseId": "8b251ada8a8e"
+          "exerciseId": "8b251ada8a8e",
+          "restSec": 60
         },
         {
           "id": "1a3e644f012c",
@@ -626,11 +661,13 @@
         },
         {
           "id": "89b5750430d3",
-          "exerciseId": "90508a5a4c02"
+          "exerciseId": "90508a5a4c02",
+          "restSec": 60
         },
         {
           "id": "200cc1873093",
-          "exerciseId": "3f14eb93ab36"
+          "exerciseId": "3f14eb93ab36",
+          "restSec": 60
         },
         {
           "id": "544f16f6d130",
@@ -638,7 +675,8 @@
         },
         {
           "id": "796c8138832e",
-          "exerciseId": "660e3d73da5e"
+          "exerciseId": "660e3d73da5e",
+          "restSec": 90
         }
       ]
     },
@@ -648,11 +686,13 @@
       "slots": [
         {
           "id": "5eb28636545d",
-          "exerciseId": "772ee2f51e71"
+          "exerciseId": "772ee2f51e71",
+          "restSec": 180
         },
         {
           "id": "905ab8d9e862",
-          "exerciseId": "35feb6cc7030"
+          "exerciseId": "35feb6cc7030",
+          "restSec": 120
         },
         {
           "id": "301186ab5df6",
@@ -664,19 +704,23 @@
         },
         {
           "id": "78e4e51c4571",
-          "exerciseId": "1b9297894d74"
+          "exerciseId": "1b9297894d74",
+          "restSec": 120
         },
         {
           "id": "8a42173f335c",
-          "exerciseId": "64626f37b998"
+          "exerciseId": "64626f37b998",
+          "restSec": 120
         },
         {
           "id": "859563e60b8c",
-          "exerciseId": "071deb7f5463"
+          "exerciseId": "071deb7f5463",
+          "restSec": 90
         },
         {
           "id": "459f5edefcce",
-          "exerciseId": "8abb81651a6d"
+          "exerciseId": "8abb81651a6d",
+          "restSec": 90
         },
         {
           "id": "a1b75bd59807",
@@ -692,7 +736,8 @@
         },
         {
           "id": "befe1402c2e8",
-          "exerciseId": "fb5ccfe259d5"
+          "exerciseId": "fb5ccfe259d5",
+          "restSec": 60
         },
         {
           "id": "3904cd5d0cda",
@@ -3758,6 +3803,7 @@
     }
   ],
   "meta": {
-    "legSplitDone": true
+    "legSplitDone": true,
+    "restTargetsSeeded": true
   }
 }
