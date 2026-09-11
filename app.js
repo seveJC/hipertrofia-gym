@@ -1000,6 +1000,14 @@ function renderSessionDetail(sessionId) {
   function paint() {
     const blocks = session.entries.map((e, eIdx) => {
       const ex = getExercise(e.exerciseId);
+      // Compañeros de superserie dentro de ESTA sesión guardada.
+      const ssPartners = !e.supersetGroup ? '' : session.entries
+        .map((o, i) => ({ o, i }))
+        .filter(({ o, i }) => i !== eIdx && o.supersetGroup === e.supersetGroup)
+        .map(({ o, i }) => {
+          const oEx = getExercise(o.exerciseId);
+          return `${i + 1}. ${escapeHtml(oEx ? oEx.name : '?')}`;
+        }).join(' · ');
       const setsHtml = e.sets.map((set, sIdx) => {
         const tags = [set.dropset ? 'DROP' : null, set.restPause ? 'RP' : null].filter(Boolean).join(' · ');
         return `
@@ -1021,7 +1029,7 @@ function renderSessionDetail(sessionId) {
           <div class="exercise-head">
             <div>
               <h3>${eIdx + 1}. ${escapeHtml(ex ? ex.name : '(ejercicio eliminado)')}</h3>
-              ${e.supersetGroup ? '<div class="superset-note">🔗 Superserie</div>' : ''}
+              ${ssPartners ? `<div class="superset-note">🔗 Superserie con ${ssPartners}</div>` : ''}
               ${e.restNote ? `<div class="rest-note">desc. obj: ${escapeHtml(e.restNote)}s</div>` : ''}
             </div>
           </div>
@@ -1161,6 +1169,15 @@ function renderSession(routineId) {
     const lastHistory = pastSessionsForSlot(slot.id, 1)[0];
     const defaultUni = !!(lastHistory && lastHistory.entry.sets.some(s => s.reps2 != null && s.reps2 !== ''));
     draft.entries[slot.id] = { exerciseId: slot.exerciseId, sets: [], uni: defaultUni, _historyLimit: 3, _restTarget: null };
+  });
+
+  // draft.supersets[slotId] = idGrupo | null. La rutina guarda el plan habitual;
+  // esto guarda lo que haces HOY, para que improvisar (o saltarte) una
+  // superserie no reescriba la rutina. null = hoy suelto a propósito, por eso se
+  // guarda la clave en vez de borrarla: si no, al repintar volvería el plan.
+  if (!draft.supersets) draft.supersets = {};
+  routine.slots.forEach(slot => {
+    if (!(slot.id in draft.supersets)) draft.supersets[slot.id] = slot.supersetGroup || null;
   });
 
   function saveDraft() {
@@ -1306,37 +1323,61 @@ function renderSession(routineId) {
   }
 
   // ---------- Superseries ----------
-  // Los ejercicios que comparten supersetGroup se hacen enlazados. Se guarda en
-  // la rutina (suele repetirse entre sesiones) y también en la sesión guardada.
+  // Los ejercicios que comparten grupo se hacen enlazados. Lo que se pinta y se
+  // guarda en la sesión es draft.supersets (hoy), no slot.supersetGroup (plan).
   function slotExerciseName(slot) {
     const entryForSlot = draft.entries[slot.id];
     const ex = getExercise(entryForSlot ? entryForSlot.exerciseId : slot.exerciseId);
     return ex ? ex.name : '?';
   }
 
+  function supersetGroupOf(slot) {
+    return draft.supersets[slot.id] || null;
+  }
+
   function supersetPartners(slot) {
-    if (!slot.supersetGroup) return [];
+    const group = supersetGroupOf(slot);
+    if (!group) return [];
     return routine.slots
       .map((s, i) => ({ slot: s, idx: i }))
-      .filter(({ slot: s }) => s.id !== slot.id && s.supersetGroup === slot.supersetGroup);
+      .filter(({ slot: s }) => s.id !== slot.id && supersetGroupOf(s) === group);
+  }
+
+  // Compara por compañeros, no por id de grupo: enlazar hoy genera un id nuevo
+  // aunque el emparejamiento sea el mismo que el de la rutina.
+  function supersetDiffersFromPlan(slot) {
+    const plan = slot.supersetGroup || null;
+    const today = supersetPartners(slot).map(p => p.slot.id).sort().join(',');
+    const planned = !plan ? '' : routine.slots
+      .filter(s => s.id !== slot.id && s.supersetGroup === plan)
+      .map(s => s.id).sort().join(',');
+    return today !== planned;
   }
 
   function supersetNoteHtml(slot) {
     const partners = supersetPartners(slot);
+    const todayOnly = supersetDiffersFromPlan(slot);
     if (!partners.length) {
-      return `<div class="superset-link" data-superset="${slot.id}">🔗 Enlazar superserie</div>`;
+      const label = todayOnly ? '🔗 Hoy sin superserie' : '🔗 Enlazar superserie';
+      return `<div class="superset-link" data-superset="${slot.id}">${label}</div>`;
     }
     const names = partners
       .map(({ slot: s, idx: i }) => `${i + 1}. ${escapeHtml(slotExerciseName(s))}`)
       .join(' · ');
-    return `<div class="superset-note" data-superset="${slot.id}">🔗 Superserie con ${names}</div>`;
+    return `<div class="superset-note" data-superset="${slot.id}">🔗 Superserie con ${names}${todayOnly ? ' <span class="ss-today">solo hoy</span>' : ''}</div>`;
   }
 
   // Un grupo con un solo ejercicio ya no es una superserie.
   function cleanupSupersetGroups() {
     const counts = {};
-    routine.slots.forEach(s => { if (s.supersetGroup) counts[s.supersetGroup] = (counts[s.supersetGroup] || 0) + 1; });
-    routine.slots.forEach(s => { if (s.supersetGroup && counts[s.supersetGroup] < 2) delete s.supersetGroup; });
+    routine.slots.forEach(s => {
+      const g = draft.supersets[s.id];
+      if (g) counts[g] = (counts[g] || 0) + 1;
+    });
+    routine.slots.forEach(s => {
+      const g = draft.supersets[s.id];
+      if (g && counts[g] < 2) draft.supersets[s.id] = null;
+    });
   }
 
   function openSupersetPicker(slotId) {
@@ -1349,39 +1390,53 @@ function renderSession(routineId) {
       .map((s, i) => ({ slot: s, idx: i }))
       .filter(({ slot: s }) => s.id !== slotId)
       .map(({ slot: s, idx: i }) => {
-        const linked = slot.supersetGroup && s.supersetGroup === slot.supersetGroup;
+        const linked = supersetGroupOf(slot) && supersetGroupOf(s) === supersetGroupOf(slot);
         return `<div class="pick-row" data-pick-slot="${s.id}">${linked ? '🔗 ' : ''}${i + 1}. ${escapeHtml(slotExerciseName(s))}</div>`;
       }).join('') || '<div class="empty-state">No hay otros ejercicios en la rutina.</div>';
+    const differs = routine.slots.some(s => supersetDiffersFromPlan(s));
     backdrop.innerHTML = `
       <div class="modal-sheet">
         <h2>🔗 Superserie</h2>
-        <p style="color:var(--text-dim);font-size:13px;margin-top:-8px;">Elige con qué ejercicio la haces enlazada. Toca uno ya enlazado (🔗) para quitarlo.</p>
+        <p style="color:var(--text-dim);font-size:13px;margin-top:-8px;">Vale <b>solo para el entreno de hoy</b>. Elige con qué ejercicio la haces enlazada; toca uno ya enlazado (🔗) para quitarlo.</p>
         <div>${rows}</div>
-        ${partners.length ? '<button class="btn btn-danger btn-block" id="superset-clear" style="margin-top:10px;">Deshacer superserie</button><div style="height:8px;"></div>' : '<div style="height:10px;"></div>'}
+        ${partners.length ? '<button class="btn btn-danger btn-block" id="superset-clear" style="margin-top:10px;">Hoy sin superserie</button><div style="height:8px;"></div>' : '<div style="height:10px;"></div>'}
+        ${differs ? '<button class="btn btn-block" id="superset-pin">📌 Fijar también en la rutina</button><div style="height:8px;"></div>' : ''}
         <button class="btn btn-block" id="superset-cancel">Cancelar</button>
       </div>
     `;
     document.body.appendChild(backdrop);
     backdrop.querySelectorAll('[data-pick-slot]').forEach(el => el.addEventListener('click', () => {
-      const other = routine.slots.find(s => s.id === el.dataset.pickSlot);
-      if (slot.supersetGroup && other.supersetGroup === slot.supersetGroup) {
-        delete other.supersetGroup;
+      const otherId = el.dataset.pickSlot;
+      const group = supersetGroupOf(slot);
+      if (group && draft.supersets[otherId] === group) {
+        draft.supersets[otherId] = null;
       } else {
-        const group = slot.supersetGroup || other.supersetGroup || uid();
-        slot.supersetGroup = group;
-        other.supersetGroup = group;
+        const g = group || draft.supersets[otherId] || uid();
+        draft.supersets[slot.id] = g;
+        draft.supersets[otherId] = g;
       }
       cleanupSupersetGroups();
-      saveDB();
+      saveDraft();
       document.body.removeChild(backdrop);
       paint();
     }));
     const clearBtn = document.getElementById('superset-clear');
     if (clearBtn) clearBtn.addEventListener('click', () => {
-      const group = slot.supersetGroup;
-      routine.slots.forEach(s => { if (s.supersetGroup === group) delete s.supersetGroup; });
+      const group = supersetGroupOf(slot);
+      routine.slots.forEach(s => { if (draft.supersets[s.id] === group) draft.supersets[s.id] = null; });
+      saveDraft();
+      document.body.removeChild(backdrop);
+      paint();
+    });
+    const pinBtn = document.getElementById('superset-pin');
+    if (pinBtn) pinBtn.addEventListener('click', () => {
+      routine.slots.forEach(s => {
+        const g = draft.supersets[s.id];
+        if (g) s.supersetGroup = g; else delete s.supersetGroup;
+      });
       saveDB();
       document.body.removeChild(backdrop);
+      showToast('Superseries fijadas en la rutina');
       paint();
     });
     document.getElementById('superset-cancel').addEventListener('click', () => document.body.removeChild(backdrop));
@@ -1753,8 +1808,9 @@ function renderSession(routineId) {
               })
           };
           if (e._restTarget) entryOut.restNote = e._restTarget;
-          const slotRef = routine.slots.find(s => s.id === slotId);
-          if (slotRef && slotRef.supersetGroup) entryOut.supersetGroup = slotRef.supersetGroup;
+          // Lo de hoy, no el plan de la rutina: así una sesión guardada conserva
+          // si ese día concreto la hiciste enlazada o suelta.
+          if (draft.supersets[slotId]) entryOut.supersetGroup = draft.supersets[slotId];
           return entryOut;
         });
 

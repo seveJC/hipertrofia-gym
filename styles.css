@@ -475,6 +475,14 @@ html, body {
   cursor: pointer;
 }
 
+.ss-today {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-dim);
+  opacity: 0.85;
+  margin-left: 2px;
+}
+
 .ss-tag {
   font-size: 10px;
   font-weight: 700;
