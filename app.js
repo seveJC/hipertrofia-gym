@@ -463,6 +463,18 @@ function runMigrations() {
     changed = true;
   }
 
+  // Mensaje dejado a mano el 11/09/2026 para la siguiente sesión de Fuerza
+  // (ese día no se pudo dejar desde la app).
+  if (!db.meta.msgFuerza20260911) {
+    const fuerza = db.routines.find(r => /^Fuerza/i.test(r.name));
+    if (fuerza) {
+      db.messages = db.messages || [];
+      db.messages.push({ id: uid(), routineId: fuerza.id, fromRoutineId: null, text: 'Hacer Gemelos y Abdominales', createdAt: '2026-09-11T20:00:00.000Z' });
+    }
+    db.meta.msgFuerza20260911 = true;
+    changed = true;
+  }
+
   if (changed) saveDB();
 }
 
