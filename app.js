@@ -356,39 +356,68 @@ function formatDurationHuman(sec) {
   return `${totalMin}min`;
 }
 
+// Una sesión partida en dos días (parcial + continuación) se resume como un
+// solo bloque; una parcial sin continuar muestra a 0 los músculos que faltan.
+function summarizeSessionParts(routine, parts) {
+  const hasDuration = parts.every(p => p.durationSec != null);
+  const muscleStats = {};
+  const groupSizes = {};
+  let totalExercises = 0;
+  parts.forEach(s => {
+    const totalSets = s.entries.reduce((sum, e) => sum + e.sets.length, 0) || 1;
+    totalExercises += s.entries.length;
+    s.entries.forEach(e => {
+      // Una superserie = un grupo con al menos 2 ejercicios enlazados ese día.
+      if (e.supersetGroup) {
+        const k = s.id + ':' + e.supersetGroup;
+        groupSizes[k] = (groupSizes[k] || 0) + 1;
+      }
+      const ex = getExercise(e.exerciseId);
+      const muscle = (ex && ex.muscle) || 'Sin músculo';
+      if (!muscleStats[muscle]) muscleStats[muscle] = { count: 0, sec: 0 };
+      muscleStats[muscle].count += 1;
+      if (hasDuration) muscleStats[muscle].sec += s.durationSec * (e.sets.length / totalSets);
+    });
+  });
+  const last = parts[parts.length - 1];
+  const partial = !!last.partial;
+  const plannedMuscles = [...new Set(routine.slots.map(sl => {
+    const ex = getExercise(sl.exerciseId);
+    return ex && ex.muscle;
+  }).filter(Boolean))];
+  const missingMuscles = partial ? plannedMuscles.filter(m => !muscleStats[m]) : [];
+  return {
+    date: last.date,
+    dates: parts.map(p => p.date),
+    gym: last.gym,
+    totalExercises,
+    durations: parts.map(p => p.durationSec),
+    durationSec: hasDuration ? parts.reduce((n, p) => n + p.durationSec, 0) : null,
+    hasDuration,
+    supersets: Object.values(groupSizes).filter(n => n >= 2).length,
+    partial,
+    missingMuscles,
+    muscleStats,
+  };
+}
+
 function computeRoutineSummary(routine) {
   const sessions = db.sessions
     .filter(s => s.routineId === routine.id)
     .sort((a, b) => b.date.localeCompare(a.date));
   if (!sessions.length) return null;
 
-  return sessions.map(s => {
-    const hasDuration = s.durationSec != null;
-    // Una superserie = un grupo con al menos 2 ejercicios enlazados ese día.
-    const groupSizes = {};
-    s.entries.forEach(e => { if (e.supersetGroup) groupSizes[e.supersetGroup] = (groupSizes[e.supersetGroup] || 0) + 1; });
-    const supersets = Object.values(groupSizes).filter(n => n >= 2).length;
-    const totalSets = s.entries.reduce((sum, e) => sum + e.sets.length, 0) || 1;
-    const muscleStats = {};
-    s.entries.forEach(e => {
-      const ex = getExercise(e.exerciseId);
-      const muscle = (ex && ex.muscle) || 'Sin músculo';
-      if (!muscleStats[muscle]) muscleStats[muscle] = { count: 0, sec: 0 };
-      muscleStats[muscle].count += 1;
-      if (hasDuration) {
-        muscleStats[muscle].sec += s.durationSec * (e.sets.length / totalSets);
-      }
-    });
-    return {
-      date: s.date,
-      gym: s.gym,
-      totalExercises: s.entries.length,
-      durationSec: s.durationSec,
-      hasDuration,
-      supersets,
-      muscleStats,
-    };
+  const consumed = new Set();
+  const days = [];
+  sessions.forEach(s => {
+    if (consumed.has(s.id)) return;
+    consumed.add(s.id);
+    // La parte 2 (más reciente) aparece antes en la lista y arrastra a su parte 1.
+    const first = s.continuesSessionId ? sessions.find(x => x.id === s.continuesSessionId) : null;
+    if (first) consumed.add(first.id);
+    days.push(summarizeSessionParts(routine, first ? [first, s] : [s]));
   });
+  return days;
 }
 
 // Al tocar una rutina: ¿entrenar o solo mirarla? Abrir la sesión directamente
@@ -397,13 +426,20 @@ function openRoutineChoice(routineId) {
   const routine = getRoutine(routineId);
   if (!routine) return;
   const inProgress = !!loadSessionDraft(routineId);
+  // Última sesión parcial, reciente y aún sin continuar: se ofrece terminarla.
+  const last = db.sessions.filter(s => s.routineId === routineId).sort((a, b) => b.date.localeCompare(a.date))[0];
+  const CONTINUE_WINDOW_MS = 4 * 24 * 60 * 60 * 1000;
+  const resumable = !inProgress && last && last.partial
+    && !db.sessions.some(s => s.continuesSessionId === last.id)
+    && (Date.now() - new Date(last.date).getTime()) < CONTINUE_WINDOW_MS ? last : null;
   const backdrop = document.createElement('div');
   backdrop.className = 'modal-backdrop';
   backdrop.innerHTML = `
     <div class="modal-sheet">
       <h2>${escapeHtml(routine.name)}</h2>
       ${inProgress ? '<p style="color:var(--green);font-size:13px;margin-top:-8px;">Tienes un entreno en curso de esta rutina.</p>' : ''}
-      <button class="btn btn-primary btn-block" id="choice-train">🏋️ ${inProgress ? 'Continuar entreno' : 'Empezar entreno'}</button>
+      ${resumable ? `<button class="btn btn-primary btn-block" id="choice-resume">↪ Continuar la sesión del ${fmtDateShort(resumable.date)}</button><div style="height:8px;"></div>` : ''}
+      <button class="btn ${resumable ? '' : 'btn-primary'} btn-block" id="choice-train">🏋️ ${inProgress ? 'Continuar entreno' : 'Empezar entreno'}</button>
       <div style="height:8px;"></div>
       <button class="btn btn-block" id="choice-view">📋 Consultar rutina</button>
       <div style="height:8px;"></div>
@@ -413,6 +449,22 @@ function openRoutineChoice(routineId) {
   document.body.appendChild(backdrop);
   const close = () => document.body.removeChild(backdrop);
   document.getElementById('choice-train').addEventListener('click', () => { close(); navigate(`session/${routineId}`); });
+  const resumeBtn = document.getElementById('choice-resume');
+  if (resumeBtn) resumeBtn.addEventListener('click', () => {
+    // Borrador ya enlazado a la parte 1: sus ejercicios salen como hechos.
+    saveSessionDraft(routineId, {
+      gym: resumable.gym || '',
+      entries: {},
+      restStart: null,
+      pendingRestSec: null,
+      restSourceSlotId: null,
+      sessionStartedAt: Date.now(),
+      continuesSessionId: resumable.id,
+      doneFrom: { sessionId: resumable.id, date: resumable.date, slotIds: resumable.entries.map(e => e.slotId) },
+    });
+    close();
+    navigate(`session/${routineId}`);
+  });
   document.getElementById('choice-view').addEventListener('click', () => { close(); navigate(`history/${routineId}`); });
   document.getElementById('choice-cancel').addEventListener('click', close);
   backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
@@ -432,17 +484,18 @@ function renderHome() {
     const VISIBLE = 3;
     const dayHtml = (day, hidden) => {
       const head = [
-        fmtDateShort(day.date),
+        day.dates.map(fmtDateShort).join(' + '),
         `${day.totalExercises} ej`,
-        day.hasDuration ? fmtMinutesShort(day.durationSec) : null,
+        day.hasDuration ? day.durations.map(fmtMinutesShort).join('+') : null,
         day.supersets ? `🔗${day.supersets}` : null,
+        day.partial ? '⏸ parcial' : null,
         day.gym ? `📍${escapeHtml(day.gym)}` : null,
       ].filter(Boolean).join(' · ');
       const chips = Object.entries(day.muscleStats).map(([m, st]) => {
         const color = MUSCLE_COLORS[muscleParts(m)[0]] || 'var(--border)';
         const timeTxt = day.hasDuration ? `·${fmtMinutesShort(st.sec)}` : '';
         return `<span class="muscle-chip" style="border-color:${color};color:${color};">${escapeHtml(muscleAbbr(m))} ${st.count}${timeTxt}</span>`;
-      }).join('');
+      }).join('') + day.missingMuscles.map(m => `<span class="muscle-chip muscle-chip-zero">${escapeHtml(muscleAbbr(m))} 0</span>`).join('');
       return `
           <div class="summary-day${hidden ? ' summary-extra' : ''}"${hidden ? ' hidden' : ''}>
             <div class="summary-row">${head}</div>
@@ -1040,6 +1093,8 @@ function sessionRowHtml(s, showRoutine) {
     `${s.entries.length} ejercicios`,
     `${totalSets} series`,
     s.durationSec != null ? formatDurationHuman(s.durationSec) : null,
+    s.partial ? '⏸ parcial' : null,
+    s.continuesSessionId ? '↪ continuación' : null,
     s.gym ? `📍 ${s.gym}` : null,
   ].filter(Boolean).join(' · ');
   const title = showRoutine
@@ -1323,7 +1378,9 @@ function renderSession(routineId) {
     return Math.round((Date.now() - sessionStartedAt) / 1000);
   }
 
-  function openDurationPrompt(onDone) {
+  // missingCount: ejercicios del plan sin series hoy. Si hay, se pregunta si la
+  // sesión queda parcial (el resto otro día) o completa (saltados a propósito).
+  function openDurationPrompt(missingCount, onDone) {
     const suggestedMin = Math.max(1, Math.round(suggestedDurationSec() / 60));
     const backdrop = document.createElement('div');
     backdrop.className = 'modal-backdrop';
@@ -1334,6 +1391,11 @@ function renderSession(routineId) {
         <div class="field">
           <input id="duration-input" type="text" inputmode="numeric" value="${suggestedMin}" />
         </div>
+        ${missingCount ? `
+        <p style="color:var(--text-dim);font-size:13px;margin:4px 0 2px;">Quedan ${missingCount} ejercicio${missingCount === 1 ? '' : 's'} sin series. ¿La sesión es…?</p>
+        <label class="choice-row"><input type="radio" name="session-scope" value="partial" checked /> ⏸ Parcial — el resto otro día</label>
+        <label class="choice-row"><input type="radio" name="session-scope" value="full" /> ✅ Completa — los salté a propósito</label>
+        ` : ''}
         <button class="btn btn-primary btn-block" id="duration-ok">Guardar sesión</button>
         <div style="height:8px;"></div>
         <button class="btn btn-block" id="duration-cancel">Cancelar</button>
@@ -1346,8 +1408,9 @@ function renderSession(routineId) {
     const confirmDuration = () => {
       const min = Number(normalizeDecimal(input.value));
       if (!min || min <= 0) { showToast('Pon una duración válida en minutos'); return; }
+      const scope = backdrop.querySelector('input[name="session-scope"]:checked');
       document.body.removeChild(backdrop);
-      onDone(Math.round(min * 60));
+      onDone(Math.round(min * 60), !!scope && scope.value === 'partial');
     };
     document.getElementById('duration-ok').addEventListener('click', confirmDuration);
     document.getElementById('duration-cancel').addEventListener('click', () => document.body.removeChild(backdrop));
@@ -1568,11 +1631,32 @@ function renderSession(routineId) {
 
   function paint() {
     saveDraft();
+    const doneSlotIds = draft.doneFrom ? draft.doneFrom.slotIds : [];
     const blocks = routine.slots.map((slot, idx) => {
       const plannedEx = getExercise(slot.exerciseId);
       const entry = draft.entries[slot.id];
       const currentEx = getExercise(entry.exerciseId);
       const isSub = entry.exerciseId !== slot.exerciseId;
+
+      // Continuación de una sesión parcial: lo hecho el otro día se muestra
+      // plegado y sin registro, para ir directo a lo que falta.
+      if (doneSlotIds.includes(slot.id)) {
+        const prev = db.sessions.find(x => x.id === draft.doneFrom.sessionId);
+        const prevEntry = prev && prev.entries.find(e => e.slotId === slot.id);
+        const doneEx = getExercise(prevEntry ? prevEntry.exerciseId : slot.exerciseId);
+        const setsTxt = prevEntry ? prevEntry.sets.map(st => escapeHtml(`${st.weight}×${st.reps}`)).join(' · ') : '';
+        return `
+        <div class="exercise-block exercise-done" style="${muscleBackgroundStyle(doneEx && doneEx.muscle)}">
+          ${doneEx && doneEx.muscle ? muscleBadgeHtml(doneEx.muscle) : ''}
+          <div class="exercise-head">
+            <div>
+              <h3>${idx + 1}. ${escapeHtml(doneEx ? doneEx.name : '(ejercicio eliminado)')}</h3>
+              <div class="done-note">✓ Hecho el ${fmtDateShort(draft.doneFrom.date)}${setsTxt ? ' · ' + setsTxt : ''}</div>
+              <span class="technique-link" data-redo="${slot.id}">Repetir hoy</span>
+            </div>
+          </div>
+        </div>`;
+      }
 
       const totalHistoryCount = pastSessionsForSlot(slot.id, Infinity).length;
       const history = pastSessionsForSlot(slot.id, entry._historyLimit);
@@ -1725,6 +1809,10 @@ function renderSession(routineId) {
 
     app.querySelectorAll('[data-superset]').forEach(el => el.addEventListener('click', () => {
       openSupersetPicker(el.dataset.superset);
+    }));
+    app.querySelectorAll('[data-redo]').forEach(el => el.addEventListener('click', () => {
+      draft.doneFrom.slotIds = draft.doneFrom.slotIds.filter(id => id !== el.dataset.redo);
+      paint();
     }));
 
     function addSetNow(slotId, manualRestSec) {
@@ -1942,15 +2030,21 @@ function renderSession(routineId) {
         return;
       }
 
-      openDurationPrompt((durationSec) => {
-        db.sessions.push({
+      const doneIds = draft.doneFrom ? draft.doneFrom.slotIds : [];
+      const savedIds = new Set(entries.map(e => e.slotId));
+      const missingCount = routine.slots.filter(sl => !doneIds.includes(sl.id) && !savedIds.has(sl.id)).length;
+      openDurationPrompt(missingCount, (durationSec, partial) => {
+        const session = {
           id: uid(),
           routineId,
           date: new Date().toISOString(),
           durationSec,
           gym: draft.gym || '',
           entries
-        });
+        };
+        if (partial) session.partial = true;
+        if (draft.continuesSessionId) session.continuesSessionId = draft.continuesSessionId;
+        db.sessions.push(session);
         saveDB();
         clearSessionDraft(routineId);
         showToast('Sesión guardada');
