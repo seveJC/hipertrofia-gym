@@ -11,6 +11,7 @@ function loadDB() {
 
 function saveDB() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+  markBackupPending();
 }
 
 let db = loadDB();
@@ -76,12 +77,64 @@ function utf8ToBase64(str) {
   return btoa(unescape(encodeURIComponent(str)));
 }
 
+// ---------- Copia pendiente y reintentos ----------
+// Cualquier cambio en la base deja una marca hasta que la copia sube bien.
+// Si falla (sin cobertura al salir del gimnasio), se reintenta al volver la
+// red, al abrir la app o al volver a primer plano, y la home lo avisa.
+const BACKUP_PENDING_KEY = 'hipertrofia_backup_pending_v1';
+
+function isBackupPending() {
+  try { return !!localStorage.getItem(BACKUP_PENDING_KEY); } catch (e) { return false; }
+}
+
+function markBackupPending() {
+  try { localStorage.setItem(BACKUP_PENDING_KEY, new Date().toISOString()); } catch (e) { /* ignore */ }
+}
+
+function clearBackupPending() {
+  try { localStorage.removeItem(BACKUP_PENDING_KEY); } catch (e) { /* ignore */ }
+}
+
+let backupRetryTimer = null;
+let backupRetryCount = 0;
+const BACKUP_RETRY_DELAYS_MS = [30000, 120000, 600000];
+
+function scheduleBackupRetry() {
+  clearTimeout(backupRetryTimer);
+  const delay = BACKUP_RETRY_DELAYS_MS[Math.min(backupRetryCount, BACKUP_RETRY_DELAYS_MS.length - 1)];
+  backupRetryCount++;
+  backupRetryTimer = setTimeout(() => retryBackupIfPending(), delay);
+}
+
+function retryBackupIfPending() {
+  if (!getGhToken() || !isBackupPending()) return;
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
+  pushBackupToGitHub(false);
+}
+
+window.addEventListener('online', retryBackupIfPending);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') retryBackupIfPending(); });
+
+function updateBackupBanner() {
+  const el = document.getElementById('backup-banner');
+  if (!el) return;
+  el.hidden = !(getGhToken() && isBackupPending());
+}
+
+let backupInFlight = false;
+
 async function pushBackupToGitHub(notify) {
   const token = getGhToken();
   if (!token) {
     if (notify) showToast('Configura primero la copia en GitHub');
     return false;
   }
+  // Dos subidas a la vez chocan en GitHub (409 por sha desfasado).
+  if (backupInFlight) return false;
+  backupInFlight = true;
+  // Lo que se sube es lo que hay ahora; si cambia algo mientras tanto,
+  // saveDB volverá a marcar pendiente.
+  clearBackupPending();
   const apiUrl = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_PATH}`;
   const headers = {
     'Authorization': `Bearer ${token}`,
@@ -104,12 +157,20 @@ async function pushBackupToGitHub(notify) {
       const detail = await putRes.text().catch(() => '');
       throw new Error(`GitHub devolvió ${putRes.status}: ${detail.slice(0, 200)}`);
     }
+    backupRetryCount = 0;
+    clearTimeout(backupRetryTimer);
+    updateBackupBanner();
     if (notify) showToast('Copia en GitHub actualizada ☁️');
     return true;
   } catch (e) {
     console.error('Backup en GitHub falló', e);
-    if (notify) showToast('No se pudo subir la copia a GitHub');
+    markBackupPending();
+    updateBackupBanner();
+    scheduleBackupRetry();
+    if (notify) showToast('No se pudo subir la copia; se reintentará solo');
     return false;
+  } finally {
+    backupInFlight = false;
   }
 }
 
@@ -364,6 +425,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   await mergeExerciseLibrary();
   runMigrations();
   render();
+  retryBackupIfPending();
 });
 
 function currentRoute() {
@@ -584,6 +646,9 @@ function renderHome() {
       <button class="btn btn-icon" data-nav="history" title="Historial de sesiones">📅</button>
       <button class="btn btn-icon" data-nav="exercises" title="Ejercicios">🏋️</button>
     </div>
+    <div class="backup-banner" id="backup-banner"${getGhToken() && isBackupPending() ? '' : ' hidden'}>
+      ☁️ Hay cambios sin copiar a GitHub · <span class="backup-retry" id="backup-retry-btn">subir ahora</span>
+    </div>
     <div class="container">
       ${routines.length ? cards : '<div class="empty-state">Todavía no tienes rutinas.<br>Crea la primera para empezar.</div>'}
       <div class="fab-row">
@@ -595,6 +660,7 @@ function renderHome() {
   app.querySelectorAll('[data-open-routine]').forEach(el => {
     el.addEventListener('click', () => openRoutineChoice(el.dataset.openRoutine));
   });
+  document.getElementById('backup-retry-btn').addEventListener('click', () => pushBackupToGitHub(true));
   // El desplegable vive dentro de la tarjeta, que entera abre la sesión:
   // hay que frenar el click para que no navegue.
   app.querySelectorAll('[data-more]').forEach(btn => {
@@ -658,7 +724,7 @@ function renderExercises() {
         <button class="btn btn-block" id="gh-config-btn">${getGhToken() ? '🔗 Cambiar token de GitHub' : '🔗 Configurar copia en GitHub'}</button>
         <div style="height:8px;"></div>
         <button class="btn btn-block" id="gh-sync-now-btn">☁️ Sincronizar ahora</button>
-        <div class="rest-note" style="margin-top:8px;">${getGhToken() ? 'Activado: cada "Guardar sesión" sube una copia a GitHub automáticamente.' : 'Sin configurar todavía: los datos solo se guardan en este dispositivo.'}</div>
+        <div class="rest-note" style="margin-top:8px;">${getGhToken() ? 'Activado: cada cambio se sube a GitHub; si falla, se reintenta solo al volver la conexión.' : 'Sin configurar todavía: los datos solo se guardan en este dispositivo.'}</div>
       </div>
     </div>
   `;
