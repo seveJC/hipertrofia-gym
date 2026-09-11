@@ -1183,7 +1183,7 @@
       "date": "2026-08-28T12:00:00.000Z",
       "durationSec": 5100,
       "notes": "Basic-fit",
-      "gym": "Basic-Fit Bravo Murillo",
+      "gym": "Basic-fit Bravo Murillo",
       "entries": [
         {
           "slotId": "6df0dc7664e0",
@@ -1910,7 +1910,7 @@
       "date": "2026-08-31T12:00:00.000Z",
       "durationSec": 4080,
       "notes": "Basic-fit | C - 28min | F+DL - 23min",
-      "gym": "Basic-Fit Bravo Murillo",
+      "gym": "Basic-fit Bravo Murillo",
       "entries": [
         {
           "slotId": "6df0dc7664e0",
@@ -2446,7 +2446,7 @@
       "date": "2026-09-04T12:00:00.000Z",
       "durationSec": null,
       "notes": "Basic-fit",
-      "gym": "Basic-Fit Bravo Murillo",
+      "gym": "Basic-fit Bravo Murillo",
       "entries": [
         {
           "slotId": "6df0dc7664e0",
@@ -2992,7 +2992,7 @@
       "date": "2026-09-07T12:00:00.000Z",
       "durationSec": 3540,
       "notes": "Basic-fit | 1 a 7 - 52min",
-      "gym": "Basic-Fit Bravo Murillo",
+      "gym": "Basic-fit Bravo Murillo",
       "entries": [
         {
           "slotId": "6df0dc7664e0",
@@ -3789,7 +3789,7 @@
       "routineId": "mtwxbr0umc3b96",
       "date": "2026-09-11T14:20:26.092Z",
       "durationSec": 4320,
-      "gym": "Basic-Fit Bravo Murillo",
+      "gym": "Basic-fit Bravo Murillo",
       "entries": [
         {
           "slotId": "6df0dc7664e0",
@@ -3986,14 +3986,24 @@
     "legSplitDone": true,
     "restTargetsSeeded": true,
     "gymsSeeded": true,
-    "uniRightFirst": true
+    "uniRightFirst": true,
+    "gymsDeduped": true,
+    "msgFuerza20260911": true
   },
   "gyms": [
     "Basic-fit Bravo Murillo",
-    "Basic-Fit Bravo Murillo",
     "Basic-Fit Huelva",
     "Hi-Fitness",
     "Quality Fitness (Aljaraque)",
     "VivaGym Bravo Murillo"
+  ],
+  "messages": [
+    {
+      "id": "mtx5b5iryfyvbs",
+      "routineId": "8a82112eb89a",
+      "fromRoutineId": null,
+      "text": "Hacer Gemelos y Abdominales",
+      "createdAt": "2026-09-11T20:00:00.000Z"
+    }
   ]
 }
