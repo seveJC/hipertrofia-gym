@@ -168,6 +168,72 @@ html, body {
   font-style: italic;
 }
 
+.progress-intro {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin: 4px 4px 12px;
+}
+
+.progress-card { padding: 12px 14px; }
+
+.progress-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.progress-head .name { font-size: 15px; font-weight: 600; }
+
+.progress-badge { position: static; }
+
+.progress-rec {
+  font-size: 14px;
+  line-height: 1.35;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+}
+
+.progress-up { border-color: var(--green); background: rgba(76, 175, 125, 0.12); }
+.progress-down { border-color: #7a2c2c; background: rgba(255, 90, 54, 0.10); }
+.progress-keep { border-color: var(--border); }
+
+.progress-last {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 6px;
+}
+
+.progress-stats {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 6px;
+}
+
+.progress-chart {
+  width: 100%;
+  height: 90px;
+  margin-top: 8px;
+  display: block;
+}
+
+.progress-chart path { stroke: var(--accent); stroke-width: 2; }
+.progress-chart circle { fill: var(--accent); }
+.progress-chart text { fill: var(--text-dim); font-size: 9px; }
+
+.progress-minor details summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-dim);
+  list-style: none;
+}
+
+.progress-minor details summary::-webkit-details-marker { display: none; }
+.progress-minor details[open] summary { margin-bottom: 8px; }
+
 .summary-more {
   margin-top: 6px;
   padding: 4px 0;

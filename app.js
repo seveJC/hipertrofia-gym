@@ -446,6 +446,23 @@ function runMigrations() {
     changed = true;
   }
 
+  // Gimnasios duplicados por mayúsculas/espacios/guiones ("Basic-Fit Bravo
+  // Murillo" dos veces): se quedan con una sola forma y las sesiones se
+  // corrigen para apuntar a ella.
+  if (!db.meta.gymsDeduped) {
+    const norm = (g) => g.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+    const canonical = {};
+    (db.gyms || []).forEach(g => {
+      const k = norm(g);
+      // Preferir la forma con guion y mayúsculas "bien" si hay varias.
+      if (!canonical[k] || (/[A-Z].*-.*[A-Z]/.test(g) && !/[A-Z].*-.*[A-Z]/.test(canonical[k]))) canonical[k] = g.trim();
+    });
+    db.gyms = [...new Set(Object.values(canonical))].sort((a, b) => a.localeCompare(b, 'es'));
+    db.sessions.forEach(ses => { if (ses.gym) { const c = canonical[norm(ses.gym)]; if (c) ses.gym = c; } });
+    db.meta.gymsDeduped = true;
+    changed = true;
+  }
+
   if (changed) saveDB();
 }
 
@@ -497,6 +514,7 @@ function render() {
   if (parts.length === 0) return renderHome();
   if (parts[0] === 'exercises') return renderExercises();
   if (parts[0] === 'history') return renderHistory(parts[1] || null);
+  if (parts[0] === 'progress' && parts[1]) return renderProgress(parts[1]);
   if (parts[0] === 'session-view' && parts[1]) return renderSessionDetail(parts[1]);
   if (parts[0] === 'routine-new') return renderRoutineEditor(null);
   if (parts[0] === 'routine-edit' && parts[1]) return renderRoutineEditor(parts[1]);
@@ -640,6 +658,8 @@ function openRoutineChoice(routineId) {
       <div style="height:8px;"></div>
       <button class="btn btn-block" id="choice-view">📋 Consultar rutina</button>
       <div style="height:8px;"></div>
+      <button class="btn btn-block" id="choice-progress">📈 Progreso y recomendaciones</button>
+      <div style="height:8px;"></div>
       <button class="btn btn-ghost btn-block" id="choice-cancel">Cancelar</button>
     </div>
   `;
@@ -663,6 +683,7 @@ function openRoutineChoice(routineId) {
     navigate(`session/${routineId}`);
   });
   document.getElementById('choice-view').addEventListener('click', () => { close(); navigate(`history/${routineId}`); });
+  document.getElementById('choice-progress').addEventListener('click', () => { close(); navigate(`progress/${routineId}`); });
   document.getElementById('choice-cancel').addEventListener('click', close);
   backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
 }
@@ -1323,6 +1344,167 @@ function sessionRowHtml(s, showRoutine) {
 
 // Sin routineId: todas las sesiones. Con routineId: "consultar rutina", es
 // decir, sus ejercicios y solo sus sesiones.
+// ---------- Progreso y recomendaciones ----------
+// Primer número de un valor que puede venir compuesto: "59/52" (drop set),
+// "10+3" (rest-pause), "8".
+function firstNum(v) {
+  if (v == null || v === '') return null;
+  const m = String(v).match(/-?\d+(?:[.,]\d+)?/);
+  return m ? Number(m[0].replace(',', '.')) : null;
+}
+
+// 1RM estimado (Epley). Sirve para comparar sesiones aunque cambien peso y repes.
+function e1rm(w, r) {
+  if (!w || !r) return 0;
+  return w * (1 + r / 30);
+}
+
+const LOWER_BODY = ['Cuádriceps', 'Isquiotibiales', 'Gemelos'];
+
+// Por sesión: peso de trabajo (el más repetido), repes mínimas a ese peso,
+// RIR medio y mejor 1RM estimado.
+function slotProgressPoints(routine, slot) {
+  return db.sessions
+    .filter(ses => ses.routineId === routine.id)
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .map(ses => {
+      const e = ses.entries.find(x => x.slotId === slot.id);
+      if (!e) return null;
+      const sets = e.sets.map(st => ({ w: firstNum(st.weight), r: firstNum(st.reps), rir: firstNum(st.rir) }))
+        // Valores imposibles (repes de miles, pesos absurdos) son errores de
+        // tecleo: fuera del análisis para que no disparen recomendaciones.
+        .filter(st => st.w != null && st.r != null && st.r > 0 && st.r <= 100 && st.w >= 0 && st.w <= 500);
+      if (!sets.length) return null;
+      const counts = {};
+      sets.forEach(st => { counts[st.w] = (counts[st.w] || 0) + 1; });
+      const workW = Number(Object.keys(counts).sort((a, b) => counts[b] - counts[a] || Number(b) - Number(a))[0]);
+      const workSets = sets.filter(st => st.w === workW);
+      const rirs = workSets.map(st => st.rir).filter(x => x != null);
+      return {
+        date: ses.date,
+        sets,
+        workW,
+        minReps: Math.min(...workSets.map(st => st.r)),
+        maxReps: Math.max(...workSets.map(st => st.r)),
+        avgRir: rirs.length ? rirs.reduce((a, b) => a + b, 0) / rirs.length : null,
+        best: Math.max(...sets.map(st => e1rm(st.w, st.r))),
+        volume: sets.reduce((n, st) => n + st.w * st.r, 0),
+      };
+    })
+    .filter(Boolean);
+}
+
+// Doble progresión: se sube peso cuando se llega al tope del rango de repes
+// (o sobran repes según el RIR); se baja si las repes caen dos veces.
+function recommendForSlot(routine, slot, pts) {
+  const ex = getExercise(slot.exerciseId);
+  const lower = muscleNames(ex && ex.muscle).some(m => LOWER_BODY.includes(m));
+  const step = lower ? 5 : 2.5;
+  const fuerza = /fuerza/i.test(routine.name);
+  const [lo, hi] = fuerza ? [4, 6] : [8, 12];
+  const fmtW = (w) => `${Math.round(w * 4) / 4} kg`;
+  if (pts.length < 2) {
+    return { level: 'info', text: pts.length ? 'Con una sesión más ya puedo comparar.' : 'Sin sesiones todavía.' };
+  }
+  const last = pts[pts.length - 1];
+  const prev = pts[pts.length - 2];
+  const W = last.workW;
+  const rangeTxt = `${lo}–${hi}`;
+
+  if (last.avgRir != null && last.avgRir >= 2.5) {
+    return { level: 'up', text: `Te sobran repes (RIR medio ${last.avgRir.toFixed(1)}). Sube a ${fmtW(W + step)}.` };
+  }
+  if (last.minReps >= hi) {
+    return { level: 'up', text: `Ya haces ${last.minReps}+ repes con ${fmtW(W)} (rango ${rangeTxt}). Sube a ${fmtW(W + step)} y vuelve a ${lo} repes.` };
+  }
+  if (W > prev.workW) {
+    return { level: 'keep', text: `Acabas de subir de ${fmtW(prev.workW)} a ${fmtW(W)}. Consolida: repite ${fmtW(W)} hasta llegar a ${hi} repes en todas las series.` };
+  }
+  if (W === prev.workW && last.minReps > prev.minReps) {
+    return { level: 'keep', text: `Progresas en repes con ${fmtW(W)} (${prev.minReps} → ${last.minReps}). Sigue así hasta ${hi}; entonces ${fmtW(W + step)}.` };
+  }
+  if (W === prev.workW && last.minReps < prev.minReps) {
+    const twice = pts.length >= 3 && pts[pts.length - 3].workW === W && prev.minReps < pts[pts.length - 3].minReps;
+    return twice
+      ? { level: 'down', text: `Dos sesiones perdiendo repes con ${fmtW(W)} (${pts[pts.length - 3].minReps} → ${prev.minReps} → ${last.minReps}). Baja a ${fmtW(W - step)} o descansa más entre series.` }
+      : { level: 'keep', text: `Menos repes que la vez anterior con ${fmtW(W)} (${prev.minReps} → ${last.minReps}). Repite ${fmtW(W)}; si vuelve a bajar, reduce peso.` };
+  }
+  if (last.minReps < lo) {
+    return { level: 'down', text: `Con ${fmtW(W)} te quedas en ${last.minReps} repes, por debajo del rango ${rangeTxt}. Baja a ${fmtW(W - step)}.` };
+  }
+  if (pts.length >= 3) {
+    const old = pts[pts.length - 3].best;
+    if (old > 0 && (last.best - old) / old < 0.01) {
+      return { level: 'info', text: `Tres sesiones sin avance (1RM est. ${Math.round(last.best)} kg). Prueba ${fmtW(W + step)} bajando repes, o añade una serie.` };
+    }
+  }
+  return { level: 'keep', text: `Estable con ${fmtW(W)} × ${last.minReps}–${last.maxReps}. Busca ${hi} repes en todas las series antes de subir.` };
+}
+
+function progressChartSvg(pts) {
+  const data = pts.slice(-12);
+  if (data.length < 2) return '';
+  const W = 320, H = 90, padL = 34, padR = 10, padT = 10, padB = 18;
+  const vals = data.map(p => p.best);
+  let min = Math.min(...vals), max = Math.max(...vals);
+  if (max - min < 1) { max += 1; min -= 1; }
+  const x = (i) => padL + (i * (W - padL - padR)) / (data.length - 1);
+  const y = (v) => padT + (H - padT - padB) * (1 - (v - min) / (max - min));
+  const path = data.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(p.best).toFixed(1)}`).join(' ');
+  const dots = data.map((p, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(p.best).toFixed(1)}" r="3" />`).join('');
+  const labels = data.map((p, i) => (i === 0 || i === data.length - 1 || data.length <= 6)
+    ? `<text x="${x(i).toFixed(1)}" y="${H - 4}" text-anchor="middle">${fmtDateShort(p.date)}</text>` : '').join('');
+  return `
+    <svg class="progress-chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+      <text x="2" y="${(padT + 4).toFixed(1)}">${Math.round(max)}</text>
+      <text x="2" y="${(H - padB).toFixed(1)}">${Math.round(min)}</text>
+      <path d="${path}" fill="none" />
+      ${dots}
+      ${labels}
+    </svg>`;
+}
+
+function renderProgress(routineId) {
+  const routine = getRoutine(routineId);
+  if (!routine) { navigate(''); return; }
+
+  const blocks = routine.slots.map((slot, idx) => {
+    const ex = getExercise(slot.exerciseId);
+    const pts = slotProgressPoints(routine, slot);
+    const rec = recommendForSlot(routine, slot, pts);
+    const last = pts[pts.length - 1];
+    const main = idx < 3;
+    const icon = { up: '⬆️', keep: '➡️', down: '⬇️', info: 'ℹ️' }[rec.level];
+    const lastTxt = last ? `Última: ${fmtDateShort(last.date)} · ${last.sets.map(st => `${st.w}×${st.r}`).join(' · ')}${last.avgRir != null ? ` · RIR ${last.avgRir.toFixed(1)}` : ''}` : '';
+    const body = `
+      <div class="progress-rec progress-${rec.level}">${icon} ${escapeHtml(rec.text)}</div>
+      ${lastTxt ? `<div class="progress-last">${escapeHtml(lastTxt)}</div>` : ''}
+      ${main ? progressChartSvg(pts) : ''}
+      ${pts.length >= 2 ? `<div class="progress-stats">1RM est.: ${Math.round(pts[pts.length - 2].best)} → <b>${Math.round(last.best)} kg</b> · volumen: ${Math.round(pts[pts.length - 2].volume)} → <b>${Math.round(last.volume)} kg</b></div>` : ''}`;
+    return `
+      <div class="card progress-card${main ? '' : ' progress-minor'}">
+        <div class="progress-head">
+          <div class="name">${idx + 1}. ${ex ? escapeHtml(ex.name) : '(ejercicio eliminado)'}</div>
+          ${ex && ex.muscle ? muscleBadgeHtml(ex.muscle).replace('muscle-badge', 'muscle-badge progress-badge') : ''}
+        </div>
+        ${main ? body : `<details><summary>${icon} ${escapeHtml(rec.text)}</summary>${body}</details>`}
+      </div>`;
+  }).join('');
+
+  const fuerza = /fuerza/i.test(routine.name);
+  app.innerHTML = `
+    <div class="topbar">
+      <button class="btn btn-ghost" data-nav="history/${routine.id}">← Atrás</button>
+      <h1>📈 ${escapeHtml(routine.name)}</h1>
+    </div>
+    <div class="container">
+      <div class="progress-intro">Rango objetivo: <b>${fuerza ? '4–6' : '8–12'} repes</b> (por el nombre de la rutina). Los tres primeros ejercicios llevan gráfica; el resto, plegados.</div>
+      ${blocks}
+    </div>
+  `;
+  app.querySelectorAll('[data-nav]').forEach(el => el.addEventListener('click', () => navigate(el.dataset.nav)));
+}
+
 function renderHistory(routineId) {
   const routine = routineId ? getRoutine(routineId) : null;
   if (routineId && !routine) { navigate(''); return; }
@@ -1350,7 +1532,7 @@ function renderHistory(routineId) {
     <div class="topbar">
       <button class="btn btn-ghost" data-nav="">← Atrás</button>
       <h1>${routine ? escapeHtml(routine.name) : 'Historial'}</h1>
-      ${routine ? `<button class="btn btn-icon" data-nav="routine-edit/${routine.id}" title="Editar rutina">✎</button>` : ''}
+      ${routine ? `<button class="btn btn-icon" data-nav="progress/${routine.id}" title="Progreso">📈</button><button class="btn btn-icon" data-nav="routine-edit/${routine.id}" title="Editar rutina">✎</button>` : ''}
     </div>
     <div class="container">
       ${exercisesHtml}
