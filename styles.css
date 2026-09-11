@@ -161,6 +161,13 @@ html, body {
   gap: 4px;
 }
 
+.summary-notes {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--text-dim);
+  font-style: italic;
+}
+
 .summary-more {
   margin-top: 6px;
   padding: 4px 0;
@@ -251,6 +258,10 @@ html, body {
   padding: 8px 10px;
   color: var(--text);
   font-size: 13px;
+}
+
+.gym-field-notes {
+  padding-top: 0;
 }
 
 .exercise-head {

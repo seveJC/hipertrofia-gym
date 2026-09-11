@@ -527,6 +527,7 @@ function summarizeSessionParts(routine, parts) {
     partial,
     missingMuscles,
     muscleStats,
+    notes: parts.map(p => p.notes).filter(Boolean).join(' · '),
   };
 }
 
@@ -628,6 +629,7 @@ function renderHome() {
           <div class="summary-day${hidden ? ' summary-extra' : ''}"${hidden ? ' hidden' : ''}>
             <div class="summary-row">${head}</div>
             <div class="summary-muscles">${chips}</div>
+            ${day.notes ? `<div class="summary-notes">📝 ${escapeHtml(day.notes)}</div>` : ''}
           </div>`;
     };
     const extra = summaries ? summaries.length - VISIBLE : 0;
@@ -1530,6 +1532,10 @@ function renderSession(routineId) {
         <div class="field">
           <input id="duration-input" type="text" inputmode="numeric" value="${suggestedMin}" />
         </div>
+        <div class="field">
+          <label>Notas de la sesión (opcional)</label>
+          <input id="duration-notes" placeholder="Ej. hombro molestando" value="${escapeHtml(draft.notes || '')}" />
+        </div>
         ${missingCount ? `
         <p style="color:var(--text-dim);font-size:13px;margin:4px 0 2px;">Quedan ${missingCount} ejercicio${missingCount === 1 ? '' : 's'} sin series. ¿La sesión es…?</p>
         <label class="choice-row"><input type="radio" name="session-scope" value="partial" checked /> ⏸ Parcial — el resto otro día</label>
@@ -1548,6 +1554,7 @@ function renderSession(routineId) {
       const min = Number(normalizeDecimal(input.value));
       if (!min || min <= 0) { showToast('Pon una duración válida en minutos'); return; }
       const scope = backdrop.querySelector('input[name="session-scope"]:checked');
+      draft.notes = document.getElementById('duration-notes').value.trim();
       document.body.removeChild(backdrop);
       onDone(Math.round(min * 60), !!scope && scope.value === 'partial');
     };
@@ -1891,6 +1898,9 @@ function renderSession(routineId) {
       <div class="gym-field">
         📍 <input id="session-gym" placeholder="Gimnasio (opcional)" value="${escapeHtml(draft.gym || '')}" />
       </div>
+      <div class="gym-field gym-field-notes">
+        📝 <input id="session-notes" placeholder="Notas de hoy (ej. hombro molestando)" value="${escapeHtml(draft.notes || '')}" />
+      </div>
       <div class="container">
         ${blocks}
       </div>
@@ -1913,6 +1923,7 @@ function renderSession(routineId) {
     });
 
     document.getElementById('session-gym').addEventListener('input', (e) => { draft.gym = e.target.value; saveDraft(); });
+    document.getElementById('session-notes').addEventListener('input', (e) => { draft.notes = e.target.value; saveDraft(); });
 
     app.querySelectorAll('[data-history-limit]').forEach(el => el.addEventListener('change', () => {
       draft.entries[el.dataset.historyLimit]._historyLimit = Number(el.value);
@@ -2143,6 +2154,7 @@ function renderSession(routineId) {
           entries
         };
         if (partial) session.partial = true;
+        if (draft.notes) session.notes = draft.notes;
         if (draft.continuesSessionId) session.continuesSessionId = draft.continuesSessionId;
         db.sessions.push(session);
         saveDB();
