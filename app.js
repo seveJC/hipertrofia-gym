@@ -825,7 +825,8 @@ function renderExercises() {
         <button class="btn btn-primary btn-block" id="add-exercise-btn">Añadir ejercicio</button>
       </div>
       <div class="section-title">Biblioteca (${db.exercises.length})</div>
-      <div class="card">
+      <input id="lib-search" class="picker-search" placeholder="🔍 Filtrar por nombre o músculo" autocomplete="off" />
+      <div class="card" id="lib-list">
         ${db.exercises.length ? items : '<div class="empty-state">Añade tu primer ejercicio arriba.</div>'}
       </div>
       <div class="section-title">Datos</div>
@@ -867,6 +868,16 @@ function renderExercises() {
       db.exercises = db.exercises.filter(e => e.id !== id);
       saveDB();
       renderExercises();
+    });
+  });
+
+  // Filtro de la biblioteca: oculta filas sin tocar sus listeners.
+  document.getElementById('lib-search').addEventListener('input', (e) => {
+    const q = e.target.value;
+    app.querySelectorAll('#lib-list .list-item').forEach(row => {
+      const id = row.querySelector('[data-edit-exercise]').dataset.editExercise;
+      const ex = db.exercises.find(x => x.id === id);
+      row.hidden = !!ex && !matchesSearch(ex, q);
     });
   });
 
@@ -1077,11 +1088,26 @@ function renderRoutineEditor(routineId) {
 }
 
 // ---------- Selector genérico de ejercicio (modal) ----------
+function searchKey(str) {
+  return String(str || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+function matchesSearch(exercise, query) {
+  const q = searchKey(query).trim();
+  if (!q) return true;
+  const hay = searchKey(exercise.name + ' ' + (exercise.muscle || ''));
+  return q.split(/\s+/).every(tok => hay.includes(tok));
+}
+
+function exerciseRowHtml(e) {
+  return `<div class="pick-row" data-pick="${e.id}">${escapeHtml(e.name)}${e.muscle ? ` <span style="color:var(--text-dim);font-size:12px;">· ${escapeHtml(e.muscle)}</span>` : ''}</div>`;
+}
+
 function openExercisePicker(title, onPick, opts = {}) {
   openMuscleGroupPicker(title, (muscle) => {
     if (muscle === '__DELETE__') { opts.onDelete && opts.onDelete(); return; }
     openExerciseListForMuscle(title, muscle, onPick);
-  }, opts);
+  }, { ...opts, onPickExercise: onPick });
 }
 
 function openMuscleGroupPicker(title, onPickMuscle, opts = {}) {
@@ -1095,8 +1121,10 @@ function openMuscleGroupPicker(title, onPickMuscle, opts = {}) {
   backdrop.innerHTML = `
     <div class="modal-sheet">
       <h2>${escapeHtml(title)}</h2>
-      <p style="color:var(--text-dim);font-size:13px;margin-top:-8px;">¿Qué músculo trabaja?</p>
-      <div>
+      <input id="picker-quick-search" class="picker-search" placeholder="🔍 Buscar ejercicio (ej. press inclinado)" autocomplete="off" />
+      <div id="picker-quick-results" hidden></div>
+      <div id="picker-groups">
+        <p style="color:var(--text-dim);font-size:13px;margin:0 0 6px;">…o elige por músculo</p>
         ${deleteRow}
         <div class="pick-row" data-group="__ALL__">Todos los ejercicios</div>
         ${groupRows}
@@ -1106,12 +1134,31 @@ function openMuscleGroupPicker(title, onPickMuscle, opts = {}) {
     </div>
   `;
   document.body.appendChild(backdrop);
+  const close = () => document.body.removeChild(backdrop);
   backdrop.querySelectorAll('[data-group]').forEach(el => el.addEventListener('click', () => {
-    document.body.removeChild(backdrop);
+    close();
     onPickMuscle(el.dataset.group);
   }));
-  document.getElementById('picker-cancel').addEventListener('click', () => document.body.removeChild(backdrop));
-  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) document.body.removeChild(backdrop); });
+
+  // Resultados directos mientras se escribe, sin pasar por el músculo.
+  const search = document.getElementById('picker-quick-search');
+  const results = document.getElementById('picker-quick-results');
+  const groupsBox = document.getElementById('picker-groups');
+  search.addEventListener('input', () => {
+    const q = search.value.trim();
+    results.hidden = !q;
+    groupsBox.hidden = !!q;
+    if (!q) return;
+    const found = db.exercises.filter(e => matchesSearch(e, q)).slice(0, 30);
+    results.innerHTML = (found.map(exerciseRowHtml).join('') || '<div class="empty-state" style="padding:14px;">Nada con ese nombre.</div>')
+      + `<div class="pick-row" data-create-new="1">+ Crear «${escapeHtml(q)}» como ejercicio nuevo</div>`;
+    results.querySelectorAll('[data-pick]').forEach(el => el.addEventListener('click', () => { close(); opts.onPickExercise(el.dataset.pick); }));
+    results.querySelector('[data-create-new]').addEventListener('click', () => { close(); openNewExerciseForm('', opts.onPickExercise, q); });
+  });
+  setTimeout(() => search.focus(), 50);
+
+  document.getElementById('picker-cancel').addEventListener('click', close);
+  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
 }
 
 function openExerciseListForMuscle(title, muscle, onPick) {
@@ -1132,9 +1179,8 @@ function openExerciseListForMuscle(title, muscle, onPick) {
 
   function paintList(filter) {
     const list = document.getElementById('picker-list');
-    const f = (filter || '').toLowerCase();
-    const filtered = base.filter(e => e.name.toLowerCase().includes(f));
-    list.innerHTML = filtered.map(e => `<div class="pick-row" data-pick="${e.id}">${escapeHtml(e.name)}${e.muscle ? ` <span style="color:var(--text-dim);font-size:12px;">· ${escapeHtml(e.muscle)}</span>` : ''}</div>`).join('')
+    const filtered = base.filter(e => matchesSearch(e, filter));
+    list.innerHTML = filtered.map(exerciseRowHtml).join('')
       || '<div class="empty-state">Sin resultados en este grupo.</div>';
     list.querySelectorAll('[data-pick]').forEach(el => el.addEventListener('click', () => {
       document.body.removeChild(backdrop);
@@ -1152,7 +1198,7 @@ function openExerciseListForMuscle(title, muscle, onPick) {
   backdrop.addEventListener('click', (e) => { if (e.target === backdrop) document.body.removeChild(backdrop); });
 }
 
-function openNewExerciseForm(muscle, onCreated) {
+function openNewExerciseForm(muscle, onCreated, presetName) {
   const backdrop = document.createElement('div');
   backdrop.className = 'modal-backdrop';
   backdrop.innerHTML = `
@@ -1160,7 +1206,7 @@ function openNewExerciseForm(muscle, onCreated) {
       <h2>Nuevo ejercicio</h2>
       <div class="field">
         <label>Nombre</label>
-        <input id="new-ex2-name" placeholder="Ej. Press banca" />
+        <input id="new-ex2-name" placeholder="Ej. Press banca" value="${escapeHtml(presetName || '')}" />
       </div>
       <div class="field">
         <label>Grupo muscular</label>
