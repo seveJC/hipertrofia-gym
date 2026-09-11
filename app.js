@@ -198,6 +198,26 @@ const MUSCLE_COLORS = {
   'Abdominales': '#c27ba0',
 };
 
+// Abreviaturas para el resumen compacto de la home.
+const MUSCLE_ABBR = {
+  'Pecho': 'Pec',
+  'Deltoide anterior': 'D.ant',
+  'Deltoide lateral': 'D.lat',
+  'Deltoide posterior': 'D.post',
+  'Tríceps': 'Tri',
+  'Bíceps': 'Bic',
+  'Espalda': 'Back',
+  'Cuádriceps': 'Quad',
+  'Isquiotibiales': 'Isq',
+  'Gemelos': 'Gem',
+  'Abdominales': 'Abd',
+};
+
+function muscleAbbr(muscle) {
+  if (!muscle) return '?';
+  return muscle.split('+').map(m => MUSCLE_ABBR[m.trim()] || m.trim()).join('+');
+}
+
 function hexToRgb(hex) {
   const n = parseInt(hex.replace('#', ''), 16);
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
@@ -246,6 +266,20 @@ function getRoutine(id) {
 function fmtDate(iso) {
   const d = new Date(iso);
   return d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: '2-digit' });
+}
+
+// A mano: algún navegador ignora el '2-digit' de toLocaleDateString y saca 31/8.
+function fmtDateShort(iso) {
+  const d = new Date(iso);
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  return dd + '/' + mm;
+}
+
+// 70' en vez de 1h 10min: para el resumen compacto de la home.
+function fmtMinutesShort(sec) {
+  if (sec == null) return null;
+  return `${Math.round(sec / 60)}'`;
 }
 
 function escapeHtml(str) {
@@ -322,12 +356,15 @@ function formatDurationHuman(sec) {
 function computeRoutineSummary(routine) {
   const sessions = db.sessions
     .filter(s => s.routineId === routine.id)
-    .sort((a, b) => b.date.localeCompare(a.date))
-    .slice(0, 3);
+    .sort((a, b) => b.date.localeCompare(a.date));
   if (!sessions.length) return null;
 
   return sessions.map(s => {
     const hasDuration = s.durationSec != null;
+    // Una superserie = un grupo con al menos 2 ejercicios enlazados ese día.
+    const groupSizes = {};
+    s.entries.forEach(e => { if (e.supersetGroup) groupSizes[e.supersetGroup] = (groupSizes[e.supersetGroup] || 0) + 1; });
+    const supersets = Object.values(groupSizes).filter(n => n >= 2).length;
     const totalSets = s.entries.reduce((sum, e) => sum + e.sets.length, 0) || 1;
     const muscleStats = {};
     s.entries.forEach(e => {
@@ -345,6 +382,7 @@ function computeRoutineSummary(routine) {
       totalExercises: s.entries.length,
       durationSec: s.durationSec,
       hasDuration,
+      supersets,
       muscleStats,
     };
   });
@@ -361,20 +399,31 @@ function renderHome() {
     const lastText = lastSession ? `Última vez: ${fmtDate(lastSession.date)}` : 'Sin sesiones registradas';
 
     const summaries = computeRoutineSummary(r);
+    const VISIBLE = 3;
+    const dayHtml = (day, hidden) => {
+      const head = [
+        fmtDateShort(day.date),
+        `${day.totalExercises} ej`,
+        day.hasDuration ? fmtMinutesShort(day.durationSec) : null,
+        day.supersets ? `🔗${day.supersets}` : null,
+        day.gym ? `📍${escapeHtml(day.gym)}` : null,
+      ].filter(Boolean).join(' · ');
+      const chips = Object.entries(day.muscleStats).map(([m, st]) => {
+        const color = MUSCLE_COLORS[muscleParts(m)[0]] || 'var(--border)';
+        const timeTxt = day.hasDuration ? `·${fmtMinutesShort(st.sec)}` : '';
+        return `<span class="muscle-chip" style="border-color:${color};color:${color};">${escapeHtml(muscleAbbr(m))} ${st.count}${timeTxt}</span>`;
+      }).join('');
+      return `
+          <div class="summary-day${hidden ? ' summary-extra' : ''}"${hidden ? ' hidden' : ''}>
+            <div class="summary-row">${head}</div>
+            <div class="summary-muscles">${chips}</div>
+          </div>`;
+    };
+    const extra = summaries ? summaries.length - VISIBLE : 0;
     const summaryHtml = summaries ? `
       <div class="routine-summary">
-        ${summaries.map(day => `
-          <div class="summary-day">
-            <div class="summary-row">${fmtDate(day.date)}${day.gym ? ` · 📍${escapeHtml(day.gym)}` : ''} — ${day.totalExercises} ejercicios${day.hasDuration ? ` · ${formatDurationHuman(day.durationSec)}` : ''}</div>
-            <div class="summary-muscles">
-              ${Object.entries(day.muscleStats).map(([m, st]) => {
-                const color = MUSCLE_COLORS[muscleParts(m)[0]] || 'var(--border)';
-                const timeTxt = day.hasDuration ? ` · ${formatDurationHuman(Math.round(st.sec))}` : '';
-                return `<span class="muscle-chip" style="border-color:${color};color:${color};">${escapeHtml(m)}: ${st.count}${timeTxt}</span>`;
-              }).join('')}
-            </div>
-          </div>
-        `).join('')}
+        ${summaries.map((day, i) => dayHtml(day, i >= VISIBLE)).join('')}
+        ${extra > 0 ? `<button class="summary-more" data-more="${r.id}">▾ ver ${extra} más</button>` : ''}
       </div>
     ` : '';
 
@@ -409,6 +458,17 @@ function renderHome() {
 
   app.querySelectorAll('[data-open-routine]').forEach(el => {
     el.addEventListener('click', () => navigate(`session/${el.dataset.openRoutine}`));
+  });
+  // El desplegable vive dentro de la tarjeta, que entera abre la sesión:
+  // hay que frenar el click para que no navegue.
+  app.querySelectorAll('[data-more]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const extras = btn.closest('.routine-summary').querySelectorAll('.summary-extra');
+      const open = extras[0].hidden;
+      extras.forEach(d => { d.hidden = !open; });
+      btn.textContent = open ? '▴ ver menos' : `▾ ver ${extras.length} más`;
+    });
   });
   app.querySelectorAll('[data-nav]').forEach(el => {
     el.addEventListener('click', () => navigate(el.dataset.nav));
