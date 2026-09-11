@@ -322,6 +322,9 @@ let currentCleanup = null;
 
 function render() {
   if (currentCleanup) { currentCleanup(); currentCleanup = null; }
+  // Los diálogos cuelgan de body, no de #app: al cambiar de pantalla con uno
+  // abierto se quedaría pegado encima de la pantalla nueva.
+  document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
   const parts = currentRoute();
   if (parts.length === 0) return renderHome();
   if (parts[0] === 'exercises') return renderExercises();
@@ -386,6 +389,33 @@ function computeRoutineSummary(routine) {
       muscleStats,
     };
   });
+}
+
+// Al tocar una rutina: ¿entrenar o solo mirarla? Abrir la sesión directamente
+// arrancaba el cronómetro y creaba un borrador aunque solo quisieras consultar.
+function openRoutineChoice(routineId) {
+  const routine = getRoutine(routineId);
+  if (!routine) return;
+  const inProgress = !!loadSessionDraft(routineId);
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.innerHTML = `
+    <div class="modal-sheet">
+      <h2>${escapeHtml(routine.name)}</h2>
+      ${inProgress ? '<p style="color:var(--green);font-size:13px;margin-top:-8px;">Tienes un entreno en curso de esta rutina.</p>' : ''}
+      <button class="btn btn-primary btn-block" id="choice-train">🏋️ ${inProgress ? 'Continuar entreno' : 'Empezar entreno'}</button>
+      <div style="height:8px;"></div>
+      <button class="btn btn-block" id="choice-view">📋 Consultar rutina</button>
+      <div style="height:8px;"></div>
+      <button class="btn btn-ghost btn-block" id="choice-cancel">Cancelar</button>
+    </div>
+  `;
+  document.body.appendChild(backdrop);
+  const close = () => document.body.removeChild(backdrop);
+  document.getElementById('choice-train').addEventListener('click', () => { close(); navigate(`session/${routineId}`); });
+  document.getElementById('choice-view').addEventListener('click', () => { close(); navigate(`routine-edit/${routineId}`); });
+  document.getElementById('choice-cancel').addEventListener('click', close);
+  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
 }
 
 // ---------- Home: lista de rutinas ----------
@@ -457,7 +487,7 @@ function renderHome() {
   `;
 
   app.querySelectorAll('[data-open-routine]').forEach(el => {
-    el.addEventListener('click', () => navigate(`session/${el.dataset.openRoutine}`));
+    el.addEventListener('click', () => openRoutineChoice(el.dataset.openRoutine));
   });
   // El desplegable vive dentro de la tarjeta, que entera abre la sesión:
   // hay que frenar el click para que no navegue.
