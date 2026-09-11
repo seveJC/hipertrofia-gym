@@ -284,6 +284,13 @@ function hexToRgb(hex) {
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
 
+// Nombres de músculo de un ejercicio, combinados incluidos ("Pecho + Tríceps"
+// → ["Pecho", "Tríceps"]). Sin músculo → ["Sin músculo"].
+function muscleNames(muscle) {
+  const parts = (muscle || '').split('+').map(m => m.trim()).filter(Boolean);
+  return parts.length ? parts : ['Sin músculo'];
+}
+
 function muscleParts(muscle) {
   if (!muscle) return [];
   return muscle.split('+').map(m => m.trim()).filter(m => MUSCLE_COLORS[m]);
@@ -488,19 +495,25 @@ function summarizeSessionParts(routine, parts) {
         const k = s.id + ':' + e.supersetGroup;
         groupSizes[k] = (groupSizes[k] || 0) + 1;
       }
+      // Un ejercicio combinado (Pecho + Tríceps) cuenta en los dos músculos;
+      // su tiempo se reparte a partes iguales para que la suma siga siendo
+      // la duración de la sesión.
       const ex = getExercise(e.exerciseId);
-      const muscle = (ex && ex.muscle) || 'Sin músculo';
-      if (!muscleStats[muscle]) muscleStats[muscle] = { count: 0, sec: 0 };
-      muscleStats[muscle].count += 1;
-      if (hasDuration) muscleStats[muscle].sec += s.durationSec * (e.sets.length / totalSets);
+      const muscles = muscleNames(ex && ex.muscle);
+      const sec = hasDuration ? s.durationSec * (e.sets.length / totalSets) / muscles.length : 0;
+      muscles.forEach(muscle => {
+        if (!muscleStats[muscle]) muscleStats[muscle] = { count: 0, sec: 0 };
+        muscleStats[muscle].count += 1;
+        muscleStats[muscle].sec += sec;
+      });
     });
   });
   const last = parts[parts.length - 1];
   const partial = !!last.partial;
-  const plannedMuscles = [...new Set(routine.slots.map(sl => {
+  const plannedMuscles = [...new Set(routine.slots.flatMap(sl => {
     const ex = getExercise(sl.exerciseId);
-    return ex && ex.muscle;
-  }).filter(Boolean))];
+    return muscleNames(ex && ex.muscle);
+  }))];
   const missingMuscles = partial ? plannedMuscles.filter(m => !muscleStats[m]) : [];
   return {
     date: last.date,
