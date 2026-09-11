@@ -1029,8 +1029,8 @@
           "sets": [
             {
               "weight": 45,
-              "reps": 11,
-              "reps2": 11.5,
+              "reps": 11.5,
+              "reps2": 11,
               "rir": null,
               "restSec": null
             },
@@ -1830,8 +1830,8 @@
           "sets": [
             {
               "weight": 17.5,
-              "reps": 11.5,
-              "reps2": 12,
+              "reps": 12,
+              "reps2": 11.5,
               "rir": null,
               "restSec": null
             },
@@ -1844,8 +1844,8 @@
             },
             {
               "weight": 17.5,
-              "reps": 9.5,
-              "reps2": 9,
+              "reps": 9,
+              "reps2": 9.5,
               "rir": null,
               "restSec": null
             }
@@ -1857,8 +1857,8 @@
           "sets": [
             {
               "weight": 10,
-              "reps": 8.5,
-              "reps2": 8,
+              "reps": 8,
+              "reps2": 8.5,
               "rir": null,
               "restSec": null
             },
@@ -2249,15 +2249,15 @@
           "sets": [
             {
               "weight": 40,
-              "reps": 10,
-              "reps2": 11.5,
+              "reps": 11.5,
+              "reps2": 10,
               "rir": null,
               "restSec": null
             },
             {
               "weight": 40,
-              "reps": 9.5,
-              "reps2": 10,
+              "reps": 10,
+              "reps2": 9.5,
               "rir": null,
               "restSec": null
             },
@@ -2425,8 +2425,8 @@
             },
             {
               "weight": 12.5,
-              "reps": 11.5,
-              "reps2": 11,
+              "reps": 11,
+              "reps2": 11.5,
               "rir": null,
               "restSec": null
             },
@@ -2796,8 +2796,8 @@
           "sets": [
             {
               "weight": 7.5,
-              "reps": 12.5,
-              "reps2": 14,
+              "reps": 14,
+              "reps2": 12.5,
               "rir": null,
               "restSec": null
             },
@@ -3155,8 +3155,8 @@
             },
             {
               "weight": 4.5,
-              "reps": 46065,
-              "reps2": 46064,
+              "reps": 46064,
+              "reps2": 46065,
               "rir": null,
               "restSec": null
             },
@@ -3456,9 +3456,9 @@
           "sets": [
             {
               "weight": 6.8,
-              "reps": 12,
+              "reps": 13,
               "rir": null,
-              "reps2": 13,
+              "reps2": 12,
               "restSec": 120
             },
             {
@@ -3613,16 +3613,16 @@
             },
             {
               "weight": 40,
-              "reps": 10,
+              "reps": 10.5,
               "rir": null,
-              "reps2": 10.5,
+              "reps2": 10,
               "restSec": 51
             },
             {
               "weight": 40,
-              "reps": 8,
+              "reps": 8.5,
               "rir": null,
-              "reps2": 8.5,
+              "reps2": 8,
               "restSec": 70
             }
           ],
@@ -3984,6 +3984,16 @@
   ],
   "meta": {
     "legSplitDone": true,
-    "restTargetsSeeded": true
-  }
+    "restTargetsSeeded": true,
+    "gymsSeeded": true,
+    "uniRightFirst": true
+  },
+  "gyms": [
+    "Basic-fit Bravo Murillo",
+    "Basic-Fit Bravo Murillo",
+    "Basic-Fit Huelva",
+    "Hi-Fitness",
+    "Quality Fitness (Aljaraque)",
+    "VivaGym Bravo Murillo"
+  ]
 }
