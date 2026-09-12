@@ -715,7 +715,8 @@ html, body {
   margin-left: 4px;
 }
 
-.set-row-uni { grid-template-columns: 22px 1fr 1fr 1fr 0.8fr 26px; }
+.set-row-uni { grid-template-columns: 22px 1fr 1fr 1fr 0.75fr 0.75fr 26px; gap: 4px; }
+.set-row-uni input { padding-left: 4px; padding-right: 4px; }
 
 .tabs {
   display: flex;

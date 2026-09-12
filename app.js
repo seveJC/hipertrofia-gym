@@ -602,7 +602,7 @@ function summarizeSessionParts(routine, parts) {
   return {
     date: last.date,
     dates: parts.map(p => p.date),
-    gym: last.gym,
+    gym: [...new Set(parts.map(p => p.gym).filter(Boolean))].join(' + '),
     totalExercises,
     durations: parts.map(p => p.durationSec),
     durationSec: hasDuration ? parts.reduce((n, p) => n + p.durationSec, 0) : null,
@@ -693,6 +693,7 @@ function openRoutineChoice(routineId) {
     // Borrador ya enlazado a la parte 1: sus ejercicios salen como hechos.
     saveSessionDraft(routineId, {
       gym: resumable.gym || '',
+      askGym: true,
       entries: {},
       restStart: null,
       restSlotId: null,
@@ -1382,7 +1383,9 @@ function formatSetCell(s) {
   const sub = [];
   if (s.dropset) sub.push('DROP');
   if (s.restPause) sub.push('RP');
-  if (s.rir !== null && s.rir !== undefined && s.rir !== '') sub.push(`RIR${s.rir}`);
+  if (s.rir !== null && s.rir !== undefined && s.rir !== '') {
+    sub.push(s.rir2 !== null && s.rir2 !== undefined && s.rir2 !== '' ? `RIR${s.rir}/${s.rir2}` : `RIR${s.rir}`);
+  }
   if (s.restSec !== null && s.restSec !== undefined) sub.push(`⏱${s.restSec}s`);
   return `<div class="cell-main">${escapeHtml(String(main))}</div>${sub.length ? `<div class="cell-sub">${escapeHtml(sub.join(' · '))}</div>` : ''}`;
 }
@@ -1707,7 +1710,8 @@ function renderSessionDetail(sessionId) {
           <input type="text" inputmode="decimal" placeholder="kg" data-hw="${eIdx}:${sIdx}" value="${escapeHtml(set.weight ?? '')}" />
           <input type="text" inputmode="decimal" placeholder="${set.reps2 != null ? 'der' : 'reps'}" data-hr="${eIdx}:${sIdx}" value="${escapeHtml(set.reps ?? '')}" />
           ${set.reps2 != null ? `<input type="text" inputmode="decimal" placeholder="izq" data-hr2="${eIdx}:${sIdx}" value="${escapeHtml(set.reps2)}" />` : ''}
-          <input type="text" inputmode="decimal" placeholder="RIR" data-hrir="${eIdx}:${sIdx}" value="${escapeHtml(set.rir ?? '')}" />
+          <input type="text" inputmode="decimal" placeholder="${set.reps2 != null ? 'RIR d' : 'RIR'}" data-hrir="${eIdx}:${sIdx}" value="${escapeHtml(set.rir ?? '')}" />
+          ${set.reps2 != null ? `<input type="text" inputmode="decimal" placeholder="RIR i" data-hrir2="${eIdx}:${sIdx}" value="${escapeHtml(set.rir2 ?? '')}" />` : ''}
           <button class="rm" data-hrm="${eIdx}:${sIdx}">✕</button>
         </div>
         ${tags ? `<div class="rest-tag">${tags}</div>` : ''}`;
@@ -1794,6 +1798,7 @@ function renderSessionDetail(sessionId) {
     bindSet('hr', 'reps');
     bindSet('hr2', 'reps2');
     bindSet('hrir', 'rir');
+    bindSet('hrir2', 'rir2');
 
     app.querySelectorAll('[data-hrm]').forEach(el => el.addEventListener('click', () => {
       const [eIdx, sIdx] = el.dataset.hrm.split(':').map(Number);
@@ -2002,12 +2007,13 @@ function renderSession(routineId) {
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter') confirmDuration(); });
   }
 
-  function openGymPrompt() {
+  function openGymPrompt(subtitle) {
     const backdrop = document.createElement('div');
     backdrop.className = 'modal-backdrop';
     backdrop.innerHTML = `
       <div class="modal-sheet">
         <h2>📍 ¿En qué gimnasio entrenas hoy?</h2>
+        ${subtitle ? `<p style="color:var(--text-dim);font-size:13px;margin-top:-8px;">${escapeHtml(subtitle)}</p>` : ''}
         <div class="field">
           <select id="gym-prompt-select">${gymOptionsHtml(draft.gym || '')}</select>
         </div>
@@ -2279,7 +2285,8 @@ function renderSession(routineId) {
           <input type="text" inputmode="decimal" placeholder="kg" data-weight="${slot.id}:${sIdx}" value="${set.weight ?? ''}" />
           <input type="text" inputmode="decimal" placeholder="${entry.uni ? 'der' : 'reps'}" data-reps="${slot.id}:${sIdx}" value="${set.reps ?? ''}" />
           ${entry.uni ? `<input type="text" inputmode="decimal" placeholder="izq" data-reps2="${slot.id}:${sIdx}" value="${set.reps2 ?? ''}" />` : ''}
-          <input type="text" inputmode="decimal" placeholder="RIR" data-rir="${slot.id}:${sIdx}" value="${set.rir ?? ''}" />
+          <input type="text" inputmode="decimal" placeholder="${entry.uni ? 'RIR d' : 'RIR'}" data-rir="${slot.id}:${sIdx}" value="${set.rir ?? ''}" />
+          ${entry.uni ? `<input type="text" inputmode="decimal" placeholder="RIR i" data-rir2="${slot.id}:${sIdx}" value="${set.rir2 ?? ''}" />` : ''}
           <button class="rm" data-rm-set="${slot.id}:${sIdx}">✕</button>
         </div>
         ${(set.stages || []).map((st, stIdx) => `
@@ -2291,6 +2298,7 @@ function renderSession(routineId) {
             <input type="text" inputmode="decimal" placeholder="${entry.uni ? 'der' : 'reps'}" data-stage-reps="${slot.id}:${sIdx}:${stIdx}" value="${st.reps ?? ''}" />
             ${entry.uni ? `<input type="text" inputmode="decimal" placeholder="izq" data-stage-reps2="${slot.id}:${sIdx}:${stIdx}" value="${st.reps2 ?? ''}" />` : ''}
             <div></div>
+            ${entry.uni ? '<div></div>' : ''}
             <button class="rm" data-rm-stage="${slot.id}:${sIdx}:${stIdx}">✕</button>
           </div>
         `).join('')}
@@ -2302,7 +2310,7 @@ function renderSession(routineId) {
       `;
       }).join('');
       const labelsHtml = entry.sets.length ? `
-        <div class="set-labels${entry.uni ? ' set-row-uni' : ''}"><span></span><span>Kg</span><span>${entry.uni ? 'Der' : 'Reps'}</span>${entry.uni ? '<span>Izq</span>' : ''}<span>RIR</span><span></span></div>
+        <div class="set-labels${entry.uni ? ' set-row-uni' : ''}"><span></span><span>Kg</span><span>${entry.uni ? 'Der' : 'Reps'}</span>${entry.uni ? '<span>Izq</span>' : ''}<span>${entry.uni ? 'RIR d' : 'RIR'}</span>${entry.uni ? '<span>RIR i</span>' : ''}<span></span></div>
       ` : '';
       const uniToggle = `<button class="btn-ghost uni-toggle" data-toggle-uni="${slot.id}">${entry.uni ? '🔀 Unilateral' : '↔ Bilateral'}</button>`;
 
@@ -2537,6 +2545,12 @@ function renderSession(routineId) {
       markActivity();
       saveDraft();
     }));
+    app.querySelectorAll('[data-rir2]').forEach(el => el.addEventListener('input', () => {
+      const [slotId, sIdx] = el.dataset.rir2.split(':');
+      draft.entries[slotId].sets[Number(sIdx)].rir2 = normalizeDecimal(el.value);
+      markActivity();
+      saveDraft();
+    }));
     app.querySelectorAll('[data-reps2]').forEach(el => el.addEventListener('input', () => {
       const [slotId, sIdx] = el.dataset.reps2.split(':');
       draft.entries[slotId].sets[Number(sIdx)].reps2 = normalizeDecimal(el.value);
@@ -2594,6 +2608,7 @@ function renderSession(routineId) {
                   weight: Number(s.weight) || 0,
                   reps: Number(s.reps) || 0,
                   rir: s.rir !== '' && s.rir != null ? Number(s.rir) : null,
+                  rir2: s.rir2 !== '' && s.rir2 != null ? Number(s.rir2) : null,
                   reps2: s.reps2 !== '' && s.reps2 != null ? Number(s.reps2) : null,
                   restSec: s.restSec ?? null
                 };
@@ -2653,5 +2668,9 @@ function renderSession(routineId) {
   paint();
   pinRestBarToViewport();
   if (restoredDraft) setTimeout(restoreScroll, 0);
-  if (!restoredDraft) openGymPrompt();
+  // Sesión nueva, o continuación de una parcial (puede ser en otro gimnasio).
+  if (!restoredDraft || draft.askGym) {
+    delete draft.askGym;
+    openGymPrompt(restoredDraft ? `Sigues en ${draft.gym || 'el mismo gimnasio'}, ¿o cambias?` : '');
+  }
 }
