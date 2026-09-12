@@ -724,7 +724,8 @@
         },
         {
           "id": "3904cd5d0cda",
-          "exerciseId": "dbc784d73bfb"
+          "exerciseId": "dbc784d73bfb",
+          "restSec": 60
         },
         {
           "id": "mty2y8i9syfwuo",
