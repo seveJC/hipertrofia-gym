@@ -475,14 +475,23 @@ function runMigrations() {
     changed = true;
   }
 
+  // Quality Fitness (Aljaraque) pasa a llamarse QFitness Aljaraque.
+  if (!db.meta.gymQFitness) {
+    const from = 'Quality Fitness (Aljaraque)', to = 'QFitness Aljaraque';
+    db.gyms = [...new Set((db.gyms || []).map(g => g === from ? to : g))].sort((a, b) => a.localeCompare(b, 'es'));
+    db.sessions.forEach(ses => { if (ses.gym === from) ses.gym = to; });
+    db.meta.gymQFitness = true;
+    changed = true;
+  }
+
   if (changed) saveDB();
 }
 
 function gymOptionsHtml(selected) {
   const gyms = db.gyms || [];
+  const current = gyms.includes(selected) ? selected : gyms[0];
   return [
-    `<option value="">— Sin gimnasio —</option>`,
-    ...gyms.map(g => `<option value="${escapeHtml(g)}"${g === selected ? ' selected' : ''}>${escapeHtml(g)}</option>`),
+    ...gyms.map(g => `<option value="${escapeHtml(g)}"${g === current ? ' selected' : ''}>${escapeHtml(g)}</option>`),
     `<option value="__new__">➕ Añadir gimnasio…</option>`,
   ].join('');
 }
@@ -813,6 +822,29 @@ function renderExercises() {
       <h1>Ejercicios</h1>
     </div>
     <div class="container">
+      <div class="tabs">
+        <button class="tab active" data-tab="ex">🏋️ Ejercicios</button>
+        <button class="tab" data-tab="gym">📍 Gimnasios</button>
+      </div>
+      <div id="tab-gym" hidden>
+        <div class="card">
+          <div class="field">
+            <label>Nuevo gimnasio</label>
+            <input id="new-gym-name" placeholder="Ej. Basic-Fit Centro" />
+          </div>
+          <button class="btn btn-primary btn-block" id="add-gym-btn">Añadir gimnasio</button>
+        </div>
+        <div class="section-title">Gimnasios (${(db.gyms || []).length})</div>
+        <div class="card">
+          ${(db.gyms || []).map(g => `
+            <div class="list-item">
+              <div class="name" style="flex:1;">📍 ${escapeHtml(g)}</div>
+              <button class="btn-ghost" data-rename-gym="${escapeHtml(g)}" style="font-size:16px;">✎</button>
+              <button class="btn-ghost" data-del-gym="${escapeHtml(g)}" style="font-size:18px;">🗑</button>
+            </div>`).join('') || '<div class="empty-state">Sin gimnasios todavía.</div>'}
+        </div>
+      </div>
+      <div id="tab-ex">
       <div class="card">
         <div class="field">
           <label>Nombre del ejercicio</label>
@@ -828,6 +860,7 @@ function renderExercises() {
       <input id="lib-search" class="picker-search" placeholder="🔍 Filtrar por nombre o músculo" autocomplete="off" />
       <div class="card" id="lib-list">
         ${db.exercises.length ? items : '<div class="empty-state">Añade tu primer ejercicio arriba.</div>'}
+      </div>
       </div>
       <div class="section-title">Datos</div>
       <div class="card">
@@ -849,6 +882,41 @@ function renderExercises() {
   app.querySelectorAll('[data-nav]').forEach(el => {
     el.addEventListener('click', () => navigate(el.dataset.nav));
   });
+
+  // Pestañas ejercicios / gimnasios (se recuerda la última abierta).
+  const showTab = (name) => {
+    document.getElementById('tab-ex').hidden = name !== 'ex';
+    document.getElementById('tab-gym').hidden = name !== 'gym';
+    app.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+    try { sessionStorage.setItem('hipertrofia_ex_tab', name); } catch (e) {}
+  };
+  app.querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
+  try { if (sessionStorage.getItem('hipertrofia_ex_tab') === 'gym') showTab('gym'); } catch (e) {}
+
+  const saveGyms = (next) => {
+    db.gyms = [...new Set(next.map(g => g.trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'es'));
+    saveDB();
+    renderExercises();
+  };
+  document.getElementById('add-gym-btn').addEventListener('click', () => {
+    const name = document.getElementById('new-gym-name').value.trim();
+    if (!name) { showToast('Escribe el nombre del gimnasio'); return; }
+    saveGyms([...(db.gyms || []), name]);
+    showToast('Gimnasio añadido');
+  });
+  app.querySelectorAll('[data-rename-gym]').forEach(el => el.addEventListener('click', () => {
+    const from = el.dataset.renameGym;
+    const to = (prompt('Nuevo nombre', from) || '').trim();
+    if (!to || to === from) return;
+    db.sessions.forEach(ses => { if (ses.gym === from) ses.gym = to; });
+    saveGyms((db.gyms || []).map(g => g === from ? to : g));
+  }));
+  app.querySelectorAll('[data-del-gym]').forEach(el => el.addEventListener('click', () => {
+    const g = el.dataset.delGym;
+    const used = db.sessions.filter(ses => ses.gym === g).length;
+    if (!confirm(`¿Quitar "${g}" de la lista?${used ? ` Las ${used} sesiones que lo tienen conservan el nombre.` : ''}`)) return;
+    saveGyms((db.gyms || []).filter(x => x !== g));
+  }));
 
   document.getElementById('add-exercise-btn').addEventListener('click', () => {
     const name = document.getElementById('new-ex-name').value.trim();
@@ -1634,13 +1702,12 @@ function renderSessionDetail(sessionId) {
       const setsHtml = e.sets.map((set, sIdx) => {
         const tags = [set.dropset ? 'DROP' : null, set.restPause ? 'RP' : null].filter(Boolean).join(' · ');
         return `
-        <div class="set-row">
+        <div class="set-row${set.reps2 != null ? ' set-row-uni' : ''}">
           <div class="set-num">${sIdx + 1}</div>
           <input type="text" inputmode="decimal" placeholder="kg" data-hw="${eIdx}:${sIdx}" value="${escapeHtml(set.weight ?? '')}" />
           <input type="text" inputmode="decimal" placeholder="${set.reps2 != null ? 'der' : 'reps'}" data-hr="${eIdx}:${sIdx}" value="${escapeHtml(set.reps ?? '')}" />
-          ${set.reps2 != null
-            ? `<input type="text" inputmode="decimal" placeholder="izq" data-hr2="${eIdx}:${sIdx}" value="${escapeHtml(set.reps2)}" />`
-            : `<input type="text" inputmode="decimal" placeholder="RIR" data-hrir="${eIdx}:${sIdx}" value="${escapeHtml(set.rir ?? '')}" />`}
+          ${set.reps2 != null ? `<input type="text" inputmode="decimal" placeholder="izq" data-hr2="${eIdx}:${sIdx}" value="${escapeHtml(set.reps2)}" />` : ''}
+          <input type="text" inputmode="decimal" placeholder="RIR" data-hrir="${eIdx}:${sIdx}" value="${escapeHtml(set.rir ?? '')}" />
           <button class="rm" data-hrm="${eIdx}:${sIdx}">✕</button>
         </div>
         ${tags ? `<div class="rest-tag">${tags}</div>` : ''}`;
@@ -1945,6 +2012,8 @@ function renderSession(routineId) {
           <select id="gym-prompt-select">${gymOptionsHtml(draft.gym || '')}</select>
         </div>
         <button class="btn btn-primary btn-block" id="gym-prompt-ok">Continuar</button>
+        <div style="height:8px;"></div>
+        <button class="btn btn-block" id="gym-prompt-cancel">Cancelar, no voy a entrenar</button>
       </div>
     `;
     document.body.appendChild(backdrop);
@@ -1954,6 +2023,12 @@ function renderSession(routineId) {
       if (select.value !== '__new__') draft.gym = select.value;
       document.body.removeChild(backdrop);
       paint();
+    });
+    // Arrepentirse aquí no debe dejar una sesión abierta a medias.
+    document.getElementById('gym-prompt-cancel').addEventListener('click', () => {
+      document.body.removeChild(backdrop);
+      clearSessionDraft(routineId);
+      navigate('');
     });
   }
 
@@ -2199,22 +2274,22 @@ function renderSession(routineId) {
             ⏱ <input type="number" inputmode="numeric" class="rest-gap-input" data-restsec="${slot.id}:${sIdx}" value="${set.restSec ?? ''}" placeholder="—" /> s descanso
           </div>
         ` : ''}
-        <div class="set-row">
+        <div class="set-row${entry.uni ? ' set-row-uni' : ''}">
           <div class="set-num">${sIdx + 1}</div>
           <input type="text" inputmode="decimal" placeholder="kg" data-weight="${slot.id}:${sIdx}" value="${set.weight ?? ''}" />
           <input type="text" inputmode="decimal" placeholder="${entry.uni ? 'der' : 'reps'}" data-reps="${slot.id}:${sIdx}" value="${set.reps ?? ''}" />
-          ${entry.uni
-            ? `<input type="text" inputmode="decimal" placeholder="izq" data-reps2="${slot.id}:${sIdx}" value="${set.reps2 ?? ''}" />`
-            : `<input type="text" inputmode="decimal" placeholder="RIR" data-rir="${slot.id}:${sIdx}" value="${set.rir ?? ''}" />`}
+          ${entry.uni ? `<input type="text" inputmode="decimal" placeholder="izq" data-reps2="${slot.id}:${sIdx}" value="${set.reps2 ?? ''}" />` : ''}
+          <input type="text" inputmode="decimal" placeholder="RIR" data-rir="${slot.id}:${sIdx}" value="${set.rir ?? ''}" />
           <button class="rm" data-rm-set="${slot.id}:${sIdx}">✕</button>
         </div>
         ${(set.stages || []).map((st, stIdx) => `
-          <div class="set-row set-row-sub">
+          <div class="set-row set-row-sub${entry.uni ? ' set-row-uni' : ''}">
             <div class="set-num">${set.technique === 'dropset' ? 'D' + (stIdx + 1) : 'P' + (stIdx + 1)}</div>
             ${set.technique === 'dropset'
               ? `<input type="text" inputmode="decimal" placeholder="kg" data-stage-weight="${slot.id}:${sIdx}:${stIdx}" value="${st.weight ?? ''}" />`
               : `<div></div>`}
-            <input type="text" inputmode="decimal" placeholder="reps" data-stage-reps="${slot.id}:${sIdx}:${stIdx}" value="${st.reps ?? ''}" />
+            <input type="text" inputmode="decimal" placeholder="${entry.uni ? 'der' : 'reps'}" data-stage-reps="${slot.id}:${sIdx}:${stIdx}" value="${st.reps ?? ''}" />
+            ${entry.uni ? `<input type="text" inputmode="decimal" placeholder="izq" data-stage-reps2="${slot.id}:${sIdx}:${stIdx}" value="${st.reps2 ?? ''}" />` : ''}
             <div></div>
             <button class="rm" data-rm-stage="${slot.id}:${sIdx}:${stIdx}">✕</button>
           </div>
@@ -2227,7 +2302,7 @@ function renderSession(routineId) {
       `;
       }).join('');
       const labelsHtml = entry.sets.length ? `
-        <div class="set-labels"><span></span><span>Kg</span><span>${entry.uni ? 'Der' : 'Reps'}</span><span>${entry.uni ? 'Izq' : 'RIR'}</span><span></span></div>
+        <div class="set-labels${entry.uni ? ' set-row-uni' : ''}"><span></span><span>Kg</span><span>${entry.uni ? 'Der' : 'Reps'}</span>${entry.uni ? '<span>Izq</span>' : ''}<span>RIR</span><span></span></div>
       ` : '';
       const uniToggle = `<button class="btn-ghost uni-toggle" data-toggle-uni="${slot.id}">${entry.uni ? '🔀 Unilateral' : '↔ Bilateral'}</button>`;
 
@@ -2438,6 +2513,12 @@ function renderSession(routineId) {
       saveDraft();
     }));
 
+    app.querySelectorAll('[data-stage-reps2]').forEach(el => el.addEventListener('input', () => {
+      const [slotId, sIdx, stIdx] = el.dataset.stageReps2.split(':');
+      draft.entries[slotId].sets[Number(sIdx)].stages[Number(stIdx)].reps2 = normalizeDecimal(el.value);
+      saveDraft();
+    }));
+
     app.querySelectorAll('[data-weight]').forEach(el => el.addEventListener('input', () => {
       const [slotId, sIdx] = el.dataset.weight.split(':');
       draft.entries[slotId].sets[Number(sIdx)].weight = normalizeDecimal(el.value);
@@ -2517,12 +2598,15 @@ function renderSession(routineId) {
                   restSec: s.restSec ?? null
                 };
                 const stages = (s.stages || []).filter(st => (st.reps !== '' && st.reps != null) || (st.weight !== '' && st.weight != null));
+                const joinReps = (first, key, sep) => [first, ...stages.map(st => st[key])].filter(r => r !== '' && r != null).join(sep);
                 if (s.technique === 'dropset' && stages.length) {
                   out.weight = [s.weight, ...stages.map(st => st.weight)].filter(w => w !== '' && w != null).join('/');
-                  out.reps = [s.reps, ...stages.map(st => st.reps)].filter(r => r !== '' && r != null).join('/');
+                  out.reps = joinReps(s.reps, 'reps', '/');
+                  if (out.reps2 != null) out.reps2 = joinReps(s.reps2, 'reps2', '/');
                   out.dropset = true;
                 } else if (s.technique === 'restpause' && stages.length) {
-                  out.reps = [s.reps, ...stages.map(st => st.reps)].filter(r => r !== '' && r != null).join('+');
+                  out.reps = joinReps(s.reps, 'reps', '+');
+                  if (out.reps2 != null) out.reps2 = joinReps(s.reps2, 'reps2', '+');
                   out.restPause = true;
                 }
                 return out;

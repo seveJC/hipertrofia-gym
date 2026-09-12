@@ -715,6 +715,32 @@ html, body {
   margin-left: 4px;
 }
 
+.set-row-uni { grid-template-columns: 22px 1fr 1fr 1fr 0.8fr 26px; }
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.tab {
+  flex: 1;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-dim);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tab.active {
+  color: var(--text);
+  border-color: var(--accent);
+  background: rgba(255, 90, 54, 0.12);
+}
+
 .set-labels {
   display: grid;
   grid-template-columns: 22px 1fr 1fr 1fr 26px;
