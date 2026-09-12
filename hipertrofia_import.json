@@ -4209,13 +4209,14 @@
     "gymsSeeded": true,
     "uniRightFirst": true,
     "gymsDeduped": true,
-    "msgFuerza20260911": true
+    "msgFuerza20260911": true,
+    "gymQFitness": true
   },
   "gyms": [
     "Basic-fit Bravo Murillo",
     "Basic-Fit Huelva",
     "Hi-Fitness",
-    "Quality Fitness (Aljaraque)",
+    "QFitness Aljaraque",
     "VivaGym Bravo Murillo"
   ],
   "messages": [
