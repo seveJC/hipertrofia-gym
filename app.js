@@ -827,28 +827,37 @@ function weeklyStats(fromMs, toMs) {
   return { sessions: sessions.length, minutes: Math.round(minutes), perMuscle };
 }
 
+// Tabla de las últimas 3 semanas naturales (lunes a domingo), una fila por
+// semana y las mismas columnas de músculo en todas, sin saltos de línea.
 function weeklySummaryHtml() {
   const DAY = 24 * 60 * 60 * 1000;
-  const now = Date.now();
-  const cur = weeklyStats(now - 7 * DAY, now + DAY);
-  const prev = weeklyStats(now - 14 * DAY, now - 7 * DAY);
-  if (!cur.sessions && !prev.sessions) return '';
-  const muscles = Object.keys({ ...cur.perMuscle, ...prev.perMuscle })
-    .filter(m => m !== 'Sin músculo')
-    .sort((a, b) => (cur.perMuscle[b] || 0) - (cur.perMuscle[a] || 0) || (prev.perMuscle[b] || 0) - (prev.perMuscle[a] || 0));
-  const chips = muscles.map(m => {
-    const c = cur.perMuscle[m] || 0, p = prev.perMuscle[m] || 0;
-    const color = MUSCLE_COLORS[m] || 'var(--border)';
-    const delta = c - p;
-    const deltaTxt = delta ? `<small>${delta > 0 ? '▲' : '▼'}${Math.abs(delta)}</small>` : '';
-    return `<span class="muscle-chip${c ? '' : ' muscle-chip-zero'}" style="${c ? `border-color:${color};color:${color};` : ''}">${escapeHtml(muscleAbbr(m))} ${c}${deltaTxt}</span>`;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  // Lunes de esta semana (getDay: 0 = domingo)
+  const monday = new Date(today.getTime() - ((today.getDay() + 6) % 7) * DAY);
+  const weeks = [0, 1, 2].map(i => {
+    const from = new Date(monday.getTime() - i * 7 * DAY);
+    const to = new Date(from.getTime() + 7 * DAY);
+    return { from, to, stats: weeklyStats(from.getTime(), to.getTime()) };
+  });
+  if (!weeks.some(w => w.stats.sessions)) return '';
+  const muscles = Object.keys(MUSCLE_COLORS).filter(m => weeks.some(w => w.stats.perMuscle[m]));
+  const fmt = (d) => `${d.getDate()}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+  const head = `<tr><th>Semana</th><th>Ses</th><th>Min</th>${muscles.map(m => `<th style="color:${MUSCLE_COLORS[m]};">${escapeHtml(muscleAbbr(m))}</th>`).join('')}</tr>`;
+  const rows = weeks.map((w, i) => {
+    const last = new Date(w.to.getTime() - DAY);
+    const label = i === 0 ? 'Esta' : (w.from.getMonth() === last.getMonth() ? `${w.from.getDate()}–${fmt(last)}` : `${fmt(w.from)}–${fmt(last)}`);
+    return `<tr${i === 0 ? ' class="week-current"' : ''}>
+      <td class="date-cell">${label}</td>
+      <td>${w.stats.sessions || '·'}</td>
+      <td>${w.stats.minutes || '·'}</td>
+      ${muscles.map(m => `<td>${w.stats.perMuscle[m] || '·'}</td>`).join('')}
+    </tr>`;
   }).join('');
   return `
     <div class="card weekly-card">
-      <div class="weekly-head">📊 Últimos 7 días · ${cur.sessions} sesion${cur.sessions === 1 ? '' : 'es'}${cur.minutes ? ` · ${cur.minutes}'` : ''}
-        <span class="weekly-prev">(anterior: ${prev.sessions}${prev.minutes ? ` · ${prev.minutes}'` : ''})</span></div>
-      <div class="summary-muscles">${chips}</div>
-      <div class="weekly-note">series por músculo · el pequeño es la diferencia con los 7 días anteriores</div>
+      <div class="weekly-head">📊 Series por músculo · lunes a domingo</div>
+      <div class="history-table-wrap"><table class="history-table week-table"><thead>${head}</thead><tbody>${rows}</tbody></table></div>
     </div>`;
 }
 
