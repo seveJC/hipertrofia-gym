@@ -1171,7 +1171,7 @@
       "date": "2026-08-28T12:00:00.000Z",
       "durationSec": 5100,
       "notes": "Basic-fit",
-      "gym": "Basic-fit Bravo Murillo",
+      "gym": "Basic-Fit Bravo Murillo",
       "entries": [
         {
           "slotId": "6df0dc7664e0",
@@ -1898,7 +1898,7 @@
       "date": "2026-08-31T12:00:00.000Z",
       "durationSec": 4080,
       "notes": "Basic-fit | C - 28min | F+DL - 23min",
-      "gym": "Basic-fit Bravo Murillo",
+      "gym": "Basic-Fit Bravo Murillo",
       "entries": [
         {
           "slotId": "6df0dc7664e0",
@@ -2434,7 +2434,7 @@
       "date": "2026-09-04T12:00:00.000Z",
       "durationSec": null,
       "notes": "Basic-fit",
-      "gym": "Basic-fit Bravo Murillo",
+      "gym": "Basic-Fit Bravo Murillo",
       "entries": [
         {
           "slotId": "6df0dc7664e0",
@@ -2980,7 +2980,7 @@
       "date": "2026-09-07T12:00:00.000Z",
       "durationSec": 3540,
       "notes": "Basic-fit | 1 a 7 - 52min",
-      "gym": "Basic-fit Bravo Murillo",
+      "gym": "Basic-Fit Bravo Murillo",
       "entries": [
         {
           "slotId": "6df0dc7664e0",
@@ -3226,7 +3226,7 @@
       "routineId": "e471c3c406ab",
       "date": "2026-09-09T13:29:55.805Z",
       "durationSec": 4200,
-      "gym": "Basic-fit Bravo Murillo",
+      "gym": "Basic-Fit Bravo Murillo",
       "entries": [
         {
           "slotId": "5b54515fa82a",
@@ -3777,7 +3777,7 @@
       "routineId": "mtwxbr0umc3b96",
       "date": "2026-09-11T14:20:26.092Z",
       "durationSec": 4320,
-      "gym": "Basic-fit Bravo Murillo",
+      "gym": "Basic-Fit Bravo Murillo",
       "entries": [
         {
           "slotId": "6df0dc7664e0",
@@ -3974,7 +3974,7 @@
       "routineId": "8a82112eb89a",
       "date": "2026-09-12T07:59:49.437Z",
       "durationSec": 3900,
-      "gym": "Basic-fit Bravo Murillo",
+      "gym": "Basic-Fit Bravo Murillo",
       "entries": [
         {
           "slotId": "5eb28636545d",
@@ -4189,7 +4189,7 @@
       "routineId": "8a82112eb89a",
       "date": "2026-09-13T07:30:46.339Z",
       "durationSec": 3180,
-      "gym": "Basic-fit Bravo Murillo",
+      "gym": "Basic-Fit Bravo Murillo",
       "entries": [
         {
           "slotId": "78e4e51c4571",
@@ -4399,7 +4399,7 @@
       "routineId": "064f9dc0095e",
       "date": "2026-09-14T12:08:03.207Z",
       "durationSec": 3180,
-      "gym": "Basic-fit Bravo Murillo",
+      "gym": "Basic-Fit Bravo Murillo",
       "entries": [
         {
           "slotId": "6df0dc7664e0",
@@ -4663,10 +4663,11 @@
     "uniRightFirst": true,
     "gymsDeduped": true,
     "msgFuerza20260911": true,
-    "gymQFitness": true
+    "gymQFitness": true,
+    "gymsDeduped2": true
   },
   "gyms": [
-    "Basic-fit Bravo Murillo",
+    "Basic-Fit Bravo Murillo",
     "Basic-Fit Huelva",
     "Hi-Fitness",
     "QFitness Aljaraque",
