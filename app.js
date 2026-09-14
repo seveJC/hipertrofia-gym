@@ -2552,6 +2552,7 @@ function renderSession(routineId) {
             ${setsHtml}
             <div class="log-actions">
               <button class="btn" data-add-set="${slot.id}">+ Serie (inicia crono)</button>
+              ${entry.sets.length ? `<button class="btn" data-add-same="${slot.id}" title="Misma serie: copia peso y repes">+ Igual</button>` : ''}
               ${isSub ? `<button class="btn" data-revert="${slot.id}">Deshacer sustitución</button>` : ''}
             </div>
           </div>
@@ -2636,8 +2637,10 @@ function renderSession(routineId) {
 
     // "+ Serie" se pulsa al acabar la serie: cierra el descanso que venía
     // corriendo (o usa el ya parado con ⏹) y arranca el de la siguiente.
-    app.querySelectorAll('[data-add-set]').forEach(el => el.addEventListener('click', () => {
-      const slotId = el.dataset.addSet;
+    // copySame: "+ Igual" copia también las repes (y las de la izquierda en
+    // unilateral); el RIR nunca, que se decide serie a serie. El cronómetro
+    // funciona igual en ambos.
+    const addSet = (slotId, copySame) => {
       const entry = draft.entries[slotId];
       const now = Date.now();
       const restSec = draft.restPendingSec != null
@@ -2645,15 +2648,20 @@ function renderSession(routineId) {
         : draft.restStart != null ? Math.round((now - draft.restStart) / 1000) : null;
       draft.restPendingSec = null;
       const lastSet = entry.sets[entry.sets.length - 1];
-      const defaultWeight = lastSet && lastSet.weight !== '' && lastSet.weight != null ? lastSet.weight : '';
-      entry.sets.push({ weight: defaultWeight, reps: '', rir: '', restSec });
+      const val = (v) => (v !== '' && v != null ? v : '');
+      const defaultWeight = lastSet ? val(lastSet.weight) : '';
+      const set = { weight: defaultWeight, reps: copySame && lastSet ? val(lastSet.reps) : '', rir: '', restSec };
+      if (copySame && lastSet && entry.uni) set.reps2 = val(lastSet.reps2);
+      entry.sets.push(set);
       unlockAudio();
       draft.restStart = now;
       draft.restSlotId = slotId;
       draft.restAlerted = false;
       markActivity();
       paint();
-    }));
+    };
+    app.querySelectorAll('[data-add-set]').forEach(el => el.addEventListener('click', () => addSet(el.dataset.addSet, false)));
+    app.querySelectorAll('[data-add-same]').forEach(el => el.addEventListener('click', () => addSet(el.dataset.addSame, true)));
 
     app.querySelectorAll('[data-edit-rest]').forEach(el => el.addEventListener('click', () => {
       openRestTargetEditor(el.dataset.editRest);
