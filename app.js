@@ -698,6 +698,7 @@ function summarizeSessionParts(routine, parts) {
   });
   const last = parts[parts.length - 1];
   const partial = !!last.partial;
+  const deload = parts.some(p => p.deload);
   const plannedMuscles = [...new Set(routine.slots.flatMap(sl => {
     const ex = getExercise(sl.exerciseId);
     return muscleNames(ex && ex.muscle);
@@ -714,6 +715,7 @@ function summarizeSessionParts(routine, parts) {
     supersets: Object.values(groupSizes).filter(n => n >= 2).length,
     supersetPairs: Object.keys(groupSizes).filter(k => groupSizes[k] >= 2).map(k => groupNames[k].join(' + ')),
     partial,
+    deload,
     missingMuscles,
     muscleStats,
     notes: parts.map(p => p.notes).filter(Boolean).join(' · '),
@@ -816,6 +818,46 @@ function openRoutineChoice(routineId) {
 }
 
 // ---------- Home: lista de rutinas ----------
+// ---------- Semana de descarga ----------
+// db.deloadUntil = ISO del último día de descarga. Las sesiones guardadas con
+// descarga activa llevan deload:true y no cuentan para Progreso.
+function isDeloadActive() {
+  if (!db.deloadUntil) return false;
+  const end = new Date(db.deloadUntil); end.setHours(23, 59, 59, 999);
+  return Date.now() <= end.getTime();
+}
+
+function endOfThisWeek() {
+  const d = new Date(); d.setHours(0, 0, 0, 0);
+  const sunday = new Date(d.getTime() + ((7 - d.getDay()) % 7) * 24 * 60 * 60 * 1000);
+  return sunday;
+}
+
+function deloadBannerHtml() {
+  const until = isDeloadActive() ? new Date(db.deloadUntil) : null;
+  return until
+    ? `<div class="deload-bar active">🪫 Semana de descarga hasta el ${fmtDateShort(until.toISOString())} · <span class="deload-toggle" id="deload-toggle">desactivar</span></div>`
+    : `<div class="deload-bar"><span class="deload-toggle" id="deload-toggle">🪫 Activar semana de descarga</span></div>`;
+}
+
+function bindDeloadToggle(afterChange) {
+  const el = document.getElementById('deload-toggle');
+  if (!el) return;
+  el.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (isDeloadActive()) {
+      db.deloadUntil = null;
+      showToast('Descarga desactivada');
+    } else {
+      const sunday = endOfThisWeek();
+      db.deloadUntil = sunday.toISOString();
+      showToast(`Descarga activa hasta el ${fmtDateShort(sunday.toISOString())}`);
+    }
+    saveDB();
+    afterChange();
+  });
+}
+
 // Series por músculo en una ventana de días (combinados cuentan en ambos).
 function weeklyStats(fromMs, toMs) {
   const sessions = db.sessions.filter(ses => { const t = new Date(ses.date).getTime(); return t >= fromMs && t < toMs; });
@@ -884,6 +926,7 @@ function renderHome() {
         day.hasDuration ? day.durations.map(fmtMinutesShort).join('+') : null,
         day.supersets ? `🔗${day.supersets}` : null,
         day.partial ? '⏸ parcial' : null,
+        day.deload ? '🪫 descarga' : null,
         day.gym ? `📍${escapeHtml(day.gym)}` : null,
       ].filter(Boolean).join(' · ');
       const chips = Object.entries(day.muscleStats).map(([m, st]) => {
@@ -932,6 +975,7 @@ function renderHome() {
       ☁️ Hay cambios sin copiar a GitHub · <span class="backup-retry" id="backup-retry-btn">subir ahora</span>
     </div>
     <div class="container">
+      ${deloadBannerHtml()}
       ${weeklySummaryHtml()}
       ${routines.length ? cards : '<div class="empty-state">Todavía no tienes rutinas.<br>Crea la primera para empezar.</div>'}
       <div class="fab-row">
@@ -944,6 +988,7 @@ function renderHome() {
     el.addEventListener('click', () => openRoutineChoice(el.dataset.openRoutine));
   });
   document.getElementById('backup-retry-btn').addEventListener('click', () => pushBackupToGitHub(true));
+  bindDeloadToggle(renderHome);
   // El desplegable vive dentro de la tarjeta, que entera abre la sesión:
   // hay que frenar el click para que no navegue.
   app.querySelectorAll('[data-more]').forEach(btn => {
@@ -1622,6 +1667,7 @@ function sessionRowHtml(s, showRoutine) {
     `${totalSets} series`,
     s.durationSec != null ? formatDurationHuman(s.durationSec) : null,
     s.partial ? '⏸ parcial' : null,
+    s.deload ? '🪫 descarga' : null,
     s.continuesSessionId ? '↪ continuación' : null,
     s.gym ? `📍 ${s.gym}` : null,
   ].filter(Boolean).join(' · ');
@@ -1669,6 +1715,7 @@ function slotProgressPoints(routine, slot, exerciseId) {
     .filter(ses => ses.routineId === routine.id)
     .sort((a, b) => a.date.localeCompare(b.date))
     .map(ses => {
+      if (ses.deload) return null;
       const e = ses.entries.find(x => x.slotId === slot.id && x.exerciseId === exId);
       if (!e) return null;
       const sets = e.sets.map(st => ({ w: firstNum(st.weight), r: firstNum(st.reps), rir: firstNum(st.rir) }))
@@ -2157,6 +2204,8 @@ function renderSession(routineId) {
             ${db.routines.map(r => `<option value="${r.id}"${r.id === routineId ? ' selected' : ''}>${escapeHtml(r.name)}</option>`).join('')}
           </select>
         </div>
+        <button type="button" class="btn btn-block deload-btn${isDeloadActive() ? ' active' : ''}" id="deload-session-btn">🪫 Sesión de descarga${isDeloadActive() ? ' (semana activa)' : ''}</button>
+        <div style="height:10px;"></div>
         ${missingCount ? `
         <p style="color:var(--text-dim);font-size:13px;margin:4px 0 6px;">Quedan ${missingCount} ejercicio${missingCount === 1 ? '' : 's'} sin series. ¿La sesión es…?</p>
         <div class="scope-toggle">
@@ -2189,8 +2238,9 @@ function renderSession(routineId) {
           createdAt: new Date().toISOString(),
         });
       }
+      const deload = document.getElementById('deload-session-btn').classList.contains('active');
       document.body.removeChild(backdrop);
-      onDone(Math.round(min * 60), !!scope && scope.dataset.scope === 'partial');
+      onDone(Math.round(min * 60), !!scope && scope.dataset.scope === 'partial', deload);
     };
     document.getElementById('duration-ok').addEventListener('click', confirmDuration);
     // Dos botones grandes en vez de radios: con 2 ejercicios o menos sin hacer
@@ -2198,6 +2248,7 @@ function renderSession(routineId) {
     backdrop.querySelectorAll('.scope-btn').forEach(b => b.addEventListener('click', () => {
       backdrop.querySelectorAll('.scope-btn').forEach(x => x.classList.toggle('active', x === b));
     }));
+    document.getElementById('deload-session-btn').addEventListener('click', (e) => e.currentTarget.classList.toggle('active'));
     document.getElementById('duration-cancel').addEventListener('click', () => document.body.removeChild(backdrop));
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter') confirmDuration(); });
   }
@@ -2491,9 +2542,11 @@ function renderSession(routineId) {
       const targetTag = `<button class="btn-ghost rest-target-tag" data-edit-rest="${slot.id}">🎯 ${target ? `${target}s` : 'sin desc.'} · ${range.lo}–${range.hi} reps</button>`;
       // Recomendación de Progreso, aquí mismo, que es donde se decide el peso.
       const rec = recommendForSlot(routine, slot, slotProgressPoints(routine, slot, entry.exerciseId));
-      const recHtml = rec.level !== 'info'
-        ? `<div class="rec-inline rec-${rec.level}">${{ up: '⬆️', keep: '➡️', down: '⬇️' }[rec.level]} ${escapeHtml(rec.text)}</div>`
-        : '';
+      const recHtml = isDeloadActive()
+        ? `<div class="rec-inline rec-deload">🪫 Descarga: 60–70 % del peso habitual y RIR 3–4. Esta sesión no cuenta para las recomendaciones.</div>`
+        : rec.level !== 'info'
+          ? `<div class="rec-inline rec-${rec.level}">${{ up: '⬆️', keep: '➡️', down: '⬇️' }[rec.level]} ${escapeHtml(rec.text)}</div>`
+          : '';
 
       const setsHtml = entry.sets.map((set, sIdx) => {
         const showGap = !(idx === 0 && sIdx === 0);
@@ -2891,7 +2944,7 @@ function renderSession(routineId) {
       const doneIds = draft.doneFrom ? draft.doneFrom.slotIds : [];
       const savedIds = new Set(entries.map(e => e.slotId));
       const missingCount = routine.slots.filter(sl => !doneIds.includes(sl.id) && !savedIds.has(sl.id)).length;
-      openDurationPrompt(missingCount, (durationSec, partial) => {
+      openDurationPrompt(missingCount, (durationSec, partial, deload) => {
         const session = {
           id: uid(),
           routineId,
@@ -2901,6 +2954,7 @@ function renderSession(routineId) {
           entries
         };
         if (partial) session.partial = true;
+        if (deload) session.deload = true;
         if (draft.notes) session.notes = draft.notes;
         if (draft.continuesSessionId) session.continuesSessionId = draft.continuesSessionId;
         db.sessions.push(session);

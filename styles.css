@@ -120,6 +120,36 @@ html, body {
   margin-bottom: 12px;
 }
 
+.deload-bar {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: var(--text-dim);
+  text-align: right;
+}
+
+.deload-bar.active {
+  text-align: left;
+  padding: 8px 12px;
+  border: 1px solid #b8862b;
+  background: rgba(214, 160, 50, 0.12);
+  border-radius: 10px;
+  color: var(--text);
+}
+
+.deload-toggle {
+  color: var(--accent);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.deload-btn.active {
+  border-color: #b8862b;
+  background: rgba(214, 160, 50, 0.16);
+  color: var(--text);
+}
+
+.rec-deload { border-color: #b8862b; background: rgba(214, 160, 50, 0.12); }
+
 .weekly-card { padding: 12px 14px; }
 
 .weekly-head {
