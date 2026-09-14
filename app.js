@@ -498,6 +498,21 @@ function runMigrations() {
     changed = true;
   }
 
+  // 14/09/2026: en Push, press banca mancuernas y press banca inclinado a 8–10
+  // repes (si no tienen ya un rango propio).
+  if (!db.meta.repRangePush20260914) {
+    const push = db.routines.find(r => /^Empuje|push/i.test(r.name));
+    if (push) {
+      push.slots.forEach(sl => {
+        const ex = getExercise(sl.exerciseId);
+        if (!ex || sl.repLo) return;
+        if (/^press banca mancuernas$/i.test(ex.name.trim()) || /^press banca inclinado$/i.test(ex.name.trim())) { sl.repLo = 8; sl.repHi = 10; }
+      });
+    }
+    db.meta.repRangePush20260914 = true;
+    changed = true;
+  }
+
   if (changed) saveDB();
 }
 
