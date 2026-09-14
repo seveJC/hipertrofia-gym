@@ -1079,6 +1079,7 @@ function renderRoutineEditor(routineId) {
           <span class="drag-handle" data-drag-handle="${idx}">⠿</span>
           <div class="name">${idx + 1}. ${ex ? escapeHtml(ex.name) : '(ejercicio eliminado)'}${slot.supersetGroup ? ' <span class="ss-tag">SS</span>' : ''}</div>
           <label class="slot-rest" title="Descanso objetivo">⏱ <input type="number" inputmode="numeric" data-slot-rest="${idx}" value="${slot.restSec ?? ''}" placeholder="s" />s</label>
+          <label class="slot-rest" title="Repes objetivo (de–a)">🎯 <input type="number" inputmode="numeric" data-slot-replo="${idx}" value="${slot.repLo ?? ''}" placeholder="de" />–<input type="number" inputmode="numeric" data-slot-rephi="${idx}" value="${slot.repHi ?? ''}" placeholder="a" /></label>
           ${editing && draft.slots.length > 1 ? `<button class="rm" data-merge="${idx}" title="Fusionar con otro ejercicio de esta rutina">🔗</button>` : ''}
           <button class="rm" data-rm="${idx}">✕</button>
         </div>`;
@@ -1126,6 +1127,14 @@ function renderRoutineEditor(routineId) {
     app.querySelectorAll('[data-slot-rest]').forEach(el => el.addEventListener('input', () => {
       const n = Number(el.value);
       draft.slots[Number(el.dataset.slotRest)].restSec = n > 0 ? n : null;
+    }));
+    app.querySelectorAll('[data-slot-replo]').forEach(el => el.addEventListener('input', () => {
+      const n = Number(el.value);
+      draft.slots[Number(el.dataset.slotReplo)].repLo = n > 0 ? n : null;
+    }));
+    app.querySelectorAll('[data-slot-rephi]').forEach(el => el.addEventListener('input', () => {
+      const n = Number(el.value);
+      draft.slots[Number(el.dataset.slotRephi)].repHi = n > 0 ? n : null;
     }));
 
     app.querySelectorAll('[data-merge]').forEach(el => el.addEventListener('click', () => {
@@ -1553,14 +1562,21 @@ function slotProgressPoints(routine, slot) {
     .filter(Boolean);
 }
 
+// Rango de repes objetivo de un hueco: el suyo si lo tiene; si no, por el
+// nombre de la rutina (Fuerza → 4–6, resto → 8–12).
+function repRangeOf(routine, slot) {
+  if (slot && slot.repLo > 0 && slot.repHi >= slot.repLo) return { lo: slot.repLo, hi: slot.repHi, own: true };
+  const fuerza = /fuerza/i.test(routine.name);
+  return fuerza ? { lo: 4, hi: 6, own: false } : { lo: 8, hi: 12, own: false };
+}
+
 // Doble progresión: se sube peso cuando se llega al tope del rango de repes
 // (o sobran repes según el RIR); se baja si las repes caen dos veces.
 function recommendForSlot(routine, slot, pts) {
   const ex = getExercise(slot.exerciseId);
   const lower = muscleNames(ex && ex.muscle).some(m => LOWER_BODY.includes(m));
   const step = lower ? 5 : 2.5;
-  const fuerza = /fuerza/i.test(routine.name);
-  const [lo, hi] = fuerza ? [4, 6] : [8, 12];
+  const { lo, hi } = repRangeOf(routine, slot);
   const fmtW = (w) => `${Math.round(w * 4) / 4} kg`;
   if (pts.length < 2) {
     return { level: 'info', text: pts.length ? 'Con una sesión más ya puedo comparar.' : 'Sin sesiones todavía.' };
@@ -1643,7 +1659,7 @@ function renderProgress(routineId) {
     return `
       <div class="card progress-card${main ? '' : ' progress-minor'}">
         <div class="progress-head">
-          <div class="name">${idx + 1}. ${ex ? escapeHtml(ex.name) : '(ejercicio eliminado)'}</div>
+          <div class="name">${idx + 1}. ${ex ? escapeHtml(ex.name) : '(ejercicio eliminado)'} <span class="rep-range-tag">${repRangeOf(routine, slot).lo}–${repRangeOf(routine, slot).hi}</span></div>
           ${ex && ex.muscle ? muscleBadgeHtml(ex.muscle).replace('muscle-badge', 'muscle-badge progress-badge') : ''}
         </div>
         ${main ? body : `<details><summary>${icon} ${escapeHtml(rec.text)}</summary>${body}</details>`}
@@ -1657,7 +1673,7 @@ function renderProgress(routineId) {
       <h1>📈 ${escapeHtml(routine.name)}</h1>
     </div>
     <div class="container">
-      <div class="progress-intro">Rango objetivo: <b>${fuerza ? '4–6' : '8–12'} repes</b> (por el nombre de la rutina). Los tres primeros ejercicios llevan gráfica; el resto, plegados.</div>
+      <div class="progress-intro">Rango por defecto: <b>${fuerza ? '4–6' : '8–12'} repes</b> (por el nombre de la rutina); cada ejercicio puede tener el suyo (🎯 en la sesión o en el editor). Los tres primeros llevan gráfica; el resto, plegados.</div>
       ${blocks}
     </div>
   `;
@@ -2094,10 +2110,20 @@ function renderSession(routineId) {
     backdrop.className = 'modal-backdrop';
     backdrop.innerHTML = `
       <div class="modal-sheet">
-        <h2>🎯 Descanso objetivo</h2>
-        <p style="color:var(--text-dim);font-size:13px;margin-top:-8px;">${escapeHtml(ex ? ex.name : '')} — en segundos. Se guarda en la rutina.</p>
+        <h2>🎯 Objetivos del ejercicio</h2>
+        <p style="color:var(--text-dim);font-size:13px;margin-top:-8px;">${escapeHtml(ex ? ex.name : '')} — se guardan en la rutina.</p>
         <div class="field">
+          <label>Descanso objetivo (segundos)</label>
           <input id="rest-target-input" type="number" inputmode="numeric" placeholder="Ej. 90" value="${slot.restSec ?? ''}" />
+        </div>
+        <div class="field">
+          <label>Repes objetivo (de – a)</label>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input id="rep-lo-input" type="number" inputmode="numeric" placeholder="${repRangeOf(routine, slot).lo}" value="${slot.repLo ?? ''}" />
+            <span style="color:var(--text-dim);">–</span>
+            <input id="rep-hi-input" type="number" inputmode="numeric" placeholder="${repRangeOf(routine, slot).hi}" value="${slot.repHi ?? ''}" />
+          </div>
+          <div class="rest-note" style="margin-top:4px;">Vacío = el de la rutina (${repRangeOf(routine, slot).own ? 'ahora propio' : `${repRangeOf(routine, slot).lo}–${repRangeOf(routine, slot).hi}`}).</div>
         </div>
         <button class="btn btn-primary btn-block" id="rest-target-ok">Guardar</button>
         <div style="height:8px;"></div>
@@ -2111,6 +2137,10 @@ function renderSession(routineId) {
     const finish = () => {
       const n = Number(input.value);
       slot.restSec = n > 0 ? n : null;
+      const lo = Number(document.getElementById('rep-lo-input').value);
+      const hi = Number(document.getElementById('rep-hi-input').value);
+      if (lo > 0 && hi >= lo) { slot.repLo = lo; slot.repHi = hi; }
+      else { delete slot.repLo; delete slot.repHi; }
       saveDB();
       document.body.removeChild(backdrop);
       paint();
@@ -2317,7 +2347,13 @@ function renderSession(routineId) {
       ` : '<div class="history-empty">Sin sesiones anteriores para este ejercicio.</div>';
 
       const target = restTargetOf(slot.id);
-      const targetTag = `<button class="btn-ghost rest-target-tag" data-edit-rest="${slot.id}">🎯 ${target ? `${target}s` : 'sin objetivo'}</button>`;
+      const range = repRangeOf(routine, slot);
+      const targetTag = `<button class="btn-ghost rest-target-tag" data-edit-rest="${slot.id}">🎯 ${target ? `${target}s` : 'sin desc.'} · ${range.lo}–${range.hi} reps</button>`;
+      // Recomendación de Progreso, aquí mismo, que es donde se decide el peso.
+      const rec = recommendForSlot(routine, slot, slotProgressPoints(routine, slot));
+      const recHtml = rec.level !== 'info'
+        ? `<div class="rec-inline rec-${rec.level}">${{ up: '⬆️', keep: '➡️', down: '⬇️' }[rec.level]} ${escapeHtml(rec.text)}</div>`
+        : '';
 
       const setsHtml = entry.sets.map((set, sIdx) => {
         const showGap = !(idx === 0 && sIdx === 0);
@@ -2373,7 +2409,7 @@ function renderSession(routineId) {
             </div>
             <button class="btn btn-ghost" data-swap="${slot.id}" style="font-size:13px;white-space:nowrap;">Sustituir</button>
           </div>
-          <div class="history">${historyHtml}${historyMoreHtml}</div>
+          <div class="history">${historyHtml}${historyMoreHtml}${recHtml}</div>
           <div class="rest-widget">${targetTag}${uniToggle}</div>
           <div class="log-area">
             ${labelsHtml}
