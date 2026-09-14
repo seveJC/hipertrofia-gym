@@ -560,6 +560,18 @@ function runMigrations() {
     changed = true;
   }
 
+  // Abdominales y gemelos que quedaban sin rango: 12–15 en todas las rutinas.
+  if (!db.meta.repRangesAbsCalves20260914) {
+    db.routines.forEach(r => r.slots.forEach(sl => {
+      const ex = getExercise(sl.exerciseId);
+      if (!ex || sl.repLo) return;
+      const muscles = muscleNames(ex.muscle);
+      if (muscles.includes('Abdominales') || muscles.includes('Gemelos')) { sl.repLo = 12; sl.repHi = 15; }
+    }));
+    db.meta.repRangesAbsCalves20260914 = true;
+    changed = true;
+  }
+
   if (changed) saveDB();
 }
 
