@@ -696,6 +696,43 @@ html, body {
   font-weight: 600;
 }
 
+.scope-toggle {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.scope-btn {
+  flex: 1;
+  padding: 12px 8px;
+  border-radius: 14px;
+  border: 2px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-dim);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.35;
+  cursor: pointer;
+}
+
+.scope-btn small {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+.scope-btn.active {
+  color: var(--text);
+  border-color: var(--accent);
+  background: rgba(255, 90, 54, 0.14);
+}
+
+.scope-btn[data-scope="full"].active {
+  border-color: var(--green);
+  background: rgba(76, 175, 125, 0.16);
+}
+
 .choice-row {
   display: flex;
   align-items: center;

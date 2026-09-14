@@ -2008,9 +2008,11 @@ function renderSession(routineId) {
           </select>
         </div>
         ${missingCount ? `
-        <p style="color:var(--text-dim);font-size:13px;margin:4px 0 2px;">Quedan ${missingCount} ejercicio${missingCount === 1 ? '' : 's'} sin series. ¿La sesión es…?</p>
-        <label class="choice-row"><input type="radio" name="session-scope" value="partial" checked /> ⏸ Parcial — el resto otro día</label>
-        <label class="choice-row"><input type="radio" name="session-scope" value="full" /> ✅ Completa — los salté a propósito</label>
+        <p style="color:var(--text-dim);font-size:13px;margin:4px 0 6px;">Quedan ${missingCount} ejercicio${missingCount === 1 ? '' : 's'} sin series. ¿La sesión es…?</p>
+        <div class="scope-toggle">
+          <button type="button" class="scope-btn${missingCount > 2 ? ' active' : ''}" data-scope="partial">⏸<br>Parcial<br><small>el resto otro día</small></button>
+          <button type="button" class="scope-btn${missingCount > 2 ? '' : ' active'}" data-scope="full">✅<br>Completa<br><small>los salté a propósito</small></button>
+        </div>
         ` : ''}
         <button class="btn btn-primary btn-block" id="duration-ok">Guardar sesión</button>
         <div style="height:8px;"></div>
@@ -2024,7 +2026,7 @@ function renderSession(routineId) {
     const confirmDuration = () => {
       const min = Number(normalizeDecimal(input.value));
       if (!min || min <= 0) { showToast('Pon una duración válida en minutos'); return; }
-      const scope = backdrop.querySelector('input[name="session-scope"]:checked');
+      const scope = backdrop.querySelector('.scope-btn.active');
       draft.notes = document.getElementById('duration-notes').value.trim();
       const msgText = document.getElementById('duration-msg').value.trim();
       if (msgText) {
@@ -2038,9 +2040,14 @@ function renderSession(routineId) {
         });
       }
       document.body.removeChild(backdrop);
-      onDone(Math.round(min * 60), !!scope && scope.value === 'partial');
+      onDone(Math.round(min * 60), !!scope && scope.dataset.scope === 'partial');
     };
     document.getElementById('duration-ok').addEventListener('click', confirmDuration);
+    // Dos botones grandes en vez de radios: con 2 ejercicios o menos sin hacer
+    // se preselecciona "Completa"; con más, "Parcial".
+    backdrop.querySelectorAll('.scope-btn').forEach(b => b.addEventListener('click', () => {
+      backdrop.querySelectorAll('.scope-btn').forEach(x => x.classList.toggle('active', x === b));
+    }));
     document.getElementById('duration-cancel').addEventListener('click', () => document.body.removeChild(backdrop));
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter') confirmDuration(); });
   }
