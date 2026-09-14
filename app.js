@@ -513,6 +513,53 @@ function runMigrations() {
     changed = true;
   }
 
+  // 14/09/2026: rangos de repes definidos ejercicio a ejercicio. Se buscan por
+  // nombre de rutina y de ejercicio (sin tildes ni mayúsculas); los que no
+  // aparecen siguen con el rango por defecto de su rutina.
+  if (!db.meta.repRanges20260914b) {
+    const RANGES = {
+      'empuje': {
+        'press hombro mancuernas': [10, 12], 'press frances': [10, 12], 'peck deck / contractora': [12, 14],
+        'extension triceps cuerda': [10, 14], 'elevacion lateral polea': [10, 16], 'katana polea': [10, 12],
+        'fondos en maquina': [10, 12],
+      },
+      'tiron': {
+        'remo pecho apoyado agarre prono': [8, 10], 'remo en maquina': [8, 10], 'curl biceps mancuernas': [10, 12],
+        'jalon al pecho polea': [10, 12], 'dominadas': [6, 8], 'curl biceps polea': [12, 14], 'facepull': [10, 16],
+        'elevacion lateral tumbado polea': [10, 16], 'curl martillo polea': [12, 14],
+      },
+      'pierna (hipertrofia)': {
+        'sentadilla hack / pendular': [6, 8], 'prensa 45º': [8, 10], 'extension de cuadriceps': [10, 12],
+        'curl femoral sentado': [10, 12], 'curl femoral maquina extension de cuadriceps': [12, 14],
+        'elevacion lateral polea': [10, 16], 'jaca pendular (gemelos)': [12, 14],
+      },
+      'pierna (fuerza)': {
+        'prensa 45º': [6, 8], 'extension de cuadriceps': [8, 10], 'curl femoral sentado': [6, 8],
+        'curl femoral maquina extension de cuadriceps': [8, 10], 'elevacion lateral polea': [10, 16],
+        'jaca pendular (gemelos)': [12, 14],
+      },
+      'fuerza (push+pull)': {
+        'press banca mancuernas': [4, 6], 'press banca inclinado': [6, 8], 'extension triceps': [8, 10],
+        'katana polea': [10, 12], 'remo pecho apoyado agarre prono': [6, 8], 'jalon al pecho agarre doble': [6, 8],
+        'curl biceps mancuernas': [6, 8], 'remo maquina dorsal agarre neutro': [6, 8], 'curl martillo mancuernas': [8, 10],
+        'curl martillo polea': [8, 10], 'facepull': [10, 16],
+      },
+    };
+    const norm = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+    db.routines.forEach(r => {
+      const rn = norm(r.name);
+      const key = Object.keys(RANGES).find(k => rn.startsWith(k));
+      if (!key) return;
+      r.slots.forEach(sl => {
+        const ex = getExercise(sl.exerciseId);
+        const range = ex && RANGES[key][norm(ex.name)];
+        if (range) { sl.repLo = range[0]; sl.repHi = range[1]; }
+      });
+    });
+    db.meta.repRanges20260914b = true;
+    changed = true;
+  }
+
   if (changed) saveDB();
 }
 
