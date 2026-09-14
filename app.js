@@ -812,6 +812,46 @@ function openRoutineChoice(routineId) {
 }
 
 // ---------- Home: lista de rutinas ----------
+// Series por músculo en una ventana de días (combinados cuentan en ambos).
+function weeklyStats(fromMs, toMs) {
+  const sessions = db.sessions.filter(ses => { const t = new Date(ses.date).getTime(); return t >= fromMs && t < toMs; });
+  const perMuscle = {};
+  let minutes = 0;
+  sessions.forEach(ses => {
+    if (ses.durationSec) minutes += ses.durationSec / 60;
+    ses.entries.forEach(e => {
+      const ex = getExercise(e.exerciseId);
+      muscleNames(ex && ex.muscle).forEach(m => { perMuscle[m] = (perMuscle[m] || 0) + e.sets.length; });
+    });
+  });
+  return { sessions: sessions.length, minutes: Math.round(minutes), perMuscle };
+}
+
+function weeklySummaryHtml() {
+  const DAY = 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  const cur = weeklyStats(now - 7 * DAY, now + DAY);
+  const prev = weeklyStats(now - 14 * DAY, now - 7 * DAY);
+  if (!cur.sessions && !prev.sessions) return '';
+  const muscles = Object.keys({ ...cur.perMuscle, ...prev.perMuscle })
+    .filter(m => m !== 'Sin músculo')
+    .sort((a, b) => (cur.perMuscle[b] || 0) - (cur.perMuscle[a] || 0) || (prev.perMuscle[b] || 0) - (prev.perMuscle[a] || 0));
+  const chips = muscles.map(m => {
+    const c = cur.perMuscle[m] || 0, p = prev.perMuscle[m] || 0;
+    const color = MUSCLE_COLORS[m] || 'var(--border)';
+    const delta = c - p;
+    const deltaTxt = delta ? `<small>${delta > 0 ? '▲' : '▼'}${Math.abs(delta)}</small>` : '';
+    return `<span class="muscle-chip${c ? '' : ' muscle-chip-zero'}" style="${c ? `border-color:${color};color:${color};` : ''}">${escapeHtml(muscleAbbr(m))} ${c}${deltaTxt}</span>`;
+  }).join('');
+  return `
+    <div class="card weekly-card">
+      <div class="weekly-head">📊 Últimos 7 días · ${cur.sessions} sesion${cur.sessions === 1 ? '' : 'es'}${cur.minutes ? ` · ${cur.minutes}'` : ''}
+        <span class="weekly-prev">(anterior: ${prev.sessions}${prev.minutes ? ` · ${prev.minutes}'` : ''})</span></div>
+      <div class="summary-muscles">${chips}</div>
+      <div class="weekly-note">series por músculo · el pequeño es la diferencia con los 7 días anteriores</div>
+    </div>`;
+}
+
 function renderHome() {
   const routines = db.routines;
 
@@ -878,6 +918,7 @@ function renderHome() {
       ☁️ Hay cambios sin copiar a GitHub · <span class="backup-retry" id="backup-retry-btn">subir ahora</span>
     </div>
     <div class="container">
+      ${weeklySummaryHtml()}
       ${routines.length ? cards : '<div class="empty-state">Todavía no tienes rutinas.<br>Crea la primera para empezar.</div>'}
       <div class="fab-row">
         <button class="btn btn-primary btn-block" data-nav="routine-new">+ Nueva rutina</button>

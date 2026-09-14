@@ -120,6 +120,33 @@ html, body {
   margin-bottom: 12px;
 }
 
+.weekly-card { padding: 12px 14px; }
+
+.weekly-head {
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.weekly-prev {
+  font-weight: 500;
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+.weekly-note {
+  margin-top: 6px;
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+.muscle-chip small {
+  font-size: 9px;
+  font-weight: 500;
+  margin-left: 3px;
+  opacity: 0.8;
+}
+
 .routine-card {
   display: flex;
   align-items: center;
