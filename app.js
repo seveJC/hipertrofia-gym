@@ -475,6 +475,20 @@ function runMigrations() {
     changed = true;
   }
 
+  // Segunda pasada de unificación: en el móvil seguía "Basic-fit Bravo Murillo"
+  // junto a "Basic-Fit Bravo Murillo". Se prefiere la forma con mayúsculas
+  // oficial y se corrigen las sesiones.
+  if (!db.meta.gymsDeduped2) {
+    const preferred = ['Basic-Fit Bravo Murillo', 'Basic-Fit Huelva', 'Hi-Fitness', 'QFitness Aljaraque', 'VivaGym Bravo Murillo'];
+    const canonical = {};
+    preferred.forEach(g => { canonical[gymKey(g)] = g; });
+    (db.gyms || []).forEach(g => { const k = gymKey(g); if (k && !canonical[k]) canonical[k] = g.trim(); });
+    db.gyms = [...new Set(Object.values(canonical))].sort((a, b) => a.localeCompare(b, 'es'));
+    db.sessions.forEach(ses => { if (ses.gym) { const c = canonical[gymKey(ses.gym)]; if (c) ses.gym = c; } });
+    db.meta.gymsDeduped2 = true;
+    changed = true;
+  }
+
   // Quality Fitness (Aljaraque) pasa a llamarse QFitness Aljaraque.
   if (!db.meta.gymQFitness) {
     const from = 'Quality Fitness (Aljaraque)', to = 'QFitness Aljaraque';
@@ -485,6 +499,19 @@ function runMigrations() {
   }
 
   if (changed) saveDB();
+}
+
+// Clave para comparar gimnasios sin mayúsculas, tildes, guiones ni espacios.
+function gymKey(name) {
+  return String(name || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+// Devuelve el nombre tal como está en la lista si ya existe uno equivalente
+// ("basic-fit bravo murillo" → "Basic-Fit Bravo Murillo"); si no, el dado.
+function canonicalGym(name) {
+  const k = gymKey(name);
+  if (!k) return '';
+  return (db.gyms || []).find(g => gymKey(g) === k) || String(name).trim();
 }
 
 function gymOptionsHtml(selected) {
@@ -501,7 +528,7 @@ function gymOptionsHtml(selected) {
 function bindGymSelect(select, onChange) {
   select.addEventListener('change', () => {
     if (select.value !== '__new__') { onChange(select.value); return; }
-    const name = (prompt('Nombre del gimnasio') || '').trim();
+    const name = canonicalGym(prompt('Nombre del gimnasio') || '');
     if (!name) { select.value = ''; onChange(''); return; }
     db.gyms = db.gyms || [];
     if (!db.gyms.includes(name)) { db.gyms.push(name); db.gyms.sort((a, b) => a.localeCompare(b, 'es')); saveDB(); }
@@ -902,6 +929,8 @@ function renderExercises() {
   document.getElementById('add-gym-btn').addEventListener('click', () => {
     const name = document.getElementById('new-gym-name').value.trim();
     if (!name) { showToast('Escribe el nombre del gimnasio'); return; }
+    const canon = canonicalGym(name);
+    if (canon !== name) { showToast(`Ya existe como "${canon}"`); return; }
     saveGyms([...(db.gyms || []), name]);
     showToast('Gimnasio añadido');
   });
@@ -2669,7 +2698,7 @@ function renderSession(routineId) {
           routineId,
           date: new Date().toISOString(),
           durationSec,
-          gym: draft.gym || '',
+          gym: canonicalGym(draft.gym || ''),
           entries
         };
         if (partial) session.partial = true;
