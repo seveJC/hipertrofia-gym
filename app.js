@@ -670,6 +670,7 @@ function summarizeSessionParts(routine, parts) {
   const hasDuration = parts.every(p => p.durationSec != null);
   const muscleStats = {};
   const groupSizes = {};
+  const groupNames = {};
   let totalExercises = 0;
   parts.forEach(s => {
     const totalSets = s.entries.reduce((sum, e) => sum + e.sets.length, 0) || 1;
@@ -679,6 +680,8 @@ function summarizeSessionParts(routine, parts) {
       if (e.supersetGroup) {
         const k = s.id + ':' + e.supersetGroup;
         groupSizes[k] = (groupSizes[k] || 0) + 1;
+        const exName = (getExercise(e.exerciseId) || { name: '?' }).name;
+        (groupNames[k] = groupNames[k] || []).push(exName);
       }
       // Un ejercicio combinado (Pecho + Tríceps) cuenta en los dos músculos;
       // su tiempo se reparte a partes iguales para que la suma siga siendo
@@ -709,6 +712,7 @@ function summarizeSessionParts(routine, parts) {
     durationSec: hasDuration ? parts.reduce((n, p) => n + p.durationSec, 0) : null,
     hasDuration,
     supersets: Object.values(groupSizes).filter(n => n >= 2).length,
+    supersetPairs: Object.keys(groupSizes).filter(k => groupSizes[k] >= 2).map(k => groupNames[k].join(' + ')),
     partial,
     missingMuscles,
     muscleStats,
@@ -891,6 +895,7 @@ function renderHome() {
           <div class="summary-day${hidden ? ' summary-extra' : ''}"${hidden ? ' hidden' : ''}>
             <div class="summary-row">${head}</div>
             <div class="summary-muscles">${chips}</div>
+            ${day.supersetPairs.length ? `<div class="summary-notes">🔗 ${escapeHtml(day.supersetPairs.join(' · '))}</div>` : ''}
             ${day.notes ? `<div class="summary-notes">📝 ${escapeHtml(day.notes)}</div>` : ''}
           </div>`;
     };
