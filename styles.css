@@ -301,6 +301,14 @@ html, body {
   z-index: 1;
 }
 
+.from-routine {
+  font-size: 10px;
+  color: var(--green);
+  font-weight: 600;
+  margin-top: 2px;
+  white-space: normal;
+}
+
 .gym-tag-sm {
   font-size: 10px;
   color: var(--text-dim);

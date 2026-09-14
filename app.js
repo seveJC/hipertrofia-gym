@@ -1382,7 +1382,7 @@ function formatSetCell(s) {
     : `${w}×${s.reps ?? '?'}`;
   const sub = [];
   if (s.dropset) sub.push('DROP');
-  if (s.restPause) sub.push('RP');
+  if (s.restPause) sub.push(s.pauseSec ? `RP ⏱${s.pauseSec}s` : 'RP');
   if (s.rir !== null && s.rir !== undefined && s.rir !== '') {
     sub.push(s.rir2 !== null && s.rir2 !== undefined && s.rir2 !== '' ? `RIR${s.rir}/${s.rir2}` : `RIR${s.rir}`);
   }
@@ -1882,12 +1882,21 @@ function renderSession(routineId) {
     document.getElementById('app').classList.remove('with-rest-bar');
   };
 
+  // Histórico de un hueco: lo hecho en este hueco de esta rutina y, además, el
+  // mismo ejercicio hecho en cualquier otra rutina (marcado como "foreign"),
+  // para que un ejercicio recién añadido no aparezca vacío.
   function pastSessionsForSlot(slotId, limit) {
-    return db.sessions
-      .filter(s => s.routineId === routineId && s.entries.some(e => e.slotId === slotId))
-      .sort((a, b) => b.date.localeCompare(a.date))
-      .slice(0, limit)
-      .map(s => ({ session: s, entry: s.entries.find(e => e.slotId === slotId) }));
+    const slot = routine.slots.find(sl => sl.id === slotId);
+    const entryNow = draft.entries[slotId];
+    const exId = entryNow ? entryNow.exerciseId : (slot ? slot.exerciseId : null);
+    const rows = [];
+    db.sessions.forEach(s => {
+      let e = s.routineId === routineId ? s.entries.find(x => x.slotId === slotId) : null;
+      let foreign = false;
+      if (!e && exId) { e = s.entries.find(x => x.exerciseId === exId); foreign = true; }
+      if (e) rows.push({ session: s, entry: e, foreign });
+    });
+    return rows.sort((a, b) => b.session.date.localeCompare(a.session.date)).slice(0, limit);
   }
 
   const lastRoutineSession = db.sessions
@@ -1913,7 +1922,7 @@ function renderSession(routineId) {
     if (draft.entries[slot.id]) return; // ya existía (sesión restaurada) o se acaba de añadir a la rutina
     const lastHistory = pastSessionsForSlot(slot.id, 1)[0];
     const defaultUni = !!(lastHistory && lastHistory.entry.sets.some(s => s.reps2 != null && s.reps2 !== ''));
-    draft.entries[slot.id] = { exerciseId: slot.exerciseId, sets: [], uni: defaultUni, _historyLimit: 3 };
+    draft.entries[slot.id] = { exerciseId: slot.exerciseId, sets: [], uni: defaultUni, _historyLimit: 5 };
   });
 
   // draft.supersets[slotId] = idGrupo | null. La rutina guarda el plan habitual;
@@ -2243,7 +2252,7 @@ function renderSession(routineId) {
         <div class="history-more">
           <label>Mostrar últimas:</label>
           <select data-history-limit="${slot.id}">
-            ${historyThresholds(totalHistoryCount).map(n => `<option value="${n}" ${entry._historyLimit === n ? 'selected' : ''}>${n === totalHistoryCount ? `Todas (${n})` : n}</option>`).join('')}
+            ${historyThresholds(totalHistoryCount).map(n => `<option value="${n}" ${n === entry._historyLimit || (entry._historyLimit >= totalHistoryCount && n === totalHistoryCount) ? 'selected' : ''}>${n === totalHistoryCount ? `Todas (${n})` : n}</option>`).join('')}
           </select>
         </div>
       ` : '';
@@ -2255,12 +2264,13 @@ function renderSession(routineId) {
               ${Array.from({ length: maxSets }, (_, i) => `<th>S${i + 1}</th>`).join('')}
             </tr></thead>
             <tbody>
-              ${history.map(({ session, entry: e }) => {
+              ${history.map(({ session, entry: e, foreign }) => {
                 const exUsed = getExercise(e.exerciseId);
-                const wasSub = e.exerciseId !== slot.exerciseId;
+                const wasSub = !foreign && e.exerciseId !== slot.exerciseId;
+                const fromRoutine = foreign ? getRoutine(session.routineId) : null;
                 const cells = Array.from({ length: maxSets }, (_, i) => e.sets[i] ? `<td>${formatSetCell(e.sets[i])}</td>` : '<td>—</td>').join('');
                 return `<tr>
-                  <td class="date-cell">${fmtDate(session.date)}${session.gym ? `<div class="gym-tag-sm">📍 ${escapeHtml(session.gym)}</div>` : ''}${wasSub ? `<div class="sub-note-sm" title="Sustituye a ${escapeHtml(exUsed ? exUsed.name : '?')}">🔄 ${escapeHtml(exUsed ? exUsed.name : '?')}</div>` : ''}${e.restNote ? `<div class="rest-note">desc. obj: ${escapeHtml(e.restNote)}s</div>` : ''}</td>
+                  <td class="date-cell">${fmtDate(session.date)}${foreign ? `<div class="from-routine">↗ ${escapeHtml(fromRoutine ? fromRoutine.name : 'otra rutina')}</div>` : ''}${session.gym ? `<div class="gym-tag-sm">📍 ${escapeHtml(session.gym)}</div>` : ''}${wasSub ? `<div class="sub-note-sm" title="Sustituye a ${escapeHtml(exUsed ? exUsed.name : '?')}">🔄 ${escapeHtml(exUsed ? exUsed.name : '?')}</div>` : ''}${e.restNote ? `<div class="rest-note">desc. obj: ${escapeHtml(e.restNote)}s</div>` : ''}</td>
                   ${cells}
                 </tr>`;
               }).join('')}
@@ -2294,7 +2304,7 @@ function renderSession(routineId) {
             <div class="set-num">${set.technique === 'dropset' ? 'D' + (stIdx + 1) : 'P' + (stIdx + 1)}</div>
             ${set.technique === 'dropset'
               ? `<input type="text" inputmode="decimal" placeholder="kg" data-stage-weight="${slot.id}:${sIdx}:${stIdx}" value="${st.weight ?? ''}" />`
-              : `<div></div>`}
+              : `<input type="number" inputmode="numeric" placeholder="⏱ s" title="Segundos de pausa" data-stage-pause="${slot.id}:${sIdx}:${stIdx}" value="${st.pauseSec ?? ''}" />`}
             <input type="text" inputmode="decimal" placeholder="${entry.uni ? 'der' : 'reps'}" data-stage-reps="${slot.id}:${sIdx}:${stIdx}" value="${st.reps ?? ''}" />
             ${entry.uni ? `<input type="text" inputmode="decimal" placeholder="izq" data-stage-reps2="${slot.id}:${sIdx}:${stIdx}" value="${st.reps2 ?? ''}" />` : ''}
             <div></div>
@@ -2521,6 +2531,13 @@ function renderSession(routineId) {
       saveDraft();
     }));
 
+    app.querySelectorAll('[data-stage-pause]').forEach(el => el.addEventListener('input', () => {
+      const [slotId, sIdx, stIdx] = el.dataset.stagePause.split(':');
+      const n = Number(el.value);
+      draft.entries[slotId].sets[Number(sIdx)].stages[Number(stIdx)].pauseSec = n > 0 ? n : null;
+      saveDraft();
+    }));
+
     app.querySelectorAll('[data-stage-reps2]').forEach(el => el.addEventListener('input', () => {
       const [slotId, sIdx, stIdx] = el.dataset.stageReps2.split(':');
       draft.entries[slotId].sets[Number(sIdx)].stages[Number(stIdx)].reps2 = normalizeDecimal(el.value);
@@ -2623,6 +2640,9 @@ function renderSession(routineId) {
                   out.reps = joinReps(s.reps, 'reps', '+');
                   if (out.reps2 != null) out.reps2 = joinReps(s.reps2, 'reps2', '+');
                   out.restPause = true;
+                  // Pausas entre tramos, en segundos y en orden ("15+20").
+                  const pauses = stages.map(st => st.pauseSec).filter(p => p != null && p !== '');
+                  if (pauses.length) out.pauseSec = pauses.join('+');
                 }
                 return out;
               })
