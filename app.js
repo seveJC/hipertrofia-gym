@@ -1605,12 +1605,16 @@ const LOWER_BODY = ['Cuádriceps', 'Isquiotibiales', 'Gemelos'];
 
 // Por sesión: peso de trabajo (el más repetido), repes mínimas a ese peso,
 // RIR medio y mejor 1RM estimado.
-function slotProgressPoints(routine, slot) {
+// exerciseId: por defecto el planificado en el hueco; en sesión, el que se está
+// haciendo hoy (si hay sustitución). Las sesiones con otro ejercicio en ese
+// hueco no cuentan: una máquina distinta no es una bajada de peso.
+function slotProgressPoints(routine, slot, exerciseId) {
+  const exId = exerciseId || slot.exerciseId;
   return db.sessions
     .filter(ses => ses.routineId === routine.id)
     .sort((a, b) => a.date.localeCompare(b.date))
     .map(ses => {
-      const e = ses.entries.find(x => x.slotId === slot.id);
+      const e = ses.entries.find(x => x.slotId === slot.id && x.exerciseId === exId);
       if (!e) return null;
       const sets = e.sets.map(st => ({ w: firstNum(st.weight), r: firstNum(st.reps), rir: firstNum(st.rir) }))
         // Valores imposibles (repes de miles, pesos absurdos) son errores de
@@ -2365,6 +2369,13 @@ function renderSession(routineId) {
       const entry = draft.entries[slot.id];
       const currentEx = getExercise(entry.exerciseId);
       const isSub = entry.exerciseId !== slot.exerciseId;
+      // Última sustitución de este hueco en esta rutina, para repetirla de un toque.
+      const lastSubSession = db.sessions
+        .filter(ses => ses.routineId === routineId && ses.entries.some(x => x.slotId === slot.id && x.exerciseId !== slot.exerciseId))
+        .sort((a, b) => b.date.localeCompare(a.date))[0];
+      const lastSubEntry = lastSubSession && lastSubSession.entries.find(x => x.slotId === slot.id);
+      const lastSubEx = lastSubEntry ? getExercise(lastSubEntry.exerciseId) : null;
+      const lastSubDate = lastSubSession ? lastSubSession.date : null;
 
       // Continuación de una sesión parcial: lo hecho el otro día se muestra
       // plegado y sin registro, para ir directo a lo que falta.
@@ -2424,7 +2435,7 @@ function renderSession(routineId) {
       const range = repRangeOf(routine, slot);
       const targetTag = `<button class="btn-ghost rest-target-tag" data-edit-rest="${slot.id}">🎯 ${target ? `${target}s` : 'sin desc.'} · ${range.lo}–${range.hi} reps</button>`;
       // Recomendación de Progreso, aquí mismo, que es donde se decide el peso.
-      const rec = recommendForSlot(routine, slot, slotProgressPoints(routine, slot));
+      const rec = recommendForSlot(routine, slot, slotProgressPoints(routine, slot, entry.exerciseId));
       const recHtml = rec.level !== 'info'
         ? `<div class="rec-inline rec-${rec.level}">${{ up: '⬆️', keep: '➡️', down: '⬇️' }[rec.level]} ${escapeHtml(rec.text)}</div>`
         : '';
@@ -2479,6 +2490,7 @@ function renderSession(routineId) {
               <h3>${idx + 1}. ${escapeHtml(currentEx ? currentEx.name : '(ejercicio eliminado)')}</h3>
               ${currentEx && currentEx.notes ? `<div class="notes-line" data-edit-ex-notes="${currentEx.id}">✎ ${escapeHtml(currentEx.notes)}</div>` : currentEx ? `<div class="notes-line notes-line-empty" data-edit-ex-notes="${currentEx.id}">+ añadir observación</div>` : ''}
               ${isSub ? `<div class="sub-note">🔄 Sustituye a: ${escapeHtml(plannedEx ? plannedEx.name : '?')}</div>` : ''}
+              ${!isSub && lastSubEx ? `<div class="sub-quick" data-quick-sub="${slot.id}:${lastSubEx.id}">🔄 Hoy con ${escapeHtml(lastSubEx.name)} (como el ${fmtDateShort(lastSubDate)})</div>` : ''}
               ${supersetNoteHtml(slot)}
             </div>
             <button class="btn btn-ghost" data-swap="${slot.id}" style="font-size:13px;white-space:nowrap;">Sustituir</button>
@@ -2749,6 +2761,12 @@ function renderSession(routineId) {
           paint();
         }
       });
+    }));
+
+    app.querySelectorAll('[data-quick-sub]').forEach(el => el.addEventListener('click', () => {
+      const [slotId, exerciseId] = el.dataset.quickSub.split(':');
+      draft.entries[slotId].exerciseId = exerciseId;
+      paint();
     }));
 
     app.querySelectorAll('[data-revert]').forEach(el => el.addEventListener('click', () => {

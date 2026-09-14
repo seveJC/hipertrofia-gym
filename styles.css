@@ -359,6 +359,17 @@ html, body {
   border-radius: 8px;
 }
 
+.sub-quick {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--accent);
+  border: 1px dashed var(--accent-dim);
+  padding: 3px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
 .history {
   padding: 0 16px 12px;
   border-bottom: 1px solid var(--border);
