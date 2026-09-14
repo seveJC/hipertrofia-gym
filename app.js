@@ -751,7 +751,8 @@ function renderHome() {
     const VISIBLE = 3;
     const dayHtml = (day, hidden) => {
       const head = [
-        day.dates.map(fmtDateShort).join(' + '),
+        // Mismo día en dos partes (mañana y tarde): una fecha y el nº de partes.
+        [...new Set(day.dates.map(fmtDateShort))].join(' + ') + (day.dates.length > 1 && new Set(day.dates.map(fmtDateShort)).size < day.dates.length ? ` · ${day.dates.length} partes` : ''),
         `${day.totalExercises} ej`,
         day.hasDuration ? day.durations.map(fmtMinutesShort).join('+') : null,
         day.supersets ? `🔗${day.supersets}` : null,
