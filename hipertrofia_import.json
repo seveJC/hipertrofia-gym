@@ -4743,6 +4743,228 @@
           "restNote": "60"
         }
       ]
+    },
+    {
+      "id": "mu2nuq4lzcyxzi",
+      "routineId": "e471c3c406ab",
+      "date": "2026-09-15T12:41:17.253Z",
+      "durationSec": 2520,
+      "gym": "Basic-Fit Bravo Murillo",
+      "entries": [
+        {
+          "slotId": "5b54515fa82a",
+          "exerciseId": "772ee2f51e71",
+          "sets": [
+            {
+              "weight": 30,
+              "reps": 9,
+              "rir": 1.5,
+              "rir2": null,
+              "reps2": null,
+              "restSec": null
+            },
+            {
+              "weight": 30,
+              "reps": 9,
+              "rir": 1,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 125
+            },
+            {
+              "weight": 30,
+              "reps": 8,
+              "rir": 0.5,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 89
+            }
+          ],
+          "restNote": "120"
+        },
+        {
+          "slotId": "c9f44007e6f8",
+          "exerciseId": "35feb6cc7030",
+          "sets": [
+            {
+              "weight": 20,
+              "reps": 8,
+              "rir": 1.5,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 81
+            },
+            {
+              "weight": 20,
+              "reps": 8,
+              "rir": 1,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 73
+            },
+            {
+              "weight": 20,
+              "reps": 8,
+              "rir": 1,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 85
+            }
+          ],
+          "restNote": "120"
+        },
+        {
+          "slotId": "162ddbdcf606",
+          "exerciseId": "3cb3bc12cec3",
+          "sets": [
+            {
+              "weight": 14,
+              "reps": 10,
+              "rir": 1,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 84
+            },
+            {
+              "weight": 14,
+              "reps": 10,
+              "rir": 1,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 71
+            },
+            {
+              "weight": 14,
+              "reps": 9,
+              "rir": 0.5,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 71
+            }
+          ],
+          "restNote": "90"
+        },
+        {
+          "slotId": "4f88ef1592b8",
+          "exerciseId": "5447e5a2a540",
+          "sets": [
+            {
+              "weight": 25,
+              "reps": 12,
+              "rir": 1.5,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 64
+            },
+            {
+              "weight": 25,
+              "reps": 12,
+              "rir": 1,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 71
+            },
+            {
+              "weight": 25,
+              "reps": 10,
+              "rir": 0.5,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 70
+            }
+          ],
+          "restNote": "90"
+        },
+        {
+          "slotId": "cb317bf9a6c2",
+          "exerciseId": "3632be784b42",
+          "sets": [
+            {
+              "weight": 66,
+              "reps": 14,
+              "rir": 2.5,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 168
+            },
+            {
+              "weight": 66,
+              "reps": 14,
+              "rir": 0.5,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 58
+            },
+            {
+              "weight": 66,
+              "reps": "10+2.5",
+              "rir": null,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 59,
+              "restPause": true,
+              "pauseSec": "10"
+            }
+          ],
+          "restNote": "60"
+        },
+        {
+          "slotId": "15caf85ed384",
+          "exerciseId": "a551ade607ad",
+          "sets": [
+            {
+              "weight": 20.4,
+              "reps": 14,
+              "rir": 0,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 55
+            },
+            {
+              "weight": 20.4,
+              "reps": 11,
+              "rir": 0.5,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 55
+            },
+            {
+              "weight": "20.4/18.1",
+              "reps": "8/3.5",
+              "rir": 0.5,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 59,
+              "dropset": true
+            }
+          ],
+          "restNote": "60"
+        },
+        {
+          "slotId": "6b75a0c02f21",
+          "exerciseId": "c935a6fa886c",
+          "sets": [
+            {
+              "weight": 4.5,
+              "reps": 10,
+              "rir": 0.5,
+              "rir2": 0.5,
+              "reps2": 11,
+              "restSec": 60
+            },
+            {
+              "weight": "4.5/2.3",
+              "reps": "8/6",
+              "rir": 0.5,
+              "rir2": 0.5,
+              "reps2": "9/6.5",
+              "restSec": 55,
+              "dropset": true
+            }
+          ],
+          "restNote": "60"
+        }
+      ]
     }
   ],
   "meta": {
