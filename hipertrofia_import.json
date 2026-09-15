@@ -493,13 +493,6 @@
           "repHi": 14
         },
         {
-          "id": "mtu477oxhwgw5o",
-          "exerciseId": "8b251ada8a8e",
-          "restSec": 75,
-          "repLo": 10,
-          "repHi": 16
-        },
-        {
           "id": "6b75a0c02f21",
           "exerciseId": "c935a6fa886c",
           "restSec": 60,
