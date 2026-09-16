@@ -1860,6 +1860,92 @@ function e1rm(w, r) {
 
 const LOWER_BODY = ['Cuádriceps', 'Isquiotibiales', 'Gemelos'];
 
+// ---------- Exportar CSV ----------
+// Separador ; y coma decimal (Excel en español), con BOM para que respete las tildes.
+function csvCell(v) {
+  if (v == null) return '';
+  let t = typeof v === 'number' ? String(v).replace('.', ',') : String(v);
+  return /[;"\n\r]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+}
+
+function csvText(header, rows) {
+  return '\ufeff' + [header, ...rows].map(r => r.map(csvCell).join(';')).join('\r\n');
+}
+
+// En el móvil abre el menú de compartir (Drive, WhatsApp…); si no, descarga.
+async function downloadText(filename, text) {
+  const blob = new Blob([text], { type: 'text/csv;charset=utf-8' });
+  const file = new File([blob], filename, { type: 'text/csv' });
+  const mobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
+  if (mobile && navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file], title: filename }); return; } catch (e) { if (e && e.name === 'AbortError') return; }
+  }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+
+function todayStamp() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// Una fila por serie. routineId opcional para exportar solo una rutina.
+function sessionsCsv(routineId) {
+  const header = ['Fecha', 'Hora', 'Rutina', 'Gimnasio', 'Parcial', 'Descarga', 'Duración min', 'Ejercicio', 'Músculo', 'Serie', 'Peso kg', 'Reps', 'Reps izq', 'RIR', 'RIR izq', 'Técnica', 'Pausa s', 'Descanso s', 'Superserie', 'Notas'];
+  const rows = [];
+  db.sessions
+    .filter(ses => !routineId || ses.routineId === routineId)
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .forEach(ses => {
+      const r = getRoutine(ses.routineId);
+      const d = new Date(ses.date);
+      const hora = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+      ses.entries.forEach(e => {
+        const ex = getExercise(e.exerciseId);
+        e.sets.forEach((st, i) => rows.push([
+          fmtDate(ses.date), hora, r ? r.name : '', ses.gym || '', ses.partial ? 'sí' : '', ses.deload ? 'sí' : '',
+          ses.durationSec ? Math.round(ses.durationSec / 60) : '',
+          ex ? ex.name : '', ex ? ex.muscle || '' : '', i + 1,
+          st.weight, st.reps, st.reps2, st.rir, st.rir2,
+          st.dropset ? 'drop set' : st.restPause ? 'rest-pause' : '', st.pauseSec, st.restSec,
+          e.supersetGroup ? 'sí' : '', ses.notes || '',
+        ]));
+      });
+    });
+  return csvText(header, rows);
+}
+
+function measuresCsv() {
+  const header = ['Fecha', ...MEASURE_FIELDS.map(f => `${f.label} ${f.unit}`)];
+  const rows = measuresSorted().map(m => [fmtDate(m.date), ...MEASURE_FIELDS.map(f => m[f.key])]);
+  return csvText(header, rows);
+}
+
+// ---------- Récords (PR) ----------
+// Mejor serie histórica de un ejercicio (por 1RM estimado), en cualquier
+// rutina, sin sesiones de descarga. Sirve para avisar en la sesión y en Progreso.
+function bestSetForExercise(exerciseId) {
+  let best = null;
+  db.sessions.forEach(ses => {
+    if (ses.deload) return;
+    ses.entries.forEach(e => {
+      if (e.exerciseId !== exerciseId) return;
+      e.sets.forEach(st => {
+        const w = firstNum(st.weight), r = firstNum(st.reps);
+        if (w == null || r == null || w <= 0 || r <= 0 || r > 100 || w > 500) return;
+        const v = e1rm(w, r);
+        if (!best || v > best.e1rm) best = { e1rm: v, w, r, date: ses.date };
+      });
+    });
+  });
+  return best;
+}
+
+
 // Por sesión: peso de trabajo (el más repetido), repes mínimas a ese peso,
 // RIR medio y mejor 1RM estimado.
 // exerciseId: por defecto el planificado en el hueco; en sesión, el que se está
@@ -2126,6 +2212,7 @@ function renderMeasures() {
     <div class="topbar">
       <button class="btn btn-ghost" data-nav="">← Atrás</button>
       <h1>📏 Mediciones</h1>
+      ${all.length ? '<button class="btn btn-icon" id="csv-measures" title="Exportar CSV">⬇</button>' : ''}
       <button class="btn btn-icon" id="measure-add" title="Nueva medición">＋</button>
     </div>
     <div class="container">
@@ -2137,6 +2224,8 @@ function renderMeasures() {
   `;
   app.querySelectorAll('[data-nav]').forEach(el => el.addEventListener('click', () => navigate(el.dataset.nav)));
   ['measure-add', 'measure-add-2'].forEach(id => document.getElementById(id).addEventListener('click', () => openMeasureDialog(null)));
+  const csvM = document.getElementById('csv-measures');
+  if (csvM) csvM.addEventListener('click', () => downloadText(`mediciones_${todayStamp()}.csv`, measuresCsv()));
   app.querySelectorAll('[data-mkey]').forEach(el => el.addEventListener('click', () => { measuresChartKey = el.dataset.mkey; renderMeasures(); }));
   app.querySelectorAll('[data-mrange]').forEach(el => el.addEventListener('click', () => {
     measuresChartRange = el.dataset.mrange === 'all' ? 'all' : Number(el.dataset.mrange);
@@ -2225,9 +2314,12 @@ function renderProgress(routineId) {
     const main = idx < 3;
     const icon = { up: '⬆️', keep: '➡️', down: '⬇️', info: 'ℹ️' }[rec.level];
     const lastTxt = last ? `Última: ${fmtDateShort(last.date)} · ${last.sets.map(st => `${st.w}×${st.r}`).join(' · ')}${last.avgRir != null ? ` · RIR ${last.avgRir.toFixed(1)}` : ''}` : '';
+    const best = bestSetForExercise(slot.exerciseId);
+    const bestTxt = best ? `🏆 Récord: ${best.w}×${best.r} → ${Math.round(best.e1rm)} kg est. (${fmtDate(best.date)})` : '';
     const body = `
       <div class="progress-rec progress-${rec.level}">${icon} ${escapeHtml(rec.text)}</div>
       ${lastTxt ? `<div class="progress-last">${escapeHtml(lastTxt)}</div>` : ''}
+      ${bestTxt ? `<div class="progress-last progress-pr">${escapeHtml(bestTxt)}</div>` : ''}
       ${main ? progressChartSvg(pts) : ''}
       ${pts.length >= 2 ? `<div class="progress-stats">1RM est.: ${Math.round(pts[pts.length - 2].best)} → <b>${Math.round(last.best)} kg</b> · volumen: ${Math.round(pts[pts.length - 2].volume)} → <b>${Math.round(last.volume)} kg</b></div>` : ''}`;
     return `
@@ -2281,6 +2373,7 @@ function renderHistory(routineId) {
     <div class="topbar">
       <button class="btn btn-ghost" data-nav="">← Atrás</button>
       <h1>${routine ? escapeHtml(routine.name) : 'Historial'}</h1>
+      ${sessions.length ? `<button class="btn btn-icon" id="csv-sessions" title="Exportar CSV">⬇</button>` : ''}
       ${routine ? `<button class="btn btn-icon" data-nav="progress/${routine.id}" title="Progreso">📈</button><button class="btn btn-icon" data-nav="routine-edit/${routine.id}" title="Editar rutina">✎</button>` : ''}
     </div>
     <div class="container">
@@ -2294,6 +2387,11 @@ function renderHistory(routineId) {
   app.querySelectorAll('[data-nav]').forEach(el => el.addEventListener('click', () => navigate(el.dataset.nav)));
   app.querySelectorAll('[data-open-session]').forEach(el => {
     el.addEventListener('click', () => navigate(`session-view/${el.dataset.openSession}`));
+  });
+  const csvBtn = document.getElementById('csv-sessions');
+  if (csvBtn) csvBtn.addEventListener('click', () => {
+    const name = routine ? routine.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-') : 'todas';
+    downloadText(`sesiones_${name}_${todayStamp()}.csv`, sessionsCsv(routine ? routine.id : null));
   });
 }
 
@@ -2959,6 +3057,7 @@ function renderSession(routineId) {
           ${entry.uni ? `<input type="text" inputmode="decimal" placeholder="RIR i" data-rir2="${slot.id}:${sIdx}" value="${set.rir2 ?? ''}" />` : ''}
           <button class="rm" data-rm-set="${slot.id}:${sIdx}">✕</button>
         </div>
+        <div class="pr-line" data-pr="${slot.id}:${sIdx}" hidden></div>
         ${(set.stages || []).map((st, stIdx) => `
           <div class="set-row set-row-sub${entry.uni ? ' set-row-uni' : ''}">
             <div class="set-num">${set.technique === 'dropset' ? 'D' + (stIdx + 1) : 'P' + (stIdx + 1)}</div>
@@ -3213,17 +3312,38 @@ function renderSession(routineId) {
       saveDraft();
     }));
 
+    // 🏆 si la serie supera el mejor 1RM estimado guardado de ese ejercicio.
+    const prCache = {};
+    function refreshPr(slotId, sIdx) {
+      const line = app.querySelector(`[data-pr="${slotId}:${sIdx}"]`);
+      if (!line) return;
+      const entry = draft.entries[slotId];
+      const set = entry.sets[Number(sIdx)];
+      const w = firstNum(set.weight), r = firstNum(set.reps);
+      if (w == null || r == null || w <= 0 || r <= 0 || r > 100) { line.hidden = true; return; }
+      if (!(entry.exerciseId in prCache)) prCache[entry.exerciseId] = bestSetForExercise(entry.exerciseId);
+      const best = prCache[entry.exerciseId];
+      const v = e1rm(w, r);
+      if (best && v > best.e1rm + 0.05) {
+        line.textContent = `🏆 Récord: ${Math.round(v)} kg est. (antes ${best.w}×${best.r} el ${fmtDateShort(best.date)})`;
+        line.hidden = false;
+      } else line.hidden = true;
+    }
+    app.querySelectorAll('[data-pr]').forEach(el => { const [a, b] = el.dataset.pr.split(':'); refreshPr(a, b); });
+
     app.querySelectorAll('[data-weight]').forEach(el => el.addEventListener('input', () => {
       const [slotId, sIdx] = el.dataset.weight.split(':');
       draft.entries[slotId].sets[Number(sIdx)].weight = normalizeDecimal(el.value);
       markActivity();
       saveDraft();
+      refreshPr(slotId, sIdx);
     }));
     app.querySelectorAll('[data-reps]').forEach(el => el.addEventListener('input', () => {
       const [slotId, sIdx] = el.dataset.reps.split(':');
       draft.entries[slotId].sets[Number(sIdx)].reps = normalizeDecimal(el.value);
       markActivity();
       saveDraft();
+      refreshPr(slotId, sIdx);
     }));
     app.querySelectorAll('[data-rir]').forEach(el => el.addEventListener('input', () => {
       const [slotId, sIdx] = el.dataset.rir.split(':');
