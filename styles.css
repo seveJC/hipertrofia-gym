@@ -263,6 +263,28 @@ html, body {
   margin-top: 6px;
 }
 
+.measure-card { padding: 12px 14px; }
+.measure-tabs { margin-bottom: 10px; }
+.measure-tabs .tab { padding: 7px 4px; font-size: 13px; }
+.measure-chart { height: 130px; }
+.measure-chart text.last { fill: var(--text); font-weight: 700; font-size: 10px; }
+.measure-summary td:first-child { max-width: none; }
+.measure-summary td small { color: var(--text-dim); font-size: 10px; }
+.m-delta { color: var(--text-dim); }
+.m-delta.m-good { color: var(--green); font-weight: 700; }
+.m-delta.m-bad { color: var(--accent); font-weight: 700; }
+.measure-row { cursor: pointer; }
+.measure-history td { padding: 6px 5px; font-size: 11px; }
+.measure-history th { padding: 3px 5px; }
+.measure-history .date-cell { font-size: 11px; max-width: none; white-space: nowrap; }
+.measure-chart-head { display: flex; align-items: center; justify-content: space-between; }
+.measure-range { display: flex; gap: 4px; font-size: 11px; font-weight: 500; }
+.measure-range span { padding: 3px 8px; border-radius: 8px; border: 1px solid var(--border); color: var(--text-dim); cursor: pointer; }
+.measure-range span.active { border-color: var(--accent); color: var(--accent); }
+.measure-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
+.measure-grid .field:first-child { grid-column: 1 / -1; }
+.measure-grid .field input { box-sizing: border-box; }
+
 .progress-chart {
   width: 100%;
   height: 90px;

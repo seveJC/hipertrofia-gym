@@ -378,6 +378,126 @@ window.addEventListener('hashchange', render);
 // Cambios puntuales sobre datos ya guardados. Cada una se marca en db.meta
 // para no repetirse, y se decide por nombres/fechas, no por ids, para que
 // funcione igual en cualquier dispositivo.
+// Histórico de mediciones de la hoja "gim v2" (26/10/2020 – 17/03/2026).
+// Columnas: fecha, peso, cintura, muslo, bíceps (brazo D), hombros. _ = sin dato.
+const MEASURES_SEED = (() => { const _ = null; return [
+  ["2020-10-26",68.5,83,52.1,33.8,112.5],
+  ["2020-11-02",68.4,81,52.3,34,111.5],
+  ["2020-11-16",68,80.7,52.7,33.8,118.1],
+  ["2020-11-21",67.7,79.8,54.7,33.9,117.9],
+  ["2020-11-30",67.8,79.5,54.8,33.9,118],
+  ["2020-12-07",67.6,78.4,55.3,33.9,117.8],
+  ["2020-12-16",67.4,77.8,54.5,33.6,117.2],
+  ["2020-12-23",67.5,77.6,54.7,33.4,118.4],
+  ["2021-01-02",66.8,77.2,55,33.4,118.5],
+  ["2021-01-10",66,76.6,54,33,114],
+  ["2021-01-17",66.3,76.4,54.5,33.3,114.2],
+  ["2021-01-25",65.9,76,54,33,113.2],
+  ["2021-02-06",65.9,75.7,53.8,33,114],
+  ["2021-02-14",65.9,75.6,54.2,33.1,114.5],
+  ["2021-02-28",66.3,75.9,54.3,33.3,114.5],
+  ["2021-03-13",65.8,75.9,53.8,33.3,114.3],
+  ["2021-03-19",66.1,75.9,54,33.4,114.7],
+  ["2021-03-28",66.1,75.6,54.5,33.2,115],
+  ["2021-04-03",66,75.5,55.1,33.3,114.8],
+  ["2021-04-10",65.8,75.3,55,33.6,114.8],
+  ["2021-04-18",65,75,54.9,33.4,113.3],
+  ["2021-04-24",64.4,74.2,54.8,33.6,112.8],
+  ["2021-05-29",63.8,73.8,53,33.1,111.1],
+  ["2021-06-28",64.2,74.8,51.8,33,111.5],
+  ["2021-08-27",66.6,78.5,52,33.1,_],
+  ["2021-09-06",66.6,77.5,53,33.2,115.2],
+  ["2021-09-15",67.2,78,54,33.5,114.5],
+  ["2021-09-24",66.7,77.9,54.3,33.5,114.6],
+  ["2021-10-06",67.5,78.5,53,33.7,114.8],
+  ["2021-10-28",68.3,81.1,53.8,33.5,116.5],
+  ["2021-11-16",69.6,81.5,54.5,34,117],
+  ["2021-11-22",70.3,80.7,54.9,34.2,117.2],
+  ["2021-12-31",68.8,80.1,54,34.1,117.7],
+  ["2022-01-06",70.2,81.8,55.8,34.5,119.5],
+  ["2022-02-09",71.3,82.1,56.4,34.9,120.2],
+  ["2022-03-02",70.5,81.8,54.1,34.7,118.9],
+  ["2022-03-16",69.5,80.9,_,34.2,_],
+  ["2022-03-23",68.8,79.3,54.1,34.3,118.8],
+  ["2022-03-31",69.6,78.8,54.5,34.6,118.2],
+  ["2022-04-08",69.2,78.4,55,34.6,117.3],
+  ["2022-04-13",69.1,78,55.1,34.6,117.9],
+  ["2022-04-22",69,77.5,55.1,34.4,119.2],
+  ["2022-04-29",68.3,77.5,55,34.5,117.8],
+  ["2022-05-09",67.8,77.7,55.1,34.4,119.6],
+  ["2022-05-13",_,77,55,34.5,120.2],
+  ["2022-05-28",67.2,75.6,55.1,34.4,118.1],
+  ["2022-06-09",66.6,75,54.2,34.3,117.2],
+  ["2022-06-15",65.5,74.5,54.9,34,119.3],
+  ["2022-06-29",_,74.1,_,33.7,_],
+  ["2022-08-06",65.2,74.6,52.6,33.8,116.7],
+  ["2022-08-22",65.8,75.7,50.5,33.1,116.6],
+  ["2022-08-26",65.7,75.1,51.1,33.8,118.2],
+  ["2022-09-30",67.2,77.8,52,33.6,117.5],
+  ["2022-10-07",67.8,77.7,53.2,34.3,119.3],
+  ["2022-10-22",68.2,78.3,53.3,33.9,118.3],
+  ["2022-10-28",69.1,78.4,53.4,34.3,118.6],
+  ["2022-11-04",69.7,79.3,54,34.5,119.6],
+  ["2022-11-11",69.9,79.8,54.5,34.7,120.6],
+  ["2022-11-18",70,80,54.5,34.7,120.8],
+  ["2022-11-30",70.8,80.4,55.1,35,120.9],
+  ["2022-12-15",71.8,81.1,55.5,35.5,122.2],
+  ["2023-01-05",72.3,83,55.7,35.4,121.6],
+  ["2023-01-13",72.2,83,56,35.3,122.8],
+  ["2023-01-20",73.1,83.3,56.3,35.6,122.5],
+  ["2023-01-27",73.4,82.7,56.6,35.7,122.9],
+  ["2023-02-04",73.1,82.7,56.1,35.7,123.5],
+  ["2023-02-08",72.6,83.6,56.1,35.3,123.2],
+  ["2023-02-15",72.6,83.3,56.2,35.3,123],
+  ["2023-02-22",72.3,82.6,56,35.3,123],
+  ["2023-03-03",72.4,81.8,56.2,35.1,123.2],
+  ["2023-03-09",71.8,81.5,55.8,35,122.4],
+  ["2023-03-17",72.1,81.5,55.6,35,122.5],
+  ["2023-03-30",71.6,80.9,55.9,35,121.9],
+  ["2023-04-20",70.9,80.6,54.7,34.6,120],
+  ["2023-04-27",71.3,80.2,55.1,34.6,122],
+  ["2023-05-10",70.6,79.8,55.3,34.6,122],
+  ["2023-05-26",_,79.1,55.2,34.6,121.3],
+  ["2023-06-07",69.5,78.3,54.4,34.4,121],
+  ["2023-06-22",68.2,77.1,53.6,34.1,120.3],
+  ["2023-07-12",67.9,76.6,53.9,34,120],
+  ["2023-08-23",67.1,76.6,52.6,34,119.5],
+  ["2023-10-24",69.5,80.7,55,34.5,121.2],
+  ["2023-12-01",70.3,80.6,54.5,34.6,120.4],
+  ["2023-12-14",70.9,80.8,55.1,35,122.7],
+  ["2024-01-07",71.9,82.5,55.6,35,122.2],
+  ["2024-01-18",72.4,82,55.7,35,122],
+  ["2024-02-01",72.7,82.3,56,35.3,122.7],
+  ["2024-02-16",73.5,84,57.2,35.7,122.9],
+  ["2024-03-13",74.2,87.2,56.3,35.6,124.7],
+  ["2024-04-09",72.7,84.6,56.5,35.5,_],
+  ["2024-04-17",71.8,82.3,55.8,35,_],
+  ["2024-04-27",71.3,80.6,55.6,35.3,121.5],
+  ["2024-05-08",69.5,79.6,55.4,34.9,122],
+  ["2024-05-22",69.6,78.8,55.4,34.9,121.2],
+  ["2024-06-05",68.7,78.2,54.1,34.7,121.2],
+  ["2024-06-19",67.7,77,54.1,34.8,121.2],
+  ["2024-07-09",66.9,76.3,54.1,34.4,120.5],
+  ["2024-07-25",65.6,74.3,53.1,34.3,120.5],
+  ["2024-08-12",65.6,75.2,53,34.1,120.7],
+  ["2024-09-06",66.7,74.8,53.1,34.5,119.8],
+  ["2024-09-25",66.5,75.3,53.6,34.4,120.6],
+  ["2024-10-03",67.7,75.8,53.9,34.7,121.9],
+  ["2024-12-02",69.9,79.2,55.5,35,122.3],
+  ["2025-01-06",69.9,80.3,54.5,35,121.9],
+  ["2025-01-21",71.2,81.3,55.5,35.3,122],
+  ["2025-02-05",72.2,83.5,56,35.5,123],
+  ["2025-02-20",72.4,82.9,56.2,35.6,123.6],
+  ["2025-05-01",71.6,80.4,55.4,35.4,123.1],
+  ["2025-06-11",69,78.5,54,34.8,121.5],
+  ["2025-07-02",67.5,76.8,54.4,34.5,121],
+  ["2025-07-24",66.6,76.2,52.5,34.7,119],
+  ["2025-12-12",70,79.8,54.5,35,122.1],
+  ["2026-01-14",71.6,81.6,55.2,35.3,122.7],
+  ["2026-02-26",71.3,79.6,55.5,35.4,122.8],
+  ["2026-03-17",69,79,54.6,35.4,121.7]
+]; })();
+
 function runMigrations() {
   db.meta = db.meta || {};
   let changed = false;
@@ -572,6 +692,18 @@ function runMigrations() {
     changed = true;
   }
 
+  // 16/09/2026: carga del histórico de mediciones. No pisa una fecha que ya exista.
+  if (!db.meta.measuresSeeded20260916) {
+    db.measures = db.measures || [];
+    const have = new Set(db.measures.map(m => m.date));
+    MEASURES_SEED.forEach(([date, weight, waist, thigh, biceps, shoulders]) => {
+      if (have.has(date)) return;
+      db.measures.push({ id: uid(), date, weight, waist, thigh, biceps, chest: null, shoulders });
+    });
+    db.meta.measuresSeeded20260916 = true;
+    changed = true;
+  }
+
   if (changed) saveDB();
 }
 
@@ -637,6 +769,7 @@ function render() {
   if (parts[0] === 'exercises') return renderExercises();
   if (parts[0] === 'history') return renderHistory(parts[1] || null);
   if (parts[0] === 'progress' && parts[1]) return renderProgress(parts[1]);
+  if (parts[0] === 'measures') return renderMeasures();
   if (parts[0] === 'session-view' && parts[1]) return renderSessionDetail(parts[1]);
   if (parts[0] === 'routine-new') return renderRoutineEditor(null);
   if (parts[0] === 'routine-edit' && parts[1]) return renderRoutineEditor(parts[1]);
@@ -968,6 +1101,7 @@ function renderHome() {
   app.innerHTML = `
     <div class="topbar">
       <h1>Mis rutinas</h1>
+      <button class="btn btn-icon" data-nav="measures" title="Mediciones">📏</button>
       <button class="btn btn-icon" data-nav="history" title="Historial de sesiones">📅</button>
       <button class="btn btn-icon" data-nav="exercises" title="Ejercicios">🏋️</button>
     </div>
@@ -1817,6 +1951,222 @@ function progressChartSvg(pts) {
       ${dots}
       ${labels}
     </svg>`;
+}
+
+// ---------- Mediciones corporales ----------
+// db.measures = [{ id, date: 'YYYY-MM-DD', weight, waist, thigh, biceps, chest }]
+// Independiente de rutinas y sesiones. good: dirección que se considera mejora.
+const MEASURE_FIELDS = [
+  { key: 'weight', label: 'Peso', short: 'Peso', unit: 'kg', good: null },
+  { key: 'waist', label: 'Cintura', short: 'Cint', unit: 'cm', good: 'down' },
+  { key: 'thigh', label: 'Muslo derecho', short: 'Muslo', unit: 'cm', good: 'up' },
+  { key: 'biceps', label: 'Bíceps derecho', short: 'Bíc', unit: 'cm', good: 'up' },
+  { key: 'chest', label: 'Pecho', short: 'Pecho', unit: 'cm', good: 'up' },
+  { key: 'shoulders', label: 'Hombros', short: 'Homb', unit: 'cm', good: 'up' },
+];
+let measuresChartKey = 'weight';
+let measuresChartRange = 20; // 20 últimas | 365 días | 'all'
+let measuresShowAll = false;
+
+function measuresSorted() {
+  return (db.measures || []).slice().sort((a, b) => a.date.localeCompare(b.date));
+}
+
+function fmtMeasure(v) {
+  if (v == null || v === '') return '·';
+  return String(Math.round(v * 10) / 10).replace('.', ',');
+}
+
+function parseMeasure(txt) {
+  const t = String(txt || '').trim().replace(',', '.');
+  if (!t) return null;
+  const v = parseFloat(t);
+  return isNaN(v) ? null : v;
+}
+
+// Diferencia con signo y color según si la dirección es la buena.
+function measureDeltaHtml(field, cur, prev) {
+  if (cur == null || prev == null) return '<span class="m-delta">·</span>';
+  const d = Math.round((cur - prev) * 10) / 10;
+  if (d === 0) return '<span class="m-delta">=</span>';
+  const cls = !field.good ? '' : (d > 0) === (field.good === 'up') ? ' m-good' : ' m-bad';
+  return `<span class="m-delta${cls}">${d > 0 ? '+' : '−'}${fmtMeasure(Math.abs(d))}</span>`;
+}
+
+function measureChartSvg(field) {
+  let data = measuresSorted().filter(m => m[field.key] != null);
+  if (measuresChartRange === 365) {
+    const from = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+    const fromIso = `${from.getFullYear()}-${String(from.getMonth() + 1).padStart(2, '0')}-${String(from.getDate()).padStart(2, '0')}`;
+    data = data.filter(m => m.date >= fromIso);
+  } else if (measuresChartRange !== 'all') {
+    data = data.slice(-measuresChartRange);
+  }
+  if (data.length < 2) return '<div class="progress-intro">Hacen falta al menos dos mediciones para la gráfica.</div>';
+  const W = 320, H = 116, padL = 40, padR = 14, padT = 22, padB = 18;
+  const vals = data.map(m => m[field.key]);
+  let min = Math.min(...vals), max = Math.max(...vals);
+  if (max - min < 0.5) { max += 0.5; min -= 0.5; }
+  const x = (i) => padL + (i * (W - padL - padR)) / (data.length - 1);
+  const y = (v) => padT + (H - padT - padB) * (1 - (v - min) / (max - min));
+  const path = data.map((m, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(m[field.key]).toFixed(1)}`).join(' ');
+  const r = data.length > 30 ? 1.5 : 3;
+  const dots = data.map((m, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(m[field.key]).toFixed(1)}" r="${r}" />`).join('');
+  const fmtLbl = data.length > 20 ? fmtDate : fmtDateShort;
+  const labels = data.map((m, i) => (i === 0 || i === data.length - 1 || data.length <= 6)
+    ? `<text x="${x(i).toFixed(1)}" y="${H - 4}" text-anchor="${i === 0 ? 'start' : i === data.length - 1 ? 'end' : 'middle'}">${fmtLbl(m.date)}</text>` : '').join('');
+  const lastV = data[data.length - 1][field.key];
+  return `
+    <svg class="progress-chart measure-chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+      <text x="2" y="${(padT + 4).toFixed(1)}">${fmtMeasure(max)}</text>
+      <text x="2" y="${(H - padB).toFixed(1)}">${fmtMeasure(min)}</text>
+      <path d="${path}" fill="none" />
+      ${dots}
+      <text x="${(x(data.length - 1) - 2).toFixed(1)}" y="${(y(lastV) - 8).toFixed(1)}" text-anchor="end" class="last">${fmtMeasure(lastV)}</text>
+      ${labels}
+    </svg>`;
+}
+
+function renderMeasures() {
+  const all = measuresSorted();
+  const last = all[all.length - 1];
+  const prev = all[all.length - 2];
+  const first = all[0];
+
+  const summary = last ? `
+    <div class="card measure-card">
+      <div class="weekly-head">Última medición · ${fmtDate(last.date)}</div>
+      <div class="history-table-wrap"><table class="history-table measure-summary">
+        <thead><tr><th></th><th>Ahora</th><th>vs ${prev ? fmtDate(prev.date) : 'anterior'}</th><th>vs ${first !== last ? fmtDate(first.date) : 'inicio'}</th></tr></thead>
+        <tbody>${MEASURE_FIELDS.map(f => `
+          <tr>
+            <td class="date-cell">${f.label}</td>
+            <td><b>${fmtMeasure(last[f.key])}</b>${last[f.key] != null ? ` <small>${f.unit}</small>` : ''}</td>
+            <td>${prev ? measureDeltaHtml(f, last[f.key], prev[f.key]) : '·'}</td>
+            <td>${first !== last ? measureDeltaHtml(f, last[f.key], first[f.key]) : '·'}</td>
+          </tr>`).join('')}</tbody>
+      </table></div>
+    </div>` : '';
+
+  const field = MEASURE_FIELDS.find(f => f.key === measuresChartKey) || MEASURE_FIELDS[0];
+  const chart = all.length ? `
+    <div class="card measure-card">
+      <div class="tabs measure-tabs">
+        ${MEASURE_FIELDS.map(f => `<button class="tab${f.key === field.key ? ' active' : ''}" data-mkey="${f.key}">${f.short}</button>`).join('')}
+      </div>
+      <div class="weekly-head measure-chart-head">${field.label} (${field.unit})
+        <span class="measure-range">${[[20, '20 últ.'], [365, '1 año'], ['all', 'Todo']].map(([v, t]) => `<span class="${String(v) === String(measuresChartRange) ? 'active' : ''}" data-mrange="${v}">${t}</span>`).join('')}</span>
+      </div>
+      ${measureChartSvg(field)}
+    </div>` : '';
+
+  const cols = MEASURE_FIELDS.filter(f => all.some(m => m[f.key] != null));
+  const LIMIT = 24;
+  const shown = measuresShowAll ? all.slice().reverse() : all.slice(-LIMIT).reverse();
+  const rows = shown.map(m => `
+    <tr class="measure-row" data-medit="${m.id}">
+      <td class="date-cell">${fmtDate(m.date)}</td>
+      ${cols.map(f => `<td>${fmtMeasure(m[f.key])}</td>`).join('')}
+    </tr>`).join('');
+  const table = all.length ? `
+    <div class="card measure-card">
+      <div class="weekly-head">Historial · toca una fila para editar</div>
+      <div class="history-table-wrap"><table class="history-table measure-history">
+        <thead><tr><th>Fecha</th>${cols.map(f => `<th>${f.short}</th>`).join('')}</tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>
+      ${all.length > LIMIT ? `<div class="summary-more" id="measures-more">${measuresShowAll ? '▴ ver menos' : `▾ ver todas (${all.length})`}</div>` : ''}
+    </div>` : '';
+
+  app.innerHTML = `
+    <div class="topbar">
+      <button class="btn btn-ghost" data-nav="">← Atrás</button>
+      <h1>📏 Mediciones</h1>
+      <button class="btn btn-icon" id="measure-add" title="Nueva medición">＋</button>
+    </div>
+    <div class="container">
+      ${all.length ? summary + chart + table : '<div class="empty-state">Todavía no hay mediciones.<br>Peso, cintura, muslo derecho, bíceps derecho y pecho.</div>'}
+      <div class="fab-row">
+        <button class="btn btn-primary btn-block" id="measure-add-2">+ Nueva medición</button>
+      </div>
+    </div>
+  `;
+  app.querySelectorAll('[data-nav]').forEach(el => el.addEventListener('click', () => navigate(el.dataset.nav)));
+  ['measure-add', 'measure-add-2'].forEach(id => document.getElementById(id).addEventListener('click', () => openMeasureDialog(null)));
+  app.querySelectorAll('[data-mkey]').forEach(el => el.addEventListener('click', () => { measuresChartKey = el.dataset.mkey; renderMeasures(); }));
+  app.querySelectorAll('[data-mrange]').forEach(el => el.addEventListener('click', () => {
+    measuresChartRange = el.dataset.mrange === 'all' ? 'all' : Number(el.dataset.mrange);
+    renderMeasures();
+  }));
+  const more = document.getElementById('measures-more');
+  if (more) more.addEventListener('click', () => {
+    const y = window.scrollY;
+    measuresShowAll = !measuresShowAll;
+    renderMeasures();
+    window.scrollTo(0, y);
+  });
+  app.querySelectorAll('[data-medit]').forEach(el => el.addEventListener('click', () => {
+    const m = (db.measures || []).find(x => x.id === el.dataset.medit);
+    if (m) openMeasureDialog(m);
+  }));
+}
+
+// Alta/edición. Los campos vacíos se guardan como null (no todo se mide siempre).
+function openMeasureDialog(existing) {
+  const all = measuresSorted();
+  const ref = existing ? all.filter(m => m.date < existing.date).pop() : all[all.length - 1];
+  const today = new Date();
+  const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.innerHTML = `
+    <div class="modal-sheet">
+      <h2>${existing ? 'Editar medición' : 'Nueva medición'}</h2>
+      <div class="measure-grid">
+        <div class="field">
+          <label>Fecha</label>
+          <input id="m-date" type="date" value="${existing ? existing.date : todayIso}" />
+        </div>
+        ${MEASURE_FIELDS.map(f => `
+          <div class="field">
+            <label>${f.label} (${f.unit})</label>
+            <input id="m-${f.key}" type="text" inputmode="decimal" placeholder="${ref && ref[f.key] != null ? 'ant. ' + fmtMeasure(ref[f.key]) : ''}" value="${existing && existing[f.key] != null ? fmtMeasure(existing[f.key]) : ''}" />
+          </div>`).join('')}
+      </div>
+      <button class="btn btn-primary btn-block" id="m-save">Guardar</button>
+      <div style="height:8px;"></div>
+      ${existing ? '<button class="btn btn-block btn-danger" id="m-delete">Eliminar</button><div style="height:8px;"></div>' : ''}
+      <button class="btn btn-block" id="m-cancel">Cancelar</button>
+    </div>
+  `;
+  document.body.appendChild(backdrop);
+  const close = () => document.body.removeChild(backdrop);
+  document.getElementById('m-save').addEventListener('click', () => {
+    const date = document.getElementById('m-date').value;
+    if (!date) { showToast('Falta la fecha'); return; }
+    const rec = existing || { id: uid() };
+    rec.date = date;
+    let any = false;
+    MEASURE_FIELDS.forEach(f => { rec[f.key] = parseMeasure(document.getElementById('m-' + f.key).value); if (rec[f.key] != null) any = true; });
+    if (!any) { showToast('Pon al menos una medida'); return; }
+    db.measures = db.measures || [];
+    if (!existing) db.measures.push(rec);
+    saveDB();
+    close();
+    showToast('Medición guardada');
+    renderMeasures();
+  });
+  const del = document.getElementById('m-delete');
+  if (del) del.addEventListener('click', () => {
+    if (!confirm('¿Eliminar la medición del ' + fmtDate(existing.date) + '?')) return;
+    db.measures = (db.measures || []).filter(m => m.id !== existing.id);
+    saveDB();
+    close();
+    renderMeasures();
+  });
+  document.getElementById('m-cancel').addEventListener('click', close);
+  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
+  setTimeout(() => { const el = document.getElementById('m-weight'); if (el && !existing) el.focus(); }, 50);
 }
 
 function renderProgress(routineId) {
