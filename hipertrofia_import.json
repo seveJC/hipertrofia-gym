@@ -537,8 +537,8 @@
           "id": "5fdb66c07d6c",
           "exerciseId": "8ae221b7450b",
           "restSec": 90,
-          "repLo": 8,
-          "repHi": 10
+          "repLo": 10,
+          "repHi": 12
         },
         {
           "id": "0d32e496202e",
