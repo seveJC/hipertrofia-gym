@@ -520,11 +520,11 @@
           "repHi": 10
         },
         {
-          "id": "5fdb66c07d6c",
-          "exerciseId": "8ae221b7450b",
-          "restSec": 90,
-          "repLo": 8,
-          "repHi": 10
+          "id": "46eca9fae0fa",
+          "exerciseId": "064fc6a28c64",
+          "restSec": 60,
+          "repLo": 10,
+          "repHi": 12
         },
         {
           "id": "f81e7022e628",
@@ -534,11 +534,11 @@
           "repHi": 12
         },
         {
-          "id": "46eca9fae0fa",
-          "exerciseId": "064fc6a28c64",
-          "restSec": 60,
-          "repLo": 10,
-          "repHi": 12
+          "id": "5fdb66c07d6c",
+          "exerciseId": "8ae221b7450b",
+          "restSec": 90,
+          "repLo": 8,
+          "repHi": 10
         },
         {
           "id": "0d32e496202e",
