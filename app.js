@@ -988,6 +988,15 @@ function endOfThisWeek() {
   return sunday;
 }
 
+// Aviso discreto si hace más de 14 días de la última medición.
+function measureReminderHtml() {
+  const last = measuresSorted().pop();
+  if (!last) return '';
+  const days = Math.floor((Date.now() - new Date(last.date).getTime()) / (24 * 60 * 60 * 1000));
+  if (days <= 14) return '';
+  return `<div class="measure-reminder" data-nav="measures">📏 Última medición hace ${days} días · medir</div>`;
+}
+
 function deloadBannerHtml() {
   const until = isDeloadActive() ? new Date(db.deloadUntil) : null;
   return until
@@ -1192,6 +1201,7 @@ function renderHome() {
       ☁️ Hay cambios sin copiar a GitHub · <span class="backup-retry" id="backup-retry-btn">subir ahora</span>
     </div>
     <div class="container">
+      ${measureReminderHtml()}
       ${deloadBannerHtml()}
       ${weeklySummaryHtml()}
       ${routines.length ? cards : '<div class="empty-state">Todavía no tienes rutinas.<br>Crea la primera para empezar.</div>'}
@@ -2057,6 +2067,24 @@ function repRangeOf(routine, slot) {
 
 // Doble progresión: se sube peso cuando se llega al tope del rango de repes
 // (o sobran repes según el RIR); se baja si las repes caen dos veces.
+// Series de aproximación para el peso de trabajo W: 50 %×8, 70 %×4, 85 %×2.
+// Redondeo a 2,5 kg (a 1 kg por debajo de 20, mancuernas ligeras). No se registran.
+function warmupSetsFor(W) {
+  if (!W || W < 10) return [];
+  const round = (w) => W < 20 ? Math.round(w) : Math.round(w / 2.5) * 2.5;
+  return [[0.5, 8], [0.7, 4], [0.85, 2]]
+    .map(([pct, reps]) => ({ w: round(W * pct), reps }))
+    .filter((st, i, arr) => st.w > 0 && (i === 0 || st.w > arr[i - 1].w));
+}
+
+function warmupHtml(pts, open) {
+  const last = pts[pts.length - 1];
+  if (!last || !last.workW) return '';
+  const sets = warmupSetsFor(last.workW);
+  if (!sets.length) return '';
+  return `<div class="warmup${open ? ' open' : ''}">🔥 Calentamiento (para ${last.workW} kg): ${sets.map(st => `<b>${st.w}×${st.reps}</b>`).join(' · ')} <span class="warmup-note">no cuentan como series</span></div>`;
+}
+
 function recommendForSlot(routine, slot, pts) {
   const ex = getExercise(slot.exerciseId);
   const lower = muscleNames(ex && ex.muscle).some(m => LOWER_BODY.includes(m));
@@ -3114,7 +3142,12 @@ function renderSession(routineId) {
       const range = repRangeOf(routine, slot);
       const targetTag = `<button class="btn-ghost rest-target-tag" data-edit-rest="${slot.id}">🎯 ${target ? `${target}s` : 'sin desc.'} · ${range.lo}–${range.hi} reps</button>`;
       // Recomendación de Progreso, aquí mismo, que es donde se decide el peso.
-      const rec = recommendForSlot(routine, slot, slotProgressPoints(routine, slot, entry.exerciseId));
+      const ptsToday = slotProgressPoints(routine, slot, entry.exerciseId);
+      const rec = recommendForSlot(routine, slot, ptsToday);
+      const warmOpen = idx === 0 || !!(draft.warmup && draft.warmup[slot.id]);
+      const warmup = warmOpen
+        ? warmupHtml(ptsToday, true)
+        : (warmupHtml(ptsToday, false) ? `<span class="warmup-link" data-warmup="${slot.id}">🔥 calentamiento</span>` : '');
       const recHtml = isDeloadActive()
         ? `<div class="rec-inline rec-deload">🪫 Descarga: 60–70 % del peso habitual y RIR 3–4. Esta sesión no cuenta para las recomendaciones.</div>`
         : rec.level !== 'info'
@@ -3177,7 +3210,7 @@ function renderSession(routineId) {
             </div>
             <button class="btn btn-ghost" data-swap="${slot.id}" style="font-size:13px;white-space:nowrap;">Sustituir</button>
           </div>
-          <div class="history">${historyHtml}${historyMoreHtml}${recHtml}</div>
+          <div class="history">${historyHtml}${historyMoreHtml}${recHtml}${warmup}</div>
           <div class="rest-widget">${targetTag}${uniToggle}</div>
           <div class="log-area">
             ${labelsHtml}
@@ -3472,6 +3505,12 @@ function renderSession(routineId) {
           paint();
         }
       });
+    }));
+
+    app.querySelectorAll('[data-warmup]').forEach(el => el.addEventListener('click', () => {
+      draft.warmup = draft.warmup || {};
+      draft.warmup[el.dataset.warmup] = true;
+      paint();
     }));
 
     app.querySelectorAll('[data-quick-sub]').forEach(el => el.addEventListener('click', () => {
