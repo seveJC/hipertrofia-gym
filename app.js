@@ -704,6 +704,28 @@ function runMigrations() {
     changed = true;
   }
 
+  // 16/09/2026: mediciones de mayo a septiembre de 2026 (fecha, peso, cintura, muslo, bíceps, pecho).
+  if (!db.meta.measuresSeeded20260916b) {
+    db.measures = db.measures || [];
+    const have = new Set(db.measures.map(m => m.date));
+    const _ = null;
+    [
+      ['2026-05-21', _, 74.6, _, 34.4, _],
+      ['2026-06-04', _, 74.6, _, 34.5, _],
+      ['2026-06-14', _, 74.2, _, 34.5, _],
+      ['2026-06-17', 65.8, 73.8, 52.7, 34.5, 96.5],
+      ['2026-07-10', _, 73.1, _, _, _],
+      ['2026-07-17', _, 72.7, _, 34.6, _],
+      ['2026-08-27', 65.2, 72.7, _, 34.1, _],
+      ['2026-09-09', _, 73, _, 33.6, _],
+    ].forEach(([date, weight, waist, thigh, biceps, chest]) => {
+      if (have.has(date)) return;
+      db.measures.push({ id: uid(), date, weight, waist, thigh, biceps, chest, shoulders: null });
+    });
+    db.meta.measuresSeeded20260916b = true;
+    changed = true;
+  }
+
   if (changed) saveDB();
 }
 
@@ -2037,14 +2059,20 @@ function renderMeasures() {
     <div class="card measure-card">
       <div class="weekly-head">Última medición · ${fmtDate(last.date)}</div>
       <div class="history-table-wrap"><table class="history-table measure-summary">
-        <thead><tr><th></th><th>Ahora</th><th>vs ${prev ? fmtDate(prev.date) : 'anterior'}</th><th>vs ${first !== last ? fmtDate(first.date) : 'inicio'}</th></tr></thead>
-        <tbody>${MEASURE_FIELDS.map(f => `
+        <thead><tr><th></th><th>Último</th><th>vs anterior</th><th>vs inicio</th></tr></thead>
+        <tbody>${MEASURE_FIELDS.map(f => {
+          const withData = all.filter(m => m[f.key] != null);
+          const cur = withData[withData.length - 1], before = withData[withData.length - 2], start = withData[0];
+          if (!cur) return `<tr><td class="date-cell">${f.label}</td><td>·</td><td>·</td><td>·</td></tr>`;
+          const stale = cur.date !== last.date ? `<br><small>${fmtDate(cur.date)}</small>` : '';
+          return `
           <tr>
             <td class="date-cell">${f.label}</td>
-            <td><b>${fmtMeasure(last[f.key])}</b>${last[f.key] != null ? ` <small>${f.unit}</small>` : ''}</td>
-            <td>${prev ? measureDeltaHtml(f, last[f.key], prev[f.key]) : '·'}</td>
-            <td>${first !== last ? measureDeltaHtml(f, last[f.key], first[f.key]) : '·'}</td>
-          </tr>`).join('')}</tbody>
+            <td><b>${fmtMeasure(cur[f.key])}</b> <small>${f.unit}</small>${stale}</td>
+            <td>${before ? measureDeltaHtml(f, cur[f.key], before[f.key]) + `<br><small>${fmtDate(before.date)}</small>` : '·'}</td>
+            <td>${start !== cur ? measureDeltaHtml(f, cur[f.key], start[f.key]) + `<br><small>${fmtDate(start.date)}</small>` : '·'}</td>
+          </tr>`;
+        }).join('')}</tbody>
       </table></div>
     </div>` : '';
 

@@ -269,7 +269,8 @@ html, body {
 .measure-chart { height: 130px; }
 .measure-chart text.last { fill: var(--text); font-weight: 700; font-size: 10px; }
 .measure-summary td:first-child { max-width: none; }
-.measure-summary td small { color: var(--text-dim); font-size: 10px; }
+.measure-summary td small { color: var(--text-dim); font-size: 10px; font-weight: 500; }
+.measure-summary td { line-height: 1.25; padding: 5px 8px; }
 .m-delta { color: var(--text-dim); }
 .m-delta.m-good { color: var(--green); font-weight: 700; }
 .m-delta.m-bad { color: var(--accent); font-weight: 700; }
