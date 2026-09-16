@@ -207,9 +207,14 @@ html, body {
 
 .summary-muscles {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
 }
+.summary-muscles::-webkit-scrollbar { display: none; }
+.summary-muscles .muscle-chip { flex: 0 0 auto; font-size: 10.5px; padding: 1px 5px; }
 
 .summary-notes {
   margin-top: 4px;
@@ -275,6 +280,9 @@ html, body {
 .m-delta.m-good { color: var(--green); font-weight: 700; }
 .m-delta.m-bad { color: var(--accent); font-weight: 700; }
 .measure-row { cursor: pointer; }
+.m-arrow { font-size: 8px; margin-right: 2px; vertical-align: 1px; }
+.m-arrow.m-good { color: var(--green); }
+.m-arrow.m-bad { color: var(--accent); }
 .measure-history td { padding: 6px 5px; font-size: 11px; }
 .measure-history th { padding: 3px 5px; }
 .measure-history .date-cell { font-size: 11px; max-width: none; white-space: nowrap; }

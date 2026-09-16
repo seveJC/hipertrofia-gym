@@ -1979,7 +1979,7 @@ function progressChartSvg(pts) {
 // db.measures = [{ id, date: 'YYYY-MM-DD', weight, waist, thigh, biceps, chest }]
 // Independiente de rutinas y sesiones. good: dirección que se considera mejora.
 const MEASURE_FIELDS = [
-  { key: 'weight', label: 'Peso', short: 'Peso', unit: 'kg', good: null },
+  { key: 'weight', label: 'Peso', short: 'Peso', unit: 'kg', good: 'up' },
   { key: 'waist', label: 'Cintura', short: 'Cint', unit: 'cm', good: 'down' },
   { key: 'thigh', label: 'Muslo derecho', short: 'Muslo', unit: 'cm', good: 'up' },
   { key: 'biceps', label: 'Bíceps derecho', short: 'Bíc', unit: 'cm', good: 'up' },
@@ -2089,12 +2089,28 @@ function renderMeasures() {
     </div>` : '';
 
   const cols = MEASURE_FIELDS.filter(f => all.some(m => m[f.key] != null));
+  const arrows = {}; // id -> { key: html }
+  const lastVal = {};
+  all.forEach(m => {
+    arrows[m.id] = {};
+    cols.forEach(f => {
+      const v = m[f.key];
+      if (v == null) return;
+      const p = lastVal[f.key];
+      if (p != null && Math.round((v - p) * 10) !== 0) {
+        const up = v > p;
+        const good = (f.good === 'up') === up;
+        arrows[m.id][f.key] = `<span class="m-arrow ${good ? 'm-good' : 'm-bad'}">${up ? '▲' : '▼'}</span>`;
+      }
+      lastVal[f.key] = v;
+    });
+  });
   const LIMIT = 24;
   const shown = measuresShowAll ? all.slice().reverse() : all.slice(-LIMIT).reverse();
   const rows = shown.map(m => `
     <tr class="measure-row" data-medit="${m.id}">
       <td class="date-cell">${fmtDate(m.date)}</td>
-      ${cols.map(f => `<td>${fmtMeasure(m[f.key])}</td>`).join('')}
+      ${cols.map(f => `<td>${arrows[m.id][f.key] || ''}${fmtMeasure(m[f.key])}</td>`).join('')}
     </tr>`).join('');
   const table = all.length ? `
     <div class="card measure-card">
