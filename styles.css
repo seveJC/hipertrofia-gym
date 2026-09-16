@@ -165,6 +165,14 @@ html, body {
 }
 
 .week-table td { padding: 5px 7px; font-size: 12px; }
+.week-table th small { display: block; font-size: 8px; font-weight: 500; color: var(--text-dim); letter-spacing: 0; }
+.week-table td.vol-ok { color: var(--green) !important; }
+.week-table td.vol-low { color: var(--accent) !important; }
+.week-table td.vol-high { color: #e6b422 !important; }
+.weekly-targets { float: right; font-size: 11px; font-weight: 600; color: var(--accent); cursor: pointer; }
+.vol-row { display: flex; align-items: center; gap: 6px; font-size: 13px; margin-bottom: 6px; }
+.vol-row span { flex: 1; }
+.vol-row input { width: 52px; padding: 6px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text); font-size: 14px; text-align: center; }
 .week-table th { padding: 3px 7px; }
 .history-table.week-table .date-cell { font-size: 11px; max-width: none; white-space: nowrap; }
 .week-table .week-current td { font-weight: 700; color: var(--text); }

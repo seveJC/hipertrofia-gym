@@ -1030,6 +1030,67 @@ function weeklyStats(fromMs, toMs) {
 
 // Tabla de las últimas 3 semanas naturales (lunes a domingo), una fila por
 // semana y las mismas columnas de músculo en todas, sin saltos de línea.
+// Series/semana orientativas por músculo; el deltoide anterior ya trabaja en
+// los presses, por eso su mínimo es 0. Se pueden cambiar desde la home (🎯).
+const DEFAULT_VOLUME_TARGETS = {
+  'Pecho': [10, 20], 'Espalda': [10, 20], 'Cuádriceps': [10, 20], 'Isquiotibiales': [8, 16],
+  'Tríceps': [8, 16], 'Bíceps': [8, 16], 'Deltoide lateral': [8, 16], 'Deltoide posterior': [6, 12],
+  'Deltoide anterior': [0, 8], 'Gemelos': [6, 12], 'Abdominales': [6, 12],
+};
+
+function volumeTargetOf(m) {
+  const t = db.volumeTargets && db.volumeTargets[m];
+  return (t && t.length === 2) ? t : (DEFAULT_VOLUME_TARGETS[m] || [10, 20]);
+}
+
+// Clase de color de una celda: la semana en curso no se marca en rojo (aún no ha acabado).
+function volumeClass(m, n, current) {
+  const [lo, hi] = volumeTargetOf(m);
+  if (n > hi) return ' vol-high';
+  if (n >= lo && n > 0) return ' vol-ok';
+  if (current) return '';
+  return ' vol-low';
+}
+
+function openVolumeTargetsDialog() {
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.innerHTML = `
+    <div class="modal-sheet">
+      <h2>🎯 Series por semana</h2>
+      <p style="color:var(--text-dim);font-size:13px;margin:0 0 10px;">Rango objetivo por músculo. Verde dentro, rojo por debajo (semanas pasadas), ámbar por encima.</p>
+      ${Object.keys(MUSCLE_COLORS).map(m => { const [lo, hi] = volumeTargetOf(m); return `
+        <div class="vol-row">
+          <span style="color:${MUSCLE_COLORS[m]};">${escapeHtml(m)}</span>
+          <input type="number" inputmode="numeric" min="0" data-vol-lo="${escapeHtml(m)}" value="${lo}" /> –
+          <input type="number" inputmode="numeric" min="0" data-vol-hi="${escapeHtml(m)}" value="${hi}" />
+        </div>`; }).join('')}
+      <div style="height:10px;"></div>
+      <button class="btn btn-primary btn-block" id="vol-save">Guardar</button>
+      <div style="height:8px;"></div>
+      <button class="btn btn-block" id="vol-reset">Valores por defecto</button>
+      <div style="height:8px;"></div>
+      <button class="btn btn-block" id="vol-cancel">Cancelar</button>
+    </div>`;
+  document.body.appendChild(backdrop);
+  const close = () => document.body.removeChild(backdrop);
+  document.getElementById('vol-save').addEventListener('click', () => {
+    const out = {};
+    Object.keys(MUSCLE_COLORS).forEach(m => {
+      const lo = Number(backdrop.querySelector(`[data-vol-lo="${CSS.escape(m)}"]`).value);
+      const hi = Number(backdrop.querySelector(`[data-vol-hi="${CSS.escape(m)}"]`).value);
+      if (!isNaN(lo) && !isNaN(hi) && hi >= lo) out[m] = [lo, hi];
+    });
+    db.volumeTargets = out;
+    saveDB();
+    close();
+    renderHome();
+  });
+  document.getElementById('vol-reset').addEventListener('click', () => { delete db.volumeTargets; saveDB(); close(); renderHome(); });
+  document.getElementById('vol-cancel').addEventListener('click', close);
+  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
+}
+
 function weeklySummaryHtml() {
   const DAY = 24 * 60 * 60 * 1000;
   const today = new Date();
@@ -1044,7 +1105,7 @@ function weeklySummaryHtml() {
   if (!weeks.some(w => w.stats.sessions)) return '';
   const muscles = Object.keys(MUSCLE_COLORS).filter(m => weeks.some(w => w.stats.perMuscle[m]));
   const fmt = (d) => `${d.getDate()}/${String(d.getMonth() + 1).padStart(2, '0')}`;
-  const head = `<tr><th>Semana</th><th>Ses</th><th>Min</th>${muscles.map(m => `<th style="color:${MUSCLE_COLORS[m]};">${escapeHtml(muscleAbbr(m))}</th>`).join('')}</tr>`;
+  const head = `<tr><th>Semana</th><th>Ses</th><th>Min</th>${muscles.map(m => { const [lo, hi] = volumeTargetOf(m); return `<th style="color:${MUSCLE_COLORS[m]};">${escapeHtml(muscleAbbr(m))}<br><small>${lo}–${hi}</small></th>`; }).join('')}</tr>`;
   const rows = weeks.map((w, i) => {
     const last = new Date(w.to.getTime() - DAY);
     const label = i === 0 ? 'Esta' : (w.from.getMonth() === last.getMonth() ? `${w.from.getDate()}–${fmt(last)}` : `${fmt(w.from)}–${fmt(last)}`);
@@ -1052,12 +1113,12 @@ function weeklySummaryHtml() {
       <td class="date-cell">${label}</td>
       <td>${w.stats.sessions || '·'}</td>
       <td>${w.stats.minutes || '·'}</td>
-      ${muscles.map(m => `<td>${w.stats.perMuscle[m] || '·'}</td>`).join('')}
+      ${muscles.map(m => `<td class="vol-cell${volumeClass(m, w.stats.perMuscle[m] || 0, i === 0)}">${w.stats.perMuscle[m] || '·'}</td>`).join('')}
     </tr>`;
   }).join('');
   return `
     <div class="card weekly-card">
-      <div class="weekly-head">📊 Series por músculo · lunes a domingo</div>
+      <div class="weekly-head">📊 Series por músculo · lunes a domingo <span class="weekly-targets" id="vol-targets-btn">🎯 objetivos</span></div>
       <div class="history-table-wrap"><table class="history-table week-table"><thead>${head}</thead><tbody>${rows}</tbody></table></div>
     </div>`;
 }
@@ -1145,6 +1206,8 @@ function renderHome() {
   });
   document.getElementById('backup-retry-btn').addEventListener('click', () => pushBackupToGitHub(true));
   bindDeloadToggle(renderHome);
+  const volBtn = document.getElementById('vol-targets-btn');
+  if (volBtn) volBtn.addEventListener('click', openVolumeTargetsDialog);
   // El desplegable vive dentro de la tarjeta, que entera abre la sesión:
   // hay que frenar el click para que no navegue.
   app.querySelectorAll('[data-more]').forEach(btn => {
@@ -2302,9 +2365,25 @@ function openMeasureDialog(existing) {
   setTimeout(() => { const el = document.getElementById('m-weight'); if (el && !existing) el.focus(); }, 50);
 }
 
+// Peso corporal en una fecha: la medición con peso más cercana (±45 días).
+function bodyWeightNear(dateIso) {
+  const t = new Date(dateIso).getTime();
+  let best = null;
+  (db.measures || []).forEach(m => {
+    if (m.weight == null) return;
+    const diff = Math.abs(new Date(m.date).getTime() - t);
+    if (diff <= 45 * 24 * 60 * 60 * 1000 && (!best || diff < best.diff)) best = { weight: m.weight, date: m.date, diff };
+  });
+  return best;
+}
+
 function renderProgress(routineId) {
   const routine = getRoutine(routineId);
   if (!routine) { navigate(''); return; }
+  const lastBw = measuresSorted().filter(m => m.weight != null).pop();
+  const bwHtml = lastBw
+    ? `<div class="progress-intro">⚖️ Peso corporal: <b>${fmtMeasure(lastBw.weight)} kg</b> (${fmtDate(lastBw.date)}). En los tres primeros ejercicios, el 1RM también en veces tu peso, con la medición más cercana a cada sesión.</div>`
+    : '';
 
   const blocks = routine.slots.map((slot, idx) => {
     const ex = getExercise(slot.exerciseId);
@@ -2321,7 +2400,8 @@ function renderProgress(routineId) {
       ${lastTxt ? `<div class="progress-last">${escapeHtml(lastTxt)}</div>` : ''}
       ${bestTxt ? `<div class="progress-last progress-pr">${escapeHtml(bestTxt)}</div>` : ''}
       ${main ? progressChartSvg(pts) : ''}
-      ${pts.length >= 2 ? `<div class="progress-stats">1RM est.: ${Math.round(pts[pts.length - 2].best)} → <b>${Math.round(last.best)} kg</b> · volumen: ${Math.round(pts[pts.length - 2].volume)} → <b>${Math.round(last.volume)} kg</b></div>` : ''}`;
+      ${pts.length >= 2 ? `<div class="progress-stats">1RM est.: ${Math.round(pts[pts.length - 2].best)} → <b>${Math.round(last.best)} kg</b> · volumen: ${Math.round(pts[pts.length - 2].volume)} → <b>${Math.round(last.volume)} kg</b></div>` : ''}
+      ${main && pts.length >= 2 && bodyWeightNear(pts[pts.length - 2].date) && bodyWeightNear(last.date) ? `<div class="progress-stats">⚖️ 1RM / peso corporal: ${(pts[pts.length - 2].best / bodyWeightNear(pts[pts.length - 2].date).weight).toFixed(2)} → <b>${(last.best / bodyWeightNear(last.date).weight).toFixed(2)}×</b></div>` : ''}`;
     return `
       <div class="card progress-card${main ? '' : ' progress-minor'}">
         <div class="progress-head">
@@ -2340,6 +2420,7 @@ function renderProgress(routineId) {
     </div>
     <div class="container">
       <div class="progress-intro">Rango por defecto: <b>${fuerza ? '4–6' : '8–12'} repes</b> (por el nombre de la rutina); cada ejercicio puede tener el suyo (🎯 en la sesión o en el editor). Los tres primeros llevan gráfica; el resto, plegados.</div>
+      ${bwHtml}
       ${blocks}
     </div>
   `;
