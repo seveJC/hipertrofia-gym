@@ -5333,7 +5333,8 @@
     "gymsDeduped2": true,
     "repRangePush20260914": true,
     "repRanges20260914b": true,
-    "repRangesAbsCalves20260914": true
+    "repRangesAbsCalves20260914": true,
+    "measuresSeeded20260916": true
   },
   "gyms": [
     "Basic-Fit Bravo Murillo",
@@ -5349,6 +5350,1158 @@
       "fromRoutineId": null,
       "text": "Hacer Gemelos y Abdominales",
       "createdAt": "2026-09-11T20:00:00.000Z"
+    }
+  ],
+  "measures": [
+    {
+      "id": "mu494wwk373eq0",
+      "date": "2020-10-26",
+      "weight": 68.5,
+      "waist": 83,
+      "thigh": 52.1,
+      "biceps": 33.8,
+      "chest": null,
+      "shoulders": 112.5
+    },
+    {
+      "id": "mu494wwlasiu8r",
+      "date": "2020-11-02",
+      "weight": 68.4,
+      "waist": 81,
+      "thigh": 52.3,
+      "biceps": 34,
+      "chest": null,
+      "shoulders": 111.5
+    },
+    {
+      "id": "mu494wwlna8d2l",
+      "date": "2020-11-16",
+      "weight": 68,
+      "waist": 80.7,
+      "thigh": 52.7,
+      "biceps": 33.8,
+      "chest": null,
+      "shoulders": 118.1
+    },
+    {
+      "id": "mu494wwlyd5bl3",
+      "date": "2020-11-21",
+      "weight": 67.7,
+      "waist": 79.8,
+      "thigh": 54.7,
+      "biceps": 33.9,
+      "chest": null,
+      "shoulders": 117.9
+    },
+    {
+      "id": "mu494wwlbmiru0",
+      "date": "2020-11-30",
+      "weight": 67.8,
+      "waist": 79.5,
+      "thigh": 54.8,
+      "biceps": 33.9,
+      "chest": null,
+      "shoulders": 118
+    },
+    {
+      "id": "mu494wwlf8hmcg",
+      "date": "2020-12-07",
+      "weight": 67.6,
+      "waist": 78.4,
+      "thigh": 55.3,
+      "biceps": 33.9,
+      "chest": null,
+      "shoulders": 117.8
+    },
+    {
+      "id": "mu494wwlfxmncj",
+      "date": "2020-12-16",
+      "weight": 67.4,
+      "waist": 77.8,
+      "thigh": 54.5,
+      "biceps": 33.6,
+      "chest": null,
+      "shoulders": 117.2
+    },
+    {
+      "id": "mu494wwl17nvf2",
+      "date": "2020-12-23",
+      "weight": 67.5,
+      "waist": 77.6,
+      "thigh": 54.7,
+      "biceps": 33.4,
+      "chest": null,
+      "shoulders": 118.4
+    },
+    {
+      "id": "mu494wwl9f0gcd",
+      "date": "2021-01-02",
+      "weight": 66.8,
+      "waist": 77.2,
+      "thigh": 55,
+      "biceps": 33.4,
+      "chest": null,
+      "shoulders": 118.5
+    },
+    {
+      "id": "mu494wwl99yulb",
+      "date": "2021-01-10",
+      "weight": 66,
+      "waist": 76.6,
+      "thigh": 54,
+      "biceps": 33,
+      "chest": null,
+      "shoulders": 114
+    },
+    {
+      "id": "mu494wwlzro8xn",
+      "date": "2021-01-17",
+      "weight": 66.3,
+      "waist": 76.4,
+      "thigh": 54.5,
+      "biceps": 33.3,
+      "chest": null,
+      "shoulders": 114.2
+    },
+    {
+      "id": "mu494wwlnryb85",
+      "date": "2021-01-25",
+      "weight": 65.9,
+      "waist": 76,
+      "thigh": 54,
+      "biceps": 33,
+      "chest": null,
+      "shoulders": 113.2
+    },
+    {
+      "id": "mu494wwl78v75g",
+      "date": "2021-02-06",
+      "weight": 65.9,
+      "waist": 75.7,
+      "thigh": 53.8,
+      "biceps": 33,
+      "chest": null,
+      "shoulders": 114
+    },
+    {
+      "id": "mu494wwl97cgj8",
+      "date": "2021-02-14",
+      "weight": 65.9,
+      "waist": 75.6,
+      "thigh": 54.2,
+      "biceps": 33.1,
+      "chest": null,
+      "shoulders": 114.5
+    },
+    {
+      "id": "mu494wwlexjkk2",
+      "date": "2021-02-28",
+      "weight": 66.3,
+      "waist": 75.9,
+      "thigh": 54.3,
+      "biceps": 33.3,
+      "chest": null,
+      "shoulders": 114.5
+    },
+    {
+      "id": "mu494wwldwjr3e",
+      "date": "2021-03-13",
+      "weight": 65.8,
+      "waist": 75.9,
+      "thigh": 53.8,
+      "biceps": 33.3,
+      "chest": null,
+      "shoulders": 114.3
+    },
+    {
+      "id": "mu494wwlwv8mem",
+      "date": "2021-03-19",
+      "weight": 66.1,
+      "waist": 75.9,
+      "thigh": 54,
+      "biceps": 33.4,
+      "chest": null,
+      "shoulders": 114.7
+    },
+    {
+      "id": "mu494wwlo7fqth",
+      "date": "2021-03-28",
+      "weight": 66.1,
+      "waist": 75.6,
+      "thigh": 54.5,
+      "biceps": 33.2,
+      "chest": null,
+      "shoulders": 115
+    },
+    {
+      "id": "mu494wwlwsxwra",
+      "date": "2021-04-03",
+      "weight": 66,
+      "waist": 75.5,
+      "thigh": 55.1,
+      "biceps": 33.3,
+      "chest": null,
+      "shoulders": 114.8
+    },
+    {
+      "id": "mu494wwl6dft7v",
+      "date": "2021-04-10",
+      "weight": 65.8,
+      "waist": 75.3,
+      "thigh": 55,
+      "biceps": 33.6,
+      "chest": null,
+      "shoulders": 114.8
+    },
+    {
+      "id": "mu494wwl8al3nq",
+      "date": "2021-04-18",
+      "weight": 65,
+      "waist": 75,
+      "thigh": 54.9,
+      "biceps": 33.4,
+      "chest": null,
+      "shoulders": 113.3
+    },
+    {
+      "id": "mu494wwlcov88t",
+      "date": "2021-04-24",
+      "weight": 64.4,
+      "waist": 74.2,
+      "thigh": 54.8,
+      "biceps": 33.6,
+      "chest": null,
+      "shoulders": 112.8
+    },
+    {
+      "id": "mu494wwl1cmpk3",
+      "date": "2021-05-29",
+      "weight": 63.8,
+      "waist": 73.8,
+      "thigh": 53,
+      "biceps": 33.1,
+      "chest": null,
+      "shoulders": 111.1
+    },
+    {
+      "id": "mu494wwluxhpl7",
+      "date": "2021-06-28",
+      "weight": 64.2,
+      "waist": 74.8,
+      "thigh": 51.8,
+      "biceps": 33,
+      "chest": null,
+      "shoulders": 111.5
+    },
+    {
+      "id": "mu494wwl6kqw06",
+      "date": "2021-08-27",
+      "weight": 66.6,
+      "waist": 78.5,
+      "thigh": 52,
+      "biceps": 33.1,
+      "chest": null,
+      "shoulders": null
+    },
+    {
+      "id": "mu494wwlmlqr9l",
+      "date": "2021-09-06",
+      "weight": 66.6,
+      "waist": 77.5,
+      "thigh": 53,
+      "biceps": 33.2,
+      "chest": null,
+      "shoulders": 115.2
+    },
+    {
+      "id": "mu494wwlp77jc2",
+      "date": "2021-09-15",
+      "weight": 67.2,
+      "waist": 78,
+      "thigh": 54,
+      "biceps": 33.5,
+      "chest": null,
+      "shoulders": 114.5
+    },
+    {
+      "id": "mu494wwl1zqvgn",
+      "date": "2021-09-24",
+      "weight": 66.7,
+      "waist": 77.9,
+      "thigh": 54.3,
+      "biceps": 33.5,
+      "chest": null,
+      "shoulders": 114.6
+    },
+    {
+      "id": "mu494wwlii6alm",
+      "date": "2021-10-06",
+      "weight": 67.5,
+      "waist": 78.5,
+      "thigh": 53,
+      "biceps": 33.7,
+      "chest": null,
+      "shoulders": 114.8
+    },
+    {
+      "id": "mu494wwleedpf8",
+      "date": "2021-10-28",
+      "weight": 68.3,
+      "waist": 81.1,
+      "thigh": 53.8,
+      "biceps": 33.5,
+      "chest": null,
+      "shoulders": 116.5
+    },
+    {
+      "id": "mu494wwlj5dg2f",
+      "date": "2021-11-16",
+      "weight": 69.6,
+      "waist": 81.5,
+      "thigh": 54.5,
+      "biceps": 34,
+      "chest": null,
+      "shoulders": 117
+    },
+    {
+      "id": "mu494wwljt5fmu",
+      "date": "2021-11-22",
+      "weight": 70.3,
+      "waist": 80.7,
+      "thigh": 54.9,
+      "biceps": 34.2,
+      "chest": null,
+      "shoulders": 117.2
+    },
+    {
+      "id": "mu494wwlysog6j",
+      "date": "2021-12-31",
+      "weight": 68.8,
+      "waist": 80.1,
+      "thigh": 54,
+      "biceps": 34.1,
+      "chest": null,
+      "shoulders": 117.7
+    },
+    {
+      "id": "mu494wwlewh9fn",
+      "date": "2022-01-06",
+      "weight": 70.2,
+      "waist": 81.8,
+      "thigh": 55.8,
+      "biceps": 34.5,
+      "chest": null,
+      "shoulders": 119.5
+    },
+    {
+      "id": "mu494wwlz77mva",
+      "date": "2022-02-09",
+      "weight": 71.3,
+      "waist": 82.1,
+      "thigh": 56.4,
+      "biceps": 34.9,
+      "chest": null,
+      "shoulders": 120.2
+    },
+    {
+      "id": "mu494wwlc1m13p",
+      "date": "2022-03-02",
+      "weight": 70.5,
+      "waist": 81.8,
+      "thigh": 54.1,
+      "biceps": 34.7,
+      "chest": null,
+      "shoulders": 118.9
+    },
+    {
+      "id": "mu494wwl3c3pny",
+      "date": "2022-03-16",
+      "weight": 69.5,
+      "waist": 80.9,
+      "thigh": null,
+      "biceps": 34.2,
+      "chest": null,
+      "shoulders": null
+    },
+    {
+      "id": "mu494wwl6kusp1",
+      "date": "2022-03-23",
+      "weight": 68.8,
+      "waist": 79.3,
+      "thigh": 54.1,
+      "biceps": 34.3,
+      "chest": null,
+      "shoulders": 118.8
+    },
+    {
+      "id": "mu494wwlkf92tt",
+      "date": "2022-03-31",
+      "weight": 69.6,
+      "waist": 78.8,
+      "thigh": 54.5,
+      "biceps": 34.6,
+      "chest": null,
+      "shoulders": 118.2
+    },
+    {
+      "id": "mu494wwlr2dxnc",
+      "date": "2022-04-08",
+      "weight": 69.2,
+      "waist": 78.4,
+      "thigh": 55,
+      "biceps": 34.6,
+      "chest": null,
+      "shoulders": 117.3
+    },
+    {
+      "id": "mu494wwl8yb6bd",
+      "date": "2022-04-13",
+      "weight": 69.1,
+      "waist": 78,
+      "thigh": 55.1,
+      "biceps": 34.6,
+      "chest": null,
+      "shoulders": 117.9
+    },
+    {
+      "id": "mu494wwl7c7rsg",
+      "date": "2022-04-22",
+      "weight": 69,
+      "waist": 77.5,
+      "thigh": 55.1,
+      "biceps": 34.4,
+      "chest": null,
+      "shoulders": 119.2
+    },
+    {
+      "id": "mu494wwl0snsop",
+      "date": "2022-04-29",
+      "weight": 68.3,
+      "waist": 77.5,
+      "thigh": 55,
+      "biceps": 34.5,
+      "chest": null,
+      "shoulders": 117.8
+    },
+    {
+      "id": "mu494wwlq1g1jj",
+      "date": "2022-05-09",
+      "weight": 67.8,
+      "waist": 77.7,
+      "thigh": 55.1,
+      "biceps": 34.4,
+      "chest": null,
+      "shoulders": 119.6
+    },
+    {
+      "id": "mu494wwlo3ir69",
+      "date": "2022-05-13",
+      "weight": null,
+      "waist": 77,
+      "thigh": 55,
+      "biceps": 34.5,
+      "chest": null,
+      "shoulders": 120.2
+    },
+    {
+      "id": "mu494wwl82pth5",
+      "date": "2022-05-28",
+      "weight": 67.2,
+      "waist": 75.6,
+      "thigh": 55.1,
+      "biceps": 34.4,
+      "chest": null,
+      "shoulders": 118.1
+    },
+    {
+      "id": "mu494wwl0li2wg",
+      "date": "2022-06-09",
+      "weight": 66.6,
+      "waist": 75,
+      "thigh": 54.2,
+      "biceps": 34.3,
+      "chest": null,
+      "shoulders": 117.2
+    },
+    {
+      "id": "mu494wwl6jsghh",
+      "date": "2022-06-15",
+      "weight": 65.5,
+      "waist": 74.5,
+      "thigh": 54.9,
+      "biceps": 34,
+      "chest": null,
+      "shoulders": 119.3
+    },
+    {
+      "id": "mu494wwlfspkcg",
+      "date": "2022-06-29",
+      "weight": null,
+      "waist": 74.1,
+      "thigh": null,
+      "biceps": 33.7,
+      "chest": null,
+      "shoulders": null
+    },
+    {
+      "id": "mu494wwlvbeiwf",
+      "date": "2022-08-06",
+      "weight": 65.2,
+      "waist": 74.6,
+      "thigh": 52.6,
+      "biceps": 33.8,
+      "chest": null,
+      "shoulders": 116.7
+    },
+    {
+      "id": "mu494wwl77pkxx",
+      "date": "2022-08-22",
+      "weight": 65.8,
+      "waist": 75.7,
+      "thigh": 50.5,
+      "biceps": 33.1,
+      "chest": null,
+      "shoulders": 116.6
+    },
+    {
+      "id": "mu494wwlqb86p3",
+      "date": "2022-08-26",
+      "weight": 65.7,
+      "waist": 75.1,
+      "thigh": 51.1,
+      "biceps": 33.8,
+      "chest": null,
+      "shoulders": 118.2
+    },
+    {
+      "id": "mu494wwlzsjggg",
+      "date": "2022-09-30",
+      "weight": 67.2,
+      "waist": 77.8,
+      "thigh": 52,
+      "biceps": 33.6,
+      "chest": null,
+      "shoulders": 117.5
+    },
+    {
+      "id": "mu494wwlq2dzbu",
+      "date": "2022-10-07",
+      "weight": 67.8,
+      "waist": 77.7,
+      "thigh": 53.2,
+      "biceps": 34.3,
+      "chest": null,
+      "shoulders": 119.3
+    },
+    {
+      "id": "mu494wwljkpoqr",
+      "date": "2022-10-22",
+      "weight": 68.2,
+      "waist": 78.3,
+      "thigh": 53.3,
+      "biceps": 33.9,
+      "chest": null,
+      "shoulders": 118.3
+    },
+    {
+      "id": "mu494wwlhnl3n6",
+      "date": "2022-10-28",
+      "weight": 69.1,
+      "waist": 78.4,
+      "thigh": 53.4,
+      "biceps": 34.3,
+      "chest": null,
+      "shoulders": 118.6
+    },
+    {
+      "id": "mu494wwlqhs6kz",
+      "date": "2022-11-04",
+      "weight": 69.7,
+      "waist": 79.3,
+      "thigh": 54,
+      "biceps": 34.5,
+      "chest": null,
+      "shoulders": 119.6
+    },
+    {
+      "id": "mu494wwlao9576",
+      "date": "2022-11-11",
+      "weight": 69.9,
+      "waist": 79.8,
+      "thigh": 54.5,
+      "biceps": 34.7,
+      "chest": null,
+      "shoulders": 120.6
+    },
+    {
+      "id": "mu494wwlclcroc",
+      "date": "2022-11-18",
+      "weight": 70,
+      "waist": 80,
+      "thigh": 54.5,
+      "biceps": 34.7,
+      "chest": null,
+      "shoulders": 120.8
+    },
+    {
+      "id": "mu494wwlocp20q",
+      "date": "2022-11-30",
+      "weight": 70.8,
+      "waist": 80.4,
+      "thigh": 55.1,
+      "biceps": 35,
+      "chest": null,
+      "shoulders": 120.9
+    },
+    {
+      "id": "mu494wwlywdtiy",
+      "date": "2022-12-15",
+      "weight": 71.8,
+      "waist": 81.1,
+      "thigh": 55.5,
+      "biceps": 35.5,
+      "chest": null,
+      "shoulders": 122.2
+    },
+    {
+      "id": "mu494wwlp258dc",
+      "date": "2023-01-05",
+      "weight": 72.3,
+      "waist": 83,
+      "thigh": 55.7,
+      "biceps": 35.4,
+      "chest": null,
+      "shoulders": 121.6
+    },
+    {
+      "id": "mu494wwlxcpnqy",
+      "date": "2023-01-13",
+      "weight": 72.2,
+      "waist": 83,
+      "thigh": 56,
+      "biceps": 35.3,
+      "chest": null,
+      "shoulders": 122.8
+    },
+    {
+      "id": "mu494wwlqy2z2u",
+      "date": "2023-01-20",
+      "weight": 73.1,
+      "waist": 83.3,
+      "thigh": 56.3,
+      "biceps": 35.6,
+      "chest": null,
+      "shoulders": 122.5
+    },
+    {
+      "id": "mu494wwl5fownt",
+      "date": "2023-01-27",
+      "weight": 73.4,
+      "waist": 82.7,
+      "thigh": 56.6,
+      "biceps": 35.7,
+      "chest": null,
+      "shoulders": 122.9
+    },
+    {
+      "id": "mu494wwltadoqk",
+      "date": "2023-02-04",
+      "weight": 73.1,
+      "waist": 82.7,
+      "thigh": 56.1,
+      "biceps": 35.7,
+      "chest": null,
+      "shoulders": 123.5
+    },
+    {
+      "id": "mu494wwlpruszh",
+      "date": "2023-02-08",
+      "weight": 72.6,
+      "waist": 83.6,
+      "thigh": 56.1,
+      "biceps": 35.3,
+      "chest": null,
+      "shoulders": 123.2
+    },
+    {
+      "id": "mu494wwlj89ydt",
+      "date": "2023-02-15",
+      "weight": 72.6,
+      "waist": 83.3,
+      "thigh": 56.2,
+      "biceps": 35.3,
+      "chest": null,
+      "shoulders": 123
+    },
+    {
+      "id": "mu494wwl9b2cyn",
+      "date": "2023-02-22",
+      "weight": 72.3,
+      "waist": 82.6,
+      "thigh": 56,
+      "biceps": 35.3,
+      "chest": null,
+      "shoulders": 123
+    },
+    {
+      "id": "mu494wwlwletf2",
+      "date": "2023-03-03",
+      "weight": 72.4,
+      "waist": 81.8,
+      "thigh": 56.2,
+      "biceps": 35.1,
+      "chest": null,
+      "shoulders": 123.2
+    },
+    {
+      "id": "mu494wwlkkg7vc",
+      "date": "2023-03-09",
+      "weight": 71.8,
+      "waist": 81.5,
+      "thigh": 55.8,
+      "biceps": 35,
+      "chest": null,
+      "shoulders": 122.4
+    },
+    {
+      "id": "mu494wwlu3kzu9",
+      "date": "2023-03-17",
+      "weight": 72.1,
+      "waist": 81.5,
+      "thigh": 55.6,
+      "biceps": 35,
+      "chest": null,
+      "shoulders": 122.5
+    },
+    {
+      "id": "mu494wwljunynn",
+      "date": "2023-03-30",
+      "weight": 71.6,
+      "waist": 80.9,
+      "thigh": 55.9,
+      "biceps": 35,
+      "chest": null,
+      "shoulders": 121.9
+    },
+    {
+      "id": "mu494wwlvq7ddb",
+      "date": "2023-04-20",
+      "weight": 70.9,
+      "waist": 80.6,
+      "thigh": 54.7,
+      "biceps": 34.6,
+      "chest": null,
+      "shoulders": 120
+    },
+    {
+      "id": "mu494wwlj77311",
+      "date": "2023-04-27",
+      "weight": 71.3,
+      "waist": 80.2,
+      "thigh": 55.1,
+      "biceps": 34.6,
+      "chest": null,
+      "shoulders": 122
+    },
+    {
+      "id": "mu494wwlpkynjq",
+      "date": "2023-05-10",
+      "weight": 70.6,
+      "waist": 79.8,
+      "thigh": 55.3,
+      "biceps": 34.6,
+      "chest": null,
+      "shoulders": 122
+    },
+    {
+      "id": "mu494wwlm11ppm",
+      "date": "2023-05-26",
+      "weight": null,
+      "waist": 79.1,
+      "thigh": 55.2,
+      "biceps": 34.6,
+      "chest": null,
+      "shoulders": 121.3
+    },
+    {
+      "id": "mu494wwlnlut55",
+      "date": "2023-06-07",
+      "weight": 69.5,
+      "waist": 78.3,
+      "thigh": 54.4,
+      "biceps": 34.4,
+      "chest": null,
+      "shoulders": 121
+    },
+    {
+      "id": "mu494wwlj9oerm",
+      "date": "2023-06-22",
+      "weight": 68.2,
+      "waist": 77.1,
+      "thigh": 53.6,
+      "biceps": 34.1,
+      "chest": null,
+      "shoulders": 120.3
+    },
+    {
+      "id": "mu494wwlc1kpm9",
+      "date": "2023-07-12",
+      "weight": 67.9,
+      "waist": 76.6,
+      "thigh": 53.9,
+      "biceps": 34,
+      "chest": null,
+      "shoulders": 120
+    },
+    {
+      "id": "mu494wwlspzbmg",
+      "date": "2023-08-23",
+      "weight": 67.1,
+      "waist": 76.6,
+      "thigh": 52.6,
+      "biceps": 34,
+      "chest": null,
+      "shoulders": 119.5
+    },
+    {
+      "id": "mu494wwlpjxzp5",
+      "date": "2023-10-24",
+      "weight": 69.5,
+      "waist": 80.7,
+      "thigh": 55,
+      "biceps": 34.5,
+      "chest": null,
+      "shoulders": 121.2
+    },
+    {
+      "id": "mu494wwl1ffgdt",
+      "date": "2023-12-01",
+      "weight": 70.3,
+      "waist": 80.6,
+      "thigh": 54.5,
+      "biceps": 34.6,
+      "chest": null,
+      "shoulders": 120.4
+    },
+    {
+      "id": "mu494wwlj8uaqv",
+      "date": "2023-12-14",
+      "weight": 70.9,
+      "waist": 80.8,
+      "thigh": 55.1,
+      "biceps": 35,
+      "chest": null,
+      "shoulders": 122.7
+    },
+    {
+      "id": "mu494wwliji3ga",
+      "date": "2024-01-07",
+      "weight": 71.9,
+      "waist": 82.5,
+      "thigh": 55.6,
+      "biceps": 35,
+      "chest": null,
+      "shoulders": 122.2
+    },
+    {
+      "id": "mu494wwlz18yu8",
+      "date": "2024-01-18",
+      "weight": 72.4,
+      "waist": 82,
+      "thigh": 55.7,
+      "biceps": 35,
+      "chest": null,
+      "shoulders": 122
+    },
+    {
+      "id": "mu494wwlozk26w",
+      "date": "2024-02-01",
+      "weight": 72.7,
+      "waist": 82.3,
+      "thigh": 56,
+      "biceps": 35.3,
+      "chest": null,
+      "shoulders": 122.7
+    },
+    {
+      "id": "mu494wwlwdwfy8",
+      "date": "2024-02-16",
+      "weight": 73.5,
+      "waist": 84,
+      "thigh": 57.2,
+      "biceps": 35.7,
+      "chest": null,
+      "shoulders": 122.9
+    },
+    {
+      "id": "mu494wwlnh809y",
+      "date": "2024-03-13",
+      "weight": 74.2,
+      "waist": 87.2,
+      "thigh": 56.3,
+      "biceps": 35.6,
+      "chest": null,
+      "shoulders": 124.7
+    },
+    {
+      "id": "mu494wwlmz0qwk",
+      "date": "2024-04-09",
+      "weight": 72.7,
+      "waist": 84.6,
+      "thigh": 56.5,
+      "biceps": 35.5,
+      "chest": null,
+      "shoulders": null
+    },
+    {
+      "id": "mu494wwlr5fmzv",
+      "date": "2024-04-17",
+      "weight": 71.8,
+      "waist": 82.3,
+      "thigh": 55.8,
+      "biceps": 35,
+      "chest": null,
+      "shoulders": null
+    },
+    {
+      "id": "mu494wwlhko5mp",
+      "date": "2024-04-27",
+      "weight": 71.3,
+      "waist": 80.6,
+      "thigh": 55.6,
+      "biceps": 35.3,
+      "chest": null,
+      "shoulders": 121.5
+    },
+    {
+      "id": "mu494wwlhy6hz1",
+      "date": "2024-05-08",
+      "weight": 69.5,
+      "waist": 79.6,
+      "thigh": 55.4,
+      "biceps": 34.9,
+      "chest": null,
+      "shoulders": 122
+    },
+    {
+      "id": "mu494wwltxuqy2",
+      "date": "2024-05-22",
+      "weight": 69.6,
+      "waist": 78.8,
+      "thigh": 55.4,
+      "biceps": 34.9,
+      "chest": null,
+      "shoulders": 121.2
+    },
+    {
+      "id": "mu494wwli37f0y",
+      "date": "2024-06-05",
+      "weight": 68.7,
+      "waist": 78.2,
+      "thigh": 54.1,
+      "biceps": 34.7,
+      "chest": null,
+      "shoulders": 121.2
+    },
+    {
+      "id": "mu494wwll55ejn",
+      "date": "2024-06-19",
+      "weight": 67.7,
+      "waist": 77,
+      "thigh": 54.1,
+      "biceps": 34.8,
+      "chest": null,
+      "shoulders": 121.2
+    },
+    {
+      "id": "mu494wwl75eoic",
+      "date": "2024-07-09",
+      "weight": 66.9,
+      "waist": 76.3,
+      "thigh": 54.1,
+      "biceps": 34.4,
+      "chest": null,
+      "shoulders": 120.5
+    },
+    {
+      "id": "mu494wwlb65jcl",
+      "date": "2024-07-25",
+      "weight": 65.6,
+      "waist": 74.3,
+      "thigh": 53.1,
+      "biceps": 34.3,
+      "chest": null,
+      "shoulders": 120.5
+    },
+    {
+      "id": "mu494wwlupxpup",
+      "date": "2024-08-12",
+      "weight": 65.6,
+      "waist": 75.2,
+      "thigh": 53,
+      "biceps": 34.1,
+      "chest": null,
+      "shoulders": 120.7
+    },
+    {
+      "id": "mu494wwl16edgh",
+      "date": "2024-09-06",
+      "weight": 66.7,
+      "waist": 74.8,
+      "thigh": 53.1,
+      "biceps": 34.5,
+      "chest": null,
+      "shoulders": 119.8
+    },
+    {
+      "id": "mu494wwlr2a6y6",
+      "date": "2024-09-25",
+      "weight": 66.5,
+      "waist": 75.3,
+      "thigh": 53.6,
+      "biceps": 34.4,
+      "chest": null,
+      "shoulders": 120.6
+    },
+    {
+      "id": "mu494wwlazdwr9",
+      "date": "2024-10-03",
+      "weight": 67.7,
+      "waist": 75.8,
+      "thigh": 53.9,
+      "biceps": 34.7,
+      "chest": null,
+      "shoulders": 121.9
+    },
+    {
+      "id": "mu494wwlvd2qao",
+      "date": "2024-12-02",
+      "weight": 69.9,
+      "waist": 79.2,
+      "thigh": 55.5,
+      "biceps": 35,
+      "chest": null,
+      "shoulders": 122.3
+    },
+    {
+      "id": "mu494wwlie74lw",
+      "date": "2025-01-06",
+      "weight": 69.9,
+      "waist": 80.3,
+      "thigh": 54.5,
+      "biceps": 35,
+      "chest": null,
+      "shoulders": 121.9
+    },
+    {
+      "id": "mu494wwllzakz5",
+      "date": "2025-01-21",
+      "weight": 71.2,
+      "waist": 81.3,
+      "thigh": 55.5,
+      "biceps": 35.3,
+      "chest": null,
+      "shoulders": 122
+    },
+    {
+      "id": "mu494wwlsz3240",
+      "date": "2025-02-05",
+      "weight": 72.2,
+      "waist": 83.5,
+      "thigh": 56,
+      "biceps": 35.5,
+      "chest": null,
+      "shoulders": 123
+    },
+    {
+      "id": "mu494wwlyt0nnz",
+      "date": "2025-02-20",
+      "weight": 72.4,
+      "waist": 82.9,
+      "thigh": 56.2,
+      "biceps": 35.6,
+      "chest": null,
+      "shoulders": 123.6
+    },
+    {
+      "id": "mu494wwl5ew23h",
+      "date": "2025-05-01",
+      "weight": 71.6,
+      "waist": 80.4,
+      "thigh": 55.4,
+      "biceps": 35.4,
+      "chest": null,
+      "shoulders": 123.1
+    },
+    {
+      "id": "mu494wwlncjlsu",
+      "date": "2025-06-11",
+      "weight": 69,
+      "waist": 78.5,
+      "thigh": 54,
+      "biceps": 34.8,
+      "chest": null,
+      "shoulders": 121.5
+    },
+    {
+      "id": "mu494wwlw0fim8",
+      "date": "2025-07-02",
+      "weight": 67.5,
+      "waist": 76.8,
+      "thigh": 54.4,
+      "biceps": 34.5,
+      "chest": null,
+      "shoulders": 121
+    },
+    {
+      "id": "mu494wwly0twes",
+      "date": "2025-07-24",
+      "weight": 66.6,
+      "waist": 76.2,
+      "thigh": 52.5,
+      "biceps": 34.7,
+      "chest": null,
+      "shoulders": 119
+    },
+    {
+      "id": "mu494wwlf6ez41",
+      "date": "2025-12-12",
+      "weight": 70,
+      "waist": 79.8,
+      "thigh": 54.5,
+      "biceps": 35,
+      "chest": null,
+      "shoulders": 122.1
+    },
+    {
+      "id": "mu494wwlopdj20",
+      "date": "2026-01-14",
+      "weight": 71.6,
+      "waist": 81.6,
+      "thigh": 55.2,
+      "biceps": 35.3,
+      "chest": null,
+      "shoulders": 122.7
+    },
+    {
+      "id": "mu494wwl9ytuib",
+      "date": "2026-02-26",
+      "weight": 71.3,
+      "waist": 79.6,
+      "thigh": 55.5,
+      "biceps": 35.4,
+      "chest": null,
+      "shoulders": 122.8
+    },
+    {
+      "id": "mu494wwlxq8hqf",
+      "date": "2026-03-17",
+      "weight": 69,
+      "waist": 79,
+      "thigh": 54.6,
+      "biceps": 35.4,
+      "chest": null,
+      "shoulders": 121.7
     }
   ]
 }
