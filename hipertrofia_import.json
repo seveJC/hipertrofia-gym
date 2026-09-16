@@ -5334,7 +5334,8 @@
     "repRangePush20260914": true,
     "repRanges20260914b": true,
     "repRangesAbsCalves20260914": true,
-    "measuresSeeded20260916": true
+    "measuresSeeded20260916": true,
+    "measuresSeeded20260916b": true
   },
   "gyms": [
     "Basic-Fit Bravo Murillo",
@@ -6502,6 +6503,86 @@
       "biceps": 35.4,
       "chest": null,
       "shoulders": 121.7
+    },
+    {
+      "id": "mu498q4dg1jwzs",
+      "date": "2026-05-21",
+      "weight": null,
+      "waist": 74.6,
+      "thigh": null,
+      "biceps": 34.4,
+      "chest": null,
+      "shoulders": null
+    },
+    {
+      "id": "mu498q4d15on9u",
+      "date": "2026-06-04",
+      "weight": null,
+      "waist": 74.6,
+      "thigh": null,
+      "biceps": 34.5,
+      "chest": null,
+      "shoulders": null
+    },
+    {
+      "id": "mu498q4dd12rip",
+      "date": "2026-06-14",
+      "weight": null,
+      "waist": 74.2,
+      "thigh": null,
+      "biceps": 34.5,
+      "chest": null,
+      "shoulders": null
+    },
+    {
+      "id": "mu498q4dcrc5vz",
+      "date": "2026-06-17",
+      "weight": 65.8,
+      "waist": 73.8,
+      "thigh": 52.7,
+      "biceps": 34.5,
+      "chest": 96.5,
+      "shoulders": null
+    },
+    {
+      "id": "mu498q4drt1c0w",
+      "date": "2026-07-10",
+      "weight": null,
+      "waist": 73.1,
+      "thigh": null,
+      "biceps": null,
+      "chest": null,
+      "shoulders": null
+    },
+    {
+      "id": "mu498q4dneirqg",
+      "date": "2026-07-17",
+      "weight": null,
+      "waist": 72.7,
+      "thigh": null,
+      "biceps": 34.6,
+      "chest": null,
+      "shoulders": null
+    },
+    {
+      "id": "mu498q4dq33q8b",
+      "date": "2026-08-27",
+      "weight": 65.2,
+      "waist": 72.7,
+      "thigh": null,
+      "biceps": 34.1,
+      "chest": null,
+      "shoulders": null
+    },
+    {
+      "id": "mu498q4d3dnv6t",
+      "date": "2026-09-09",
+      "weight": null,
+      "waist": 73,
+      "thigh": null,
+      "biceps": 33.6,
+      "chest": null,
+      "shoulders": null
     }
   ]
 }
