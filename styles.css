@@ -420,6 +420,8 @@ html, body {
   white-space: normal;
 }
 
+.uni-tag-sm { font-size: 10px; color: #6d9eeb; font-weight: 600; margin-top: 2px; white-space: nowrap; }
+
 .gym-tag-sm {
   font-size: 10px;
   color: var(--text-dim);

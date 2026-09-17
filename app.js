@@ -1849,11 +1849,13 @@ function openExerciseEditor(ex, onSaved) {
 function formatSetCell(s) {
   const w = s.weight === '' || s.weight == null ? '?' : s.weight;
   // Unilateral: der+izq (reps = derecha, reps2 = izquierda).
-  let main = s.reps2 != null && s.reps2 !== ''
-    ? `${w}×${s.reps}+${s.reps2}`
+  const uni = s.reps2 != null && s.reps2 !== '';
+  let main = uni
+    ? `${w}×${s.reps}d·${s.reps2}i`
     : `${w}×${s.reps ?? '?'}`;
   if (s.partialReps != null) main += s.partialReps2 != null ? ` +${s.partialReps}/${s.partialReps2}p` : ` +${s.partialReps}p`;
   const sub = [];
+  if (uni) sub.push('UNI');
   if (s.partialReps != null) sub.push('PARC');
   if (s.dropset) sub.push('DROP');
   if (s.restPause) sub.push(s.pauseSec ? `RP ⏱${s.pauseSec}s` : 'RP');
@@ -2033,12 +2035,20 @@ function measuresCsv() {
 // ---------- Récords (PR) ----------
 // Mejor serie histórica de un ejercicio (por 1RM estimado), en cualquier
 // rutina, sin sesiones de descarga. Sirve para avisar en la sesión y en Progreso.
-function bestSetForExercise(exerciseId) {
+// true si esa entrada guardada se hizo a un brazo/pierna (tiene repes izq).
+function entryIsUni(e) {
+  return e.sets.some(st => st.reps2 != null && st.reps2 !== '');
+}
+
+// uni: si se indica, solo cuentan las entradas hechas en ese modo. Unilateral y
+// bilateral no son comparables (otro peso, otras repes).
+function bestSetForExercise(exerciseId, uni) {
   let best = null;
   db.sessions.forEach(ses => {
     if (ses.deload) return;
     ses.entries.forEach(e => {
       if (e.exerciseId !== exerciseId) return;
+      if (uni != null && entryIsUni(e) !== uni) return;
       e.sets.forEach(st => {
         const w = firstNum(st.weight), r = firstNum(st.reps);
         if (w == null || r == null || w <= 0 || r <= 0 || r > 100 || w > 500) return;
@@ -2056,7 +2066,7 @@ function bestSetForExercise(exerciseId) {
 // exerciseId: por defecto el planificado en el hueco; en sesión, el que se está
 // haciendo hoy (si hay sustitución). Las sesiones con otro ejercicio en ese
 // hueco no cuentan: una máquina distinta no es una bajada de peso.
-function slotProgressPoints(routine, slot, exerciseId) {
+function slotProgressPoints(routine, slot, exerciseId, uni) {
   const exId = exerciseId || slot.exerciseId;
   return db.sessions
     .filter(ses => ses.routineId === routine.id)
@@ -2065,6 +2075,7 @@ function slotProgressPoints(routine, slot, exerciseId) {
       if (ses.deload) return null;
       const e = ses.entries.find(x => x.slotId === slot.id && x.exerciseId === exId);
       if (!e) return null;
+      if (uni != null && entryIsUni(e) !== uni) return null;
       const sets = e.sets.map(st => ({ w: firstNum(st.weight), r: firstNum(st.reps), rir: firstNum(st.rir) }))
         // Valores imposibles (repes de miles, pesos absurdos) son errores de
         // tecleo: fuera del análisis para que no disparen recomendaciones.
@@ -2447,14 +2458,19 @@ function renderProgress(routineId) {
 
   const blocks = routine.slots.map((slot, idx) => {
     const ex = getExercise(slot.exerciseId);
-    const pts = slotProgressPoints(routine, slot);
+    // Modo (uni/bi) de la última vez: solo se comparan sesiones de ese modo.
+    const lastEntry = db.sessions.filter(ses => ses.routineId === routine.id && !ses.deload)
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .map(ses => ses.entries.find(x => x.slotId === slot.id && x.exerciseId === slot.exerciseId)).find(Boolean);
+    const uniMode = lastEntry ? entryIsUni(lastEntry) : null;
+    const pts = slotProgressPoints(routine, slot, null, uniMode);
     const rec = recommendForSlot(routine, slot, pts);
     const last = pts[pts.length - 1];
     const main = idx < 3;
     const icon = { up: '⬆️', keep: '➡️', down: '⬇️', info: 'ℹ️' }[rec.level];
     const lastTxt = last ? `Última: ${fmtDateShort(last.date)} · ${last.sets.map(st => `${st.w}×${st.r}`).join(' · ')}${last.avgRir != null ? ` · RIR ${last.avgRir.toFixed(1)}` : ''}` : '';
-    const best = bestSetForExercise(slot.exerciseId);
-    const bestTxt = best ? `🏆 Récord: ${best.w}×${best.r} → ${Math.round(best.e1rm)} kg est. (${fmtDate(best.date)})` : '';
+    const best = bestSetForExercise(slot.exerciseId, uniMode);
+    const bestTxt = best ? `🏆 Récord${uniMode ? ' (unilateral)' : ''}: ${best.w}×${best.r} → ${Math.round(best.e1rm)} kg est. (${fmtDate(best.date)})` : '';
     const body = `
       <div class="progress-rec progress-${rec.level}">${icon} ${escapeHtml(rec.text)}</div>
       ${lastTxt ? `<div class="progress-last">${escapeHtml(lastTxt)}</div>` : ''}
@@ -2465,7 +2481,7 @@ function renderProgress(routineId) {
     return `
       <div class="card progress-card${main ? '' : ' progress-minor'}">
         <div class="progress-head">
-          <div class="name">${idx + 1}. ${ex ? escapeHtml(ex.name) : '(ejercicio eliminado)'} <span class="rep-range-tag">${repRangeOf(routine, slot).lo}–${repRangeOf(routine, slot).hi}</span></div>
+          <div class="name">${idx + 1}. ${ex ? escapeHtml(ex.name) : '(ejercicio eliminado)'} <span class="rep-range-tag">${repRangeOf(routine, slot).lo}–${repRangeOf(routine, slot).hi}</span>${uniMode ? ' <span class="rep-range-tag">🔀 uni</span>' : ''}</div>
           ${ex && ex.muscle ? muscleBadgeHtml(ex.muscle).replace('muscle-badge', 'muscle-badge progress-badge') : ''}
         </div>
         ${main ? body : `<details><summary>${icon} ${escapeHtml(rec.text)}</summary>${body}</details>`}
@@ -3176,7 +3192,7 @@ function renderSession(routineId) {
                 const fromRoutine = foreign ? getRoutine(session.routineId) : null;
                 const cells = Array.from({ length: maxSets }, (_, i) => e.sets[i] ? `<td>${formatSetCell(e.sets[i])}</td>` : '<td>—</td>').join('');
                 return `<tr>
-                  <td class="date-cell">${fmtDate(session.date)}${foreign ? `<div class="from-routine">↗ ${escapeHtml(fromRoutine ? fromRoutine.name : 'otra rutina')}</div>` : ''}${session.gym ? `<div class="gym-tag-sm">📍 ${escapeHtml(session.gym)}</div>` : ''}${wasSub ? `<div class="sub-note-sm" title="Sustituye a ${escapeHtml(exUsed ? exUsed.name : '?')}">🔄 ${escapeHtml(exUsed ? exUsed.name : '?')}</div>` : ''}${e.restNote ? `<div class="rest-note">desc. obj: ${escapeHtml(e.restNote)}s</div>` : ''}</td>
+                  <td class="date-cell">${fmtDate(session.date)}${foreign ? `<div class="from-routine">↗ ${escapeHtml(fromRoutine ? fromRoutine.name : 'otra rutina')}</div>` : ''}${session.gym ? `<div class="gym-tag-sm">📍 ${escapeHtml(session.gym)}</div>` : ''}${entryIsUni(e) ? '<div class="uni-tag-sm">🔀 unilateral</div>' : ''}${wasSub ? `<div class="sub-note-sm" title="Sustituye a ${escapeHtml(exUsed ? exUsed.name : '?')}">🔄 ${escapeHtml(exUsed ? exUsed.name : '?')}</div>` : ''}${e.restNote ? `<div class="rest-note">desc. obj: ${escapeHtml(e.restNote)}s</div>` : ''}</td>
                   ${cells}
                 </tr>`;
               }).join('')}
@@ -3189,7 +3205,7 @@ function renderSession(routineId) {
       const range = repRangeOf(routine, slot);
       const targetTag = `<button class="btn-ghost rest-target-tag" data-edit-rest="${slot.id}">🎯 ${target ? `${target}s` : 'sin desc.'} · ${range.lo}–${range.hi} reps</button>`;
       // Recomendación de Progreso, aquí mismo, que es donde se decide el peso.
-      const ptsToday = slotProgressPoints(routine, slot, entry.exerciseId);
+      const ptsToday = slotProgressPoints(routine, slot, entry.exerciseId, !!entry.uni);
       const rec = recommendForSlot(routine, slot, ptsToday);
       const warmOpen = idx === 0 || !!(draft.warmup && draft.warmup[slot.id]);
       const warmup = warmOpen
@@ -3198,7 +3214,7 @@ function renderSession(routineId) {
       const recHtml = isDeloadActive()
         ? `<div class="rec-inline rec-deload">🪫 Descarga: 60–70 % del peso habitual y RIR 3–4. Esta sesión no cuenta para las recomendaciones.</div>`
         : rec.level !== 'info'
-          ? `<div class="rec-inline rec-${rec.level}">${{ up: '⬆️', keep: '➡️', down: '⬇️' }[rec.level]} ${escapeHtml(rec.text)}</div>`
+          ? `<div class="rec-inline rec-${rec.level}">${{ up: '⬆️', keep: '➡️', down: '⬇️' }[rec.level]} ${entry.uni ? '🔀 ' : ''}${escapeHtml(rec.text)}</div>`
           : '';
 
       const setsHtml = entry.sets.map((set, sIdx) => {
@@ -3519,8 +3535,9 @@ function renderSession(routineId) {
       const set = entry.sets[Number(sIdx)];
       const w = firstNum(set.weight), r = firstNum(set.reps);
       if (w == null || r == null || w <= 0 || r <= 0 || r > 100) { line.hidden = true; return; }
-      if (!(entry.exerciseId in prCache)) prCache[entry.exerciseId] = bestSetForExercise(entry.exerciseId);
-      const best = prCache[entry.exerciseId];
+      const cacheKey = entry.exerciseId + (entry.uni ? ':u' : ':b');
+      if (!(cacheKey in prCache)) prCache[cacheKey] = bestSetForExercise(entry.exerciseId, !!entry.uni);
+      const best = prCache[cacheKey];
       const v = e1rm(w, r);
       if (best && v > best.e1rm + 0.05) {
         line.textContent = `🏆 Récord: ${Math.round(v)} kg est. (antes ${best.w}×${best.r} el ${fmtDateShort(best.date)})`;
