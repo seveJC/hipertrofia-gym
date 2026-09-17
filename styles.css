@@ -963,6 +963,12 @@ html, body {
 }
 .progress-pr { color: #e6b422; }
 
+.partial-label { font-size: 11px; color: var(--text-dim); align-self: center; text-align: center; }
+.partial-edit input { width: 44px; padding: 3px 6px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text); font-size: 12px; text-align: center; }
+.partial-edit .technique-link { margin-left: 6px; }
+.rest-tag .technique-link { font-size: 10px; color: var(--text-dim); opacity: 0.7; }
+.rest-tag .technique-link:active { color: var(--accent); }
+
 .rest-gap {
   display: flex;
   align-items: center;

@@ -726,6 +726,36 @@ function runMigrations() {
     changed = true;
   }
 
+  // 17/09/2026: en Elevación lateral polea, el "+N" de rest-pause del 16/09 y
+  // de las series 1–3 del 17/09 eran repes parciales; la última caída del drop
+  // set de la serie 4 del 17/09 también.
+  if (!db.meta.partialsLateral20260917) {
+    const norm = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+    const toPartials = (st) => {
+      const m = String(st.reps).match(/^(\d+)\+(\d+)$/);
+      if (!m || !st.restPause) return;
+      st.reps = Number(m[1]); st.partialReps = Number(m[2]);
+      delete st.restPause; delete st.pauseSec;
+    };
+    db.sessions.forEach(ses => {
+      const day = ses.date.slice(0, 10);
+      if (day !== '2026-09-16' && day !== '2026-09-17') return;
+      ses.entries.forEach(e => {
+        const ex = getExercise(e.exerciseId);
+        if (!ex || norm(ex.name) !== 'elevacion lateral polea') return;
+        e.sets.forEach((st, i) => {
+          if (day === '2026-09-16') toPartials(st);
+          else if (i < 3) toPartials(st);
+          else if (i === 3 && st.dropset && String(st.weight) === '4.5/2.5/2.5' && String(st.reps) === '8/7/2') {
+            st.weight = '4.5/2.5'; st.reps = '8/7'; st.partialReps = 2;
+          }
+        });
+      });
+    });
+    db.meta.partialsLateral20260917 = true;
+    changed = true;
+  }
+
   if (changed) saveDB();
 }
 
@@ -1822,7 +1852,9 @@ function formatSetCell(s) {
   let main = s.reps2 != null && s.reps2 !== ''
     ? `${w}×${s.reps}+${s.reps2}`
     : `${w}×${s.reps ?? '?'}`;
+  if (s.partialReps != null) main += s.partialReps2 != null ? ` +${s.partialReps}/${s.partialReps2}p` : ` +${s.partialReps}p`;
   const sub = [];
+  if (s.partialReps != null) sub.push('PARC');
   if (s.dropset) sub.push('DROP');
   if (s.restPause) sub.push(s.pauseSec ? `RP ⏱${s.pauseSec}s` : 'RP');
   if (s.rir !== null && s.rir !== undefined && s.rir !== '') {
@@ -1968,7 +2000,7 @@ function todayStamp() {
 
 // Una fila por serie. routineId opcional para exportar solo una rutina.
 function sessionsCsv(routineId) {
-  const header = ['Fecha', 'Hora', 'Rutina', 'Gimnasio', 'Parcial', 'Descarga', 'Duración min', 'Ejercicio', 'Músculo', 'Serie', 'Peso kg', 'Reps', 'Reps izq', 'RIR', 'RIR izq', 'Técnica', 'Pausa s', 'Descanso s', 'Superserie', 'Notas'];
+  const header = ['Fecha', 'Hora', 'Rutina', 'Gimnasio', 'Parcial', 'Descarga', 'Duración min', 'Ejercicio', 'Músculo', 'Serie', 'Peso kg', 'Reps', 'Reps izq', 'RIR', 'RIR izq', 'Técnica', 'Parciales', 'Pausa s', 'Descanso s', 'Superserie', 'Notas'];
   const rows = [];
   db.sessions
     .filter(ses => !routineId || ses.routineId === routineId)
@@ -1984,7 +2016,7 @@ function sessionsCsv(routineId) {
           ses.durationSec ? Math.round(ses.durationSec / 60) : '',
           ex ? ex.name : '', ex ? ex.muscle || '' : '', i + 1,
           st.weight, st.reps, st.reps2, st.rir, st.rir2,
-          st.dropset ? 'drop set' : st.restPause ? 'rest-pause' : '', st.pauseSec, st.restSec,
+          [st.dropset ? 'drop set' : null, st.restPause ? 'rest-pause' : null, st.partialReps != null ? 'parciales' : null].filter(Boolean).join(' + '), st.partialReps, st.pauseSec, st.restSec,
           e.supersetGroup ? 'sí' : '', ses.notes || '',
         ]));
       });
@@ -2531,6 +2563,9 @@ function renderSessionDetail(sessionId) {
         }).join(' · ');
       const setsHtml = e.sets.map((set, sIdx) => {
         const tags = [set.dropset ? 'DROP' : null, set.restPause ? 'RP' : null].filter(Boolean).join(' · ');
+        const partialsHtml = set.partialReps != null
+          ? `<div class="rest-tag partial-edit">PARC · <input type="text" inputmode="decimal" data-hp="${eIdx}:${sIdx}" value="${escapeHtml(set.partialReps)}" /> reps parciales <span class="technique-link" data-hp-rm="${eIdx}:${sIdx}">✕</span></div>`
+          : `<div class="rest-tag"><span class="technique-link" data-hp-add="${eIdx}:${sIdx}">+ parciales</span></div>`;
         return `
         <div class="set-row${set.reps2 != null ? ' set-row-uni' : ''}">
           <div class="set-num">${sIdx + 1}</div>
@@ -2541,7 +2576,7 @@ function renderSessionDetail(sessionId) {
           ${set.reps2 != null ? `<input type="text" inputmode="decimal" placeholder="RIR i" data-hrir2="${eIdx}:${sIdx}" value="${escapeHtml(set.rir2 ?? '')}" />` : ''}
           <button class="rm" data-hrm="${eIdx}:${sIdx}">✕</button>
         </div>
-        ${tags ? `<div class="rest-tag">${tags}</div>` : ''}`;
+        ${tags ? `<div class="rest-tag">${tags}</div>` : ''}${partialsHtml}`;
       }).join('');
 
       return `
@@ -2626,6 +2661,18 @@ function renderSessionDetail(sessionId) {
     bindSet('hr2', 'reps2');
     bindSet('hrir', 'rir');
     bindSet('hrir2', 'rir2');
+    bindSet('hp', 'partialReps');
+    app.querySelectorAll('[data-hp-add]').forEach(el => el.addEventListener('click', () => {
+      const [eIdx, sIdx] = el.dataset.hpAdd.split(':').map(Number);
+      session.entries[eIdx].sets[sIdx].partialReps = 0;
+      saveDB(); scheduleGhBackup(); paint();
+    }));
+    app.querySelectorAll('[data-hp-rm]').forEach(el => el.addEventListener('click', () => {
+      const [eIdx, sIdx] = el.dataset.hpRm.split(':').map(Number);
+      delete session.entries[eIdx].sets[sIdx].partialReps;
+      delete session.entries[eIdx].sets[sIdx].partialReps2;
+      saveDB(); scheduleGhBackup(); paint();
+    }));
 
     app.querySelectorAll('[data-hrm]').forEach(el => el.addEventListener('click', () => {
       const [eIdx, sIdx] = el.dataset.hrm.split(':').map(Number);
@@ -3185,10 +3232,21 @@ function renderSession(routineId) {
             <button class="rm" data-rm-stage="${slot.id}:${sIdx}:${stIdx}">✕</button>
           </div>
         `).join('')}
+        ${set.partials ? `
+          <div class="set-row set-row-sub${entry.uni ? ' set-row-uni' : ''}">
+            <div class="set-num">Pa</div>
+            <div class="partial-label">parciales</div>
+            <input type="text" inputmode="decimal" placeholder="${entry.uni ? 'der' : 'reps'}" data-partial-reps="${slot.id}:${sIdx}" value="${set.partialReps ?? ''}" />
+            ${entry.uni ? `<input type="text" inputmode="decimal" placeholder="izq" data-partial-reps2="${slot.id}:${sIdx}" value="${set.partialReps2 ?? ''}" />` : ''}
+            <div></div>
+            ${entry.uni ? '<div></div>' : ''}
+            <button class="rm" data-rm-partials="${slot.id}:${sIdx}">✕</button>
+          </div>` : ''}
         <div class="technique-actions">
           ${!set.technique
             ? `<span class="technique-link" data-add-technique="${slot.id}:${sIdx}:dropset">+ Drop set</span><span class="technique-link" data-add-technique="${slot.id}:${sIdx}:restpause">+ Rest-pause</span>`
             : `<span class="technique-link" data-add-stage="${slot.id}:${sIdx}">+ ${set.technique === 'dropset' ? 'Otra caída' : 'Otra pausa'}</span>`}
+          ${!set.partials ? `<span class="technique-link" data-add-partials="${slot.id}:${sIdx}">+ Parciales</span>` : ''}
         </div>
       `;
       }).join('');
@@ -3386,6 +3444,32 @@ function renderSession(routineId) {
       paint();
     }));
 
+    app.querySelectorAll('[data-add-partials]').forEach(el => el.addEventListener('click', () => {
+      const [slotId, sIdx] = el.dataset.addPartials.split(':');
+      const set = draft.entries[slotId].sets[Number(sIdx)];
+      set.partials = true;
+      set.partialReps = '';
+      paint();
+      const inp = app.querySelector(`[data-partial-reps="${slotId}:${sIdx}"]`);
+      if (inp) inp.focus();
+    }));
+    app.querySelectorAll('[data-rm-partials]').forEach(el => el.addEventListener('click', () => {
+      const [slotId, sIdx] = el.dataset.rmPartials.split(':');
+      const set = draft.entries[slotId].sets[Number(sIdx)];
+      delete set.partials; delete set.partialReps; delete set.partialReps2;
+      paint();
+    }));
+    app.querySelectorAll('[data-partial-reps]').forEach(el => el.addEventListener('input', () => {
+      const [slotId, sIdx] = el.dataset.partialReps.split(':');
+      draft.entries[slotId].sets[Number(sIdx)].partialReps = normalizeDecimal(el.value);
+      saveDraft();
+    }));
+    app.querySelectorAll('[data-partial-reps2]').forEach(el => el.addEventListener('input', () => {
+      const [slotId, sIdx] = el.dataset.partialReps2.split(':');
+      draft.entries[slotId].sets[Number(sIdx)].partialReps2 = normalizeDecimal(el.value);
+      saveDraft();
+    }));
+
     app.querySelectorAll('[data-add-stage]').forEach(el => el.addEventListener('click', () => {
       const [slotId, sIdx] = el.dataset.addStage.split(':');
       const set = draft.entries[slotId].sets[Number(sIdx)];
@@ -3558,6 +3642,14 @@ function renderSession(routineId) {
                   // Pausas entre tramos, en segundos y en orden ("15+20").
                   const pauses = stages.map(st => st.pauseSec).filter(p => p != null && p !== '');
                   if (pauses.length) out.pauseSec = pauses.join('+');
+                }
+                if (s.partials) {
+                  const p = firstNum(s.partialReps);
+                  if (p != null && p > 0) {
+                    out.partialReps = p;
+                    const p2 = firstNum(s.partialReps2);
+                    if (out.reps2 != null && p2 != null) out.partialReps2 = p2;
+                  }
                 }
                 return out;
               })
