@@ -5641,6 +5641,94 @@
         }
       ],
       "continuesSessionId": "mu5nlv3x01jxg9"
+    },
+    {
+      "id": "mu72ftexeour9x",
+      "routineId": "8a82112eb89a",
+      "date": "2026-09-18T14:40:40.617Z",
+      "durationSec": 840,
+      "gym": "Basic-Fit Bravo Murillo",
+      "entries": [
+        {
+          "slotId": "2f8b255965e4",
+          "exerciseId": "acd03ed6d5d9",
+          "sets": [
+            {
+              "weight": 34,
+              "reps": 10,
+              "rir": 0.5,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 134
+            },
+            {
+              "weight": 34,
+              "reps": 10,
+              "rir": 1.5,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 52
+            },
+            {
+              "weight": 34,
+              "reps": 10,
+              "rir": 1,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 51
+            },
+            {
+              "weight": 34,
+              "reps": 10,
+              "rir": 0,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 51
+            },
+            {
+              "weight": 34,
+              "reps": 9,
+              "rir": 0,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 66
+            }
+          ]
+        },
+        {
+          "slotId": "befe1402c2e8",
+          "exerciseId": "fb5ccfe259d5",
+          "sets": [
+            {
+              "weight": 4.5,
+              "reps": 13,
+              "rir": 0.5,
+              "rir2": null,
+              "reps2": null,
+              "restSec": null
+            },
+            {
+              "weight": 4.5,
+              "reps": 11,
+              "rir": 0,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 60
+            },
+            {
+              "weight": "4.5/2.3",
+              "reps": "8/8",
+              "rir": 0.5,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 77,
+              "dropset": true
+            }
+          ],
+          "restNote": "60"
+        }
+      ],
+      "partial": true
     }
   ],
   "meta": {
