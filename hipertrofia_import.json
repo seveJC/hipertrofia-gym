@@ -5529,6 +5529,125 @@
         }
       ],
       "partial": true
+    },
+    {
+      "id": "mu71w1z8or0qjx",
+      "routineId": "mtwxbr0umc3b96",
+      "date": "2026-09-18T14:25:18.596Z",
+      "durationSec": 2220,
+      "gym": "Basic-Fit Bravo Murillo",
+      "entries": [
+        {
+          "slotId": "6df0dc7664e0",
+          "exerciseId": "cdc3611eb981",
+          "sets": [
+            {
+              "weight": 65,
+              "reps": 5,
+              "rir": 2.5,
+              "rir2": null,
+              "reps2": null,
+              "restSec": null
+            },
+            {
+              "weight": 65,
+              "reps": 5,
+              "rir": 2,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 159
+            },
+            {
+              "weight": 65,
+              "reps": 5,
+              "rir": 2,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 161
+            },
+            {
+              "weight": 65,
+              "reps": 5,
+              "rir": 1.5,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 159
+            }
+          ],
+          "restNote": "180"
+        },
+        {
+          "slotId": "39614ab607f2",
+          "exerciseId": "618526128189",
+          "sets": [
+            {
+              "weight": 170,
+              "reps": 7,
+              "rir": 2.5,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 146
+            },
+            {
+              "weight": 170,
+              "reps": 7,
+              "rir": 1.5,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 124
+            },
+            {
+              "weight": 170,
+              "reps": 6,
+              "rir": 1,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 130
+            }
+          ],
+          "restNote": "150"
+        },
+        {
+          "slotId": "efd2de8b2e2a",
+          "exerciseId": "cea8cd3691f5",
+          "sets": [
+            {
+              "weight": 45,
+              "reps": 8,
+              "rir": 2.5,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 112
+            },
+            {
+              "weight": 45,
+              "reps": 8,
+              "rir": 2,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 113
+            },
+            {
+              "weight": 45,
+              "reps": 8,
+              "rir": 1.5,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 93
+            },
+            {
+              "weight": 45,
+              "reps": 8,
+              "rir": 1,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 98
+            }
+          ],
+          "restNote": "150"
+        }
+      ],
+      "continuesSessionId": "mu5nlv3x01jxg9"
     }
   ],
   "meta": {
