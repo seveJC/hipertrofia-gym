@@ -5201,48 +5201,48 @@
           "sets": [
             {
               "weight": 4.5,
-              "reps": "12+3",
+              "reps": 12,
               "rir": 0.5,
               "rir2": null,
               "reps2": null,
               "restSec": 24,
-              "restPause": true
+              "partialReps": 3
             },
             {
               "weight": 4.5,
-              "reps": "9+3",
+              "reps": 9,
               "rir": 0.5,
               "rir2": null,
               "reps2": null,
               "restSec": 93,
-              "restPause": true
+              "partialReps": 3
             },
             {
               "weight": 2.3,
-              "reps": "16+2",
+              "reps": 16,
               "rir": 0.2,
               "rir2": null,
               "reps2": null,
               "restSec": 22,
-              "restPause": true
+              "partialReps": 2
             },
             {
               "weight": 2.3,
-              "reps": "14+2",
+              "reps": 14,
               "rir": 0.5,
               "rir2": null,
               "reps2": null,
               "restSec": 72,
-              "restPause": true
+              "partialReps": 2
             },
             {
               "weight": 2.3,
-              "reps": "12+2",
+              "reps": 12,
               "rir": 0.5,
               "rir2": null,
               "reps2": null,
               "restSec": 89,
-              "restPause": true
+              "partialReps": 2
             }
           ],
           "restNote": "90",
@@ -5403,39 +5403,40 @@
           "sets": [
             {
               "weight": 4.5,
-              "reps": "16+3",
+              "reps": 16,
               "rir": 0.5,
               "rir2": null,
               "reps2": null,
               "restSec": 144,
-              "restPause": true
+              "partialReps": 3
             },
             {
               "weight": 4.5,
-              "reps": "12+2",
+              "reps": 12,
               "rir": 0.5,
               "rir2": null,
               "reps2": null,
               "restSec": 80,
-              "restPause": true
+              "partialReps": 2
             },
             {
               "weight": 4.5,
-              "reps": "10+2",
+              "reps": 10,
               "rir": 0.5,
               "rir2": null,
               "reps2": null,
               "restSec": 81,
-              "restPause": true
+              "partialReps": 2
             },
             {
-              "weight": "4.5/2.5/2.5",
-              "reps": "8/7/2",
+              "weight": "4.5/2.5",
+              "reps": "8/7",
               "rir": 0.5,
               "rir2": null,
               "reps2": null,
               "restSec": 84,
-              "dropset": true
+              "dropset": true,
+              "partialReps": 2
             }
           ],
           "restNote": "60"
@@ -5543,7 +5544,8 @@
     "repRanges20260914b": true,
     "repRangesAbsCalves20260914": true,
     "measuresSeeded20260916": true,
-    "measuresSeeded20260916b": true
+    "measuresSeeded20260916b": true,
+    "partialsLateral20260917": true
   },
   "gyms": [
     "Basic-Fit Bravo Murillo",
