@@ -2726,6 +2726,24 @@ function renderSession(routineId) {
   // La barra del cronómetro va en position:fixed. Con zoom (pellizco) los
   // elementos fijos se escalan con la página; aquí se contrarresta con el
   // visualViewport para que siga arriba y a su tamaño original.
+  function refreshRestMuscles() {
+    const el = document.getElementById('rest-bar-muscles');
+    if (!el) return;
+    const hasData = st => (st.weight !== '' && st.weight != null) || (st.reps !== '' && st.reps != null);
+    const per = {};
+    Object.values(draft.entries).forEach(e => {
+      const n = e.sets.filter(hasData).length;
+      if (!n) return;
+      const ex = getExercise(e.exerciseId);
+      muscleNames(ex && ex.muscle).forEach(m => { per[m] = (per[m] || 0) + n; });
+    });
+    const items = Object.keys(MUSCLE_COLORS).filter(m => per[m]).concat(Object.keys(per).filter(m => !(m in MUSCLE_COLORS)));
+    const total = Object.values(draft.entries).reduce((n, e) => n + e.sets.filter(hasData).length, 0);
+    el.innerHTML = items.length
+      ? `<span class="rest-total">${total} serie${total === 1 ? '' : 's'}</span>` + items.map(m => `<span style="color:${MUSCLE_COLORS[m] || 'var(--text-dim)'};">${escapeHtml(muscleAbbr(m))} ${per[m]}</span>`).join('')
+      : '<span class="rest-total">sin series todavía</span>';
+  }
+
   function pinRestBarToViewport() {
     const bar = document.getElementById('rest-bar');
     const vv = window.visualViewport;
@@ -3331,16 +3349,22 @@ function renderSession(routineId) {
     }
     const restState = draft.restStart != null ? 'running' : draft.restPendingSec != null ? 'stopped' : 'idle';
     restBar.dataset.state = restState;
-    restBar.innerHTML = restState === 'running' ? `
-        <span class="rest-live" id="rest-live">⏱ 0:00</span>
-        <span class="rest-bar-info" id="rest-bar-info"></span>
-        <button class="btn rest-bar-btn" id="rest-stop">⏹ Parar</button>` :
-      restState === 'stopped' ? `
-        <span class="rest-live rest-done">✔ ${mmss(draft.restPendingSec)}</span>
-        <span class="rest-bar-info">descanso hecho · se guarda en la próxima serie</span>
-        <button class="btn-ghost rest-bar-cancel" id="rest-cancel" title="Descartar">✕</button>` : `
-        <span class="rest-live rest-idle">⏱ —</span>
-        <span class="rest-bar-info">pulsa «+ Serie» al acabar la serie</span>`;
+    // Mitad izquierda: cronómetro; mitad derecha: botón. Debajo, series por músculo de hoy.
+    restBar.innerHTML = `
+      <div class="rest-bar-main">
+        <div class="rest-bar-left">
+          ${restState === 'running' ? `<span class="rest-live" id="rest-live">⏱ 0:00</span><span class="rest-bar-info" id="rest-bar-info"></span>`
+            : restState === 'stopped' ? `<span class="rest-live rest-done">✔ ${mmss(draft.restPendingSec)}</span><span class="rest-bar-info">se guarda en la próxima serie</span>`
+            : `<span class="rest-live rest-idle">⏱ —</span><span class="rest-bar-info">pulsa «+ Serie» al acabar</span>`}
+        </div>
+        <div class="rest-bar-right">
+          ${restState === 'running' ? `<button class="btn rest-bar-btn" id="rest-stop">⏹ Parar</button>`
+            : restState === 'stopped' ? `<button class="btn rest-bar-btn rest-bar-btn-ghost" id="rest-cancel">✕ Descartar</button>`
+            : ''}
+        </div>
+      </div>
+      <div class="rest-bar-muscles" id="rest-bar-muscles"></div>`;
+    refreshRestMuscles();
     document.getElementById('app').classList.add('with-rest-bar');
     pinRestBarToViewport();
 
@@ -3552,6 +3576,7 @@ function renderSession(routineId) {
       markActivity();
       saveDraft();
       refreshPr(slotId, sIdx);
+      refreshRestMuscles();
     }));
     app.querySelectorAll('[data-reps]').forEach(el => el.addEventListener('input', () => {
       const [slotId, sIdx] = el.dataset.reps.split(':');
@@ -3559,6 +3584,7 @@ function renderSession(routineId) {
       markActivity();
       saveDraft();
       refreshPr(slotId, sIdx);
+      refreshRestMuscles();
     }));
     app.querySelectorAll('[data-rir]').forEach(el => el.addEventListener('input', () => {
       const [slotId, sIdx] = el.dataset.rir.split(':');
