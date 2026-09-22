@@ -949,6 +949,112 @@ function bindMessageDismiss(root, afterDismiss) {
 
 // Al tocar una rutina: ¿entrenar o solo mirarla? Abrir la sesión directamente
 // arrancaba el cronómetro y creaba un borrador aunque solo quisieras consultar.
+// ---------- Traslado de ejercicios entre rutinas ----------
+// db.transfers = [{ id, fromSessionId, fromRoutineId, toRoutineId, slotIds[], createdAt }]
+// Lo que quedó sin hacer en una sesión parcial se hace durante otra rutina,
+// pero las series se guardan en la sesión de origen (con su propia fecha).
+function allTransfers() { return db.transfers || []; }
+
+function findSlotAnywhere(slotId) {
+  for (const r of db.routines) {
+    const sl = r.slots.find(x => x.id === slotId);
+    if (sl) return { routine: r, slot: sl };
+  }
+  return null;
+}
+
+function pendingTransfersFor(routineId) {
+  const out = [];
+  allTransfers().filter(t => t.toRoutineId === routineId).forEach(t => {
+    const from = getRoutine(t.fromRoutineId);
+    const session = db.sessions.find(x => x.id === t.fromSessionId);
+    if (!from || !session) return;
+    t.slotIds.forEach(id => {
+      const slot = from.slots.find(sl => sl.id === id);
+      if (slot) out.push({ transfer: t, fromRoutine: from, fromSession: session, slot });
+    });
+  });
+  return out;
+}
+
+// Huecos de una sesión que siguen sin registrar (ni en ella, ni en su continuación).
+function missingSlotsOf(session) {
+  const routine = getRoutine(session.routineId);
+  if (!routine) return [];
+  const done = new Set();
+  db.sessions.forEach(s2 => {
+    if (s2.id === session.id || s2.continuesSessionId === session.id) s2.entries.forEach(e => done.add(e.slotId));
+  });
+  const moved = new Set();
+  allTransfers().forEach(t => { if (t.fromSessionId === session.id) t.slotIds.forEach(id => moved.add(id)); });
+  return routine.slots.filter(sl => !done.has(sl.id) && !moved.has(sl.id));
+}
+
+function openTransferDialog(session, afterChange) {
+  const missing = missingSlotsOf(session);
+  const targets = db.routines.filter(r => r.id !== session.routineId);
+  if (!missing.length || !targets.length) { if (afterChange) afterChange(); return; }
+  const fromRoutine = getRoutine(session.routineId);
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.innerHTML = `
+    <div class="modal-sheet">
+      <h2>↗ Trasladar a otra rutina</h2>
+      <p style="color:var(--text-dim);font-size:13px;margin:0 0 10px;">Los harás durante otro entreno, pero se guardarán en esta sesión de ${escapeHtml(fromRoutine ? fromRoutine.name : '')} del ${fmtDateShort(session.date)}.</p>
+      <div class="transfer-list">
+        ${missing.map(sl => { const ex = getExercise(sl.exerciseId); return `
+          <label class="transfer-item"><input type="checkbox" data-tr-slot="${sl.id}" checked /> <span>${escapeHtml(ex ? ex.name : '(ejercicio eliminado)')}</span></label>`; }).join('')}
+      </div>
+      <div class="field" style="margin-top:12px;">
+        <label>Hacerlos en</label>
+        <select id="transfer-target">${targets.map(r => `<option value="${r.id}">${escapeHtml(r.name)}</option>`).join('')}</select>
+      </div>
+      <button class="btn btn-primary btn-block" id="transfer-ok">↗ Trasladar</button>
+      <div style="height:8px;"></div>
+      <button class="btn btn-block" id="transfer-cancel">Ahora no</button>
+    </div>`;
+  document.body.appendChild(backdrop);
+  const close = () => { if (backdrop.parentNode) document.body.removeChild(backdrop); };
+  document.getElementById('transfer-ok').addEventListener('click', () => {
+    const slotIds = [...backdrop.querySelectorAll('[data-tr-slot]')].filter(c => c.checked).map(c => c.dataset.trSlot);
+    if (!slotIds.length) { showToast('No has marcado ningún ejercicio'); return; }
+    const toRoutineId = document.getElementById('transfer-target').value;
+    db.transfers = allTransfers();
+    const existing = db.transfers.find(t => t.fromSessionId === session.id && t.toRoutineId === toRoutineId);
+    if (existing) existing.slotIds = [...new Set(existing.slotIds.concat(slotIds))];
+    else db.transfers.push({ id: uid(), fromSessionId: session.id, fromRoutineId: session.routineId, toRoutineId, slotIds, createdAt: new Date().toISOString() });
+    saveDB();
+    close();
+    const target = getRoutine(toRoutineId);
+    showToast(`${slotIds.length} ejercicio${slotIds.length === 1 ? '' : 's'} → ${target ? target.name : ''}`);
+    if (afterChange) afterChange();
+  });
+  document.getElementById('transfer-cancel').addEventListener('click', () => { close(); if (afterChange) afterChange(); });
+  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) { close(); if (afterChange) afterChange(); } });
+}
+
+// Aviso en la home con los traslados pendientes.
+function transfersBannerHtml() {
+  const rows = allTransfers().filter(t => t.slotIds.length).map(t => {
+    const from = getRoutine(t.fromRoutineId), to = getRoutine(t.toRoutineId);
+    const ses = db.sessions.find(x => x.id === t.fromSessionId);
+    if (!from || !to || !ses) return '';
+    const names = t.slotIds.map(id => { const sl = from.slots.find(x => x.id === id); const ex = sl && getExercise(sl.exerciseId); return ex ? ex.name : '?'; }).join(' · ');
+    return `<div class="transfer-bar">↗ <b>${escapeHtml(names)}</b> (de ${escapeHtml(from.name)} ${fmtDateShort(ses.date)}) se harán en <b>${escapeHtml(to.name)}</b> · <span class="transfer-cancel" data-cancel-transfer="${t.id}">cancelar</span></div>`;
+  }).join('');
+  return rows;
+}
+
+function bindTransferCancel(afterChange) {
+  document.querySelectorAll('[data-cancel-transfer]').forEach(el => el.addEventListener('click', (e) => {
+    e.stopPropagation();
+    db.transfers = allTransfers().filter(t => t.id !== el.dataset.cancelTransfer);
+    saveDB();
+    showToast('Traslado cancelado');
+    afterChange();
+  }));
+}
+
 function openRoutineChoice(routineId) {
   const routine = getRoutine(routineId);
   if (!routine) return;
@@ -967,6 +1073,7 @@ function openRoutineChoice(routineId) {
       ${pendingMessagesHtml(routineId)}
       ${inProgress ? '<p style="color:var(--green);font-size:13px;margin-top:-8px;">Tienes un entreno en curso de esta rutina.</p>' : ''}
       ${resumable ? `<button class="btn btn-primary btn-block" id="choice-resume">↪ Continuar la sesión del ${fmtDateShort(resumable.date)}</button><div style="height:8px;"></div>` : ''}
+      ${resumable && missingSlotsOf(resumable).length && db.routines.length > 1 ? `<button class="btn btn-block" id="choice-transfer">↗ Trasladar lo que falta a otra rutina</button><div style="height:8px;"></div>` : ''}
       <button class="btn ${resumable ? '' : 'btn-primary'} btn-block" id="choice-train">🏋️ ${inProgress ? 'Continuar entreno' : 'Empezar entreno'}</button>
       <div style="height:8px;"></div>
       <button class="btn btn-block" id="choice-view">📋 Consultar rutina</button>
@@ -996,6 +1103,8 @@ function openRoutineChoice(routineId) {
     close();
     navigate(`session/${routineId}`);
   });
+  const transferBtn = document.getElementById('choice-transfer');
+  if (transferBtn) transferBtn.addEventListener('click', () => { close(); openTransferDialog(resumable, renderHome); });
   document.getElementById('choice-view').addEventListener('click', () => { close(); navigate(`history/${routineId}`); });
   document.getElementById('choice-progress').addEventListener('click', () => { close(); navigate(`progress/${routineId}`); });
   document.getElementById('choice-cancel').addEventListener('click', close);
@@ -1053,18 +1162,25 @@ function bindDeloadToggle(afterChange) {
 }
 
 // Series por músculo en una ventana de días (combinados cuentan en ambos).
+// Las series trasladadas llevan su propia fecha (doneOn) y cuentan el día en
+// que se hicieron, aunque se guarden en la sesión de origen.
 function weeklyStats(fromMs, toMs) {
-  const sessions = db.sessions.filter(ses => { const t = new Date(ses.date).getTime(); return t >= fromMs && t < toMs; });
+  const inWindow = (iso) => { const t = new Date(iso).getTime(); return t >= fromMs && t < toMs; };
   const perMuscle = {};
   let minutes = 0;
-  sessions.forEach(ses => {
-    if (ses.durationSec) minutes += ses.durationSec / 60;
+  let count = 0;
+  db.sessions.forEach(ses => {
+    if (inWindow(ses.date)) {
+      count++;
+      if (ses.durationSec) minutes += ses.durationSec / 60;
+    }
     ses.entries.forEach(e => {
+      if (!inWindow(e.doneOn || ses.date)) return;
       const ex = getExercise(e.exerciseId);
       muscleNames(ex && ex.muscle).forEach(m => { perMuscle[m] = (perMuscle[m] || 0) + e.sets.length; });
     });
   });
-  return { sessions: sessions.length, minutes: Math.round(minutes), perMuscle };
+  return { sessions: count, minutes: Math.round(minutes), perMuscle };
 }
 
 // Tabla de las últimas 3 semanas naturales (lunes a domingo), una fila por
@@ -1231,6 +1347,7 @@ function renderHome() {
       ☁️ Hay cambios sin copiar a GitHub · <span class="backup-retry" id="backup-retry-btn">subir ahora</span>
     </div>
     <div class="container">
+      ${transfersBannerHtml()}
       ${measureReminderHtml()}
       ${deloadBannerHtml()}
       ${weeklySummaryHtml()}
@@ -1246,6 +1363,7 @@ function renderHome() {
   });
   document.getElementById('backup-retry-btn').addEventListener('click', () => pushBackupToGitHub(true));
   bindDeloadToggle(renderHome);
+  bindTransferCancel(renderHome);
   const volBtn = document.getElementById('vol-targets-btn');
   if (volBtn) volBtn.addEventListener('click', openVolumeTargetsDialog);
   // El desplegable vive dentro de la tarjeta, que entera abre la sesión:
@@ -2014,7 +2132,7 @@ function sessionsCsv(routineId) {
       ses.entries.forEach(e => {
         const ex = getExercise(e.exerciseId);
         e.sets.forEach((st, i) => rows.push([
-          fmtDate(ses.date), hora, r ? r.name : '', ses.gym || '', ses.partial ? 'sí' : '', ses.deload ? 'sí' : '',
+          fmtDate(st.doneOn || e.doneOn || ses.date), hora, r ? r.name : '', ses.gym || '', ses.partial ? 'sí' : '', ses.deload ? 'sí' : '',
           ses.durationSec ? Math.round(ses.durationSec / 60) : '',
           ex ? ex.name : '', ex ? ex.muscle || '' : '', i + 1,
           st.weight, st.reps, st.reps2, st.rir, st.rir2,
@@ -2601,6 +2719,7 @@ function renderSessionDetail(sessionId) {
           <div class="exercise-head">
             <div>
               <h3>${eIdx + 1}. ${escapeHtml(ex ? ex.name : '(ejercicio eliminado)')}</h3>
+              ${e.doneOn ? `<div class="transfer-note">↗ Hecho el ${fmtDate(e.doneOn)}, en otro entreno</div>` : ''}
               ${ssPartners ? `<div class="superset-note">🔗 Superserie con ${ssPartners}</div>` : ''}
               ${e.restNote ? `<div class="rest-note">desc. obj: ${escapeHtml(e.restNote)}s</div>` : ''}
             </div>
@@ -2794,12 +2913,14 @@ function renderSession(routineId) {
   // mismo ejercicio hecho en cualquier otra rutina (marcado como "foreign"),
   // para que un ejercicio recién añadido no aparezca vacío.
   function pastSessionsForSlot(slotId, limit) {
-    const slot = routine.slots.find(sl => sl.id === slotId);
+    const found = findSlotAnywhere(slotId);
+    const slot = found ? found.slot : null;
+    const ownRoutineId = found ? found.routine.id : routineId;
     const entryNow = draft.entries[slotId];
     const exId = entryNow ? entryNow.exerciseId : (slot ? slot.exerciseId : null);
     const rows = [];
     db.sessions.forEach(s => {
-      let e = s.routineId === routineId ? s.entries.find(x => x.slotId === slotId) : null;
+      let e = s.routineId === ownRoutineId ? s.entries.find(x => x.slotId === slotId) : null;
       let foreign = false;
       if (!e && exId) { e = s.entries.find(x => x.exerciseId === exId); foreign = true; }
       if (e) rows.push({ session: s, entry: e, foreign });
@@ -2833,6 +2954,15 @@ function renderSession(routineId) {
     draft.entries[slot.id] = { exerciseId: slot.exerciseId, sets: [], uni: defaultUni, _historyLimit: 5 };
   });
 
+  // Huecos de otra rutina que hoy se hacen aquí (traslados pendientes).
+  const transferItems = pendingTransfersFor(routineId);
+  transferItems.forEach(({ slot }) => {
+    if (draft.entries[slot.id]) return;
+    const lastHistory = pastSessionsForSlot(slot.id, 1)[0];
+    const defaultUni = !!(lastHistory && lastHistory.entry.sets.some(s2 => s2.reps2 != null && s2.reps2 !== ''));
+    draft.entries[slot.id] = { exerciseId: slot.exerciseId, sets: [], uni: defaultUni, _historyLimit: 5 };
+  });
+
   // draft.supersets[slotId] = idGrupo | null. La rutina guarda el plan habitual;
   // esto guarda lo que haces HOY, para que improvisar (o saltarte) una
   // superserie no reescriba la rutina. null = hoy suelto a propósito, por eso se
@@ -2841,6 +2971,7 @@ function renderSession(routineId) {
   routine.slots.forEach(slot => {
     if (!(slot.id in draft.supersets)) draft.supersets[slot.id] = slot.supersetGroup || null;
   });
+  transferItems.forEach(({ slot }) => { if (!(slot.id in draft.supersets)) draft.supersets[slot.id] = null; });
 
   function saveDraft() {
     saveSessionDraft(routineId, draft);
@@ -3017,7 +3148,8 @@ function renderSession(routineId) {
   }
 
   function restTargetOf(slotId) {
-    const slot = routine.slots.find(sl => sl.id === slotId);
+    const found = findSlotAnywhere(slotId);
+    const slot = found ? found.slot : null;
     return slot && slot.restSec > 0 ? slot.restSec : null;
   }
 
@@ -3152,14 +3284,14 @@ function renderSession(routineId) {
   function paint() {
     saveDraft();
     const doneSlotIds = draft.doneFrom ? draft.doneFrom.slotIds : [];
-    const blocks = routine.slots.map((slot, idx) => {
+    const renderBlock = (slot, idx, slotRoutine, transfer) => {
       const plannedEx = getExercise(slot.exerciseId);
       const entry = draft.entries[slot.id];
       const currentEx = getExercise(entry.exerciseId);
       const isSub = entry.exerciseId !== slot.exerciseId;
       // Última sustitución de este hueco en esta rutina, para repetirla de un toque.
       const lastSubSession = db.sessions
-        .filter(ses => ses.routineId === routineId && ses.entries.some(x => x.slotId === slot.id && x.exerciseId !== slot.exerciseId))
+        .filter(ses => ses.routineId === slotRoutine.id && ses.entries.some(x => x.slotId === slot.id && x.exerciseId !== slot.exerciseId))
         .sort((a, b) => b.date.localeCompare(a.date))[0];
       const lastSubEntry = lastSubSession && lastSubSession.entries.find(x => x.slotId === slot.id);
       const lastSubEx = lastSubEntry ? getExercise(lastSubEntry.exerciseId) : null;
@@ -3210,7 +3342,7 @@ function renderSession(routineId) {
                 const fromRoutine = foreign ? getRoutine(session.routineId) : null;
                 const cells = Array.from({ length: maxSets }, (_, i) => e.sets[i] ? `<td>${formatSetCell(e.sets[i])}</td>` : '<td>—</td>').join('');
                 return `<tr>
-                  <td class="date-cell">${fmtDate(session.date)}${foreign ? `<div class="from-routine">↗ ${escapeHtml(fromRoutine ? fromRoutine.name : 'otra rutina')}</div>` : ''}${session.gym ? `<div class="gym-tag-sm">📍 ${escapeHtml(session.gym)}</div>` : ''}${entryIsUni(e) ? '<div class="uni-tag-sm">🔀 unilateral</div>' : ''}${wasSub ? `<div class="sub-note-sm" title="Sustituye a ${escapeHtml(exUsed ? exUsed.name : '?')}">🔄 ${escapeHtml(exUsed ? exUsed.name : '?')}</div>` : ''}${e.restNote ? `<div class="rest-note">desc. obj: ${escapeHtml(e.restNote)}s</div>` : ''}</td>
+                  <td class="date-cell">${fmtDate(e.doneOn || session.date)}${e.doneOn ? '<div class="transfer-tag-sm">↗ trasladado</div>' : ''}${foreign ? `<div class="from-routine">↗ ${escapeHtml(fromRoutine ? fromRoutine.name : 'otra rutina')}</div>` : ''}${session.gym ? `<div class="gym-tag-sm">📍 ${escapeHtml(session.gym)}</div>` : ''}${entryIsUni(e) ? '<div class="uni-tag-sm">🔀 unilateral</div>' : ''}${wasSub ? `<div class="sub-note-sm" title="Sustituye a ${escapeHtml(exUsed ? exUsed.name : '?')}">🔄 ${escapeHtml(exUsed ? exUsed.name : '?')}</div>` : ''}${e.restNote ? `<div class="rest-note">desc. obj: ${escapeHtml(e.restNote)}s</div>` : ''}</td>
                   ${cells}
                 </tr>`;
               }).join('')}
@@ -3220,11 +3352,11 @@ function renderSession(routineId) {
       ` : '<div class="history-empty">Sin sesiones anteriores para este ejercicio.</div>';
 
       const target = restTargetOf(slot.id);
-      const range = repRangeOf(routine, slot);
+      const range = repRangeOf(slotRoutine, slot);
       const targetTag = `<button class="btn-ghost rest-target-tag" data-edit-rest="${slot.id}">🎯 ${target ? `${target}s` : 'sin desc.'} · ${range.lo}–${range.hi} reps</button>`;
       // Recomendación de Progreso, aquí mismo, que es donde se decide el peso.
-      const ptsToday = slotProgressPoints(routine, slot, entry.exerciseId, !!entry.uni);
-      const rec = recommendForSlot(routine, slot, ptsToday);
+      const ptsToday = slotProgressPoints(slotRoutine, slot, entry.exerciseId, !!entry.uni);
+      const rec = recommendForSlot(slotRoutine, slot, ptsToday);
       const warmOpen = idx === 0 || !!(draft.warmup && draft.warmup[slot.id]);
       const warmup = warmOpen
         ? warmupHtml(ptsToday, true)
@@ -3290,15 +3422,16 @@ function renderSession(routineId) {
       const uniToggle = `<button class="btn-ghost uni-toggle" data-toggle-uni="${slot.id}">${entry.uni ? '🔀 Unilateral' : '↔ Bilateral'}</button>`;
 
       return `
-        <div class="exercise-block" style="${muscleBackgroundStyle(currentEx && currentEx.muscle)}">
+        <div class="exercise-block${transfer ? ' exercise-transfer' : ''}" style="${muscleBackgroundStyle(currentEx && currentEx.muscle)}">
           ${currentEx && currentEx.muscle ? muscleBadgeHtml(currentEx.muscle) : ''}
           <div class="exercise-head">
             <div>
-              <h3>${idx + 1}. ${escapeHtml(currentEx ? currentEx.name : '(ejercicio eliminado)')}</h3>
+              <h3>${transfer ? '↗' : idx + 1 + '.'} ${escapeHtml(currentEx ? currentEx.name : '(ejercicio eliminado)')}</h3>
+              ${transfer ? `<div class="transfer-note">Pendiente de ${escapeHtml(transfer.fromRoutine.name)} · se guarda en la sesión del ${fmtDateShort(transfer.fromSession.date)}</div>` : ''}
               ${currentEx && currentEx.notes ? `<div class="notes-line" data-edit-ex-notes="${currentEx.id}">✎ ${escapeHtml(currentEx.notes)}</div>` : currentEx ? `<div class="notes-line notes-line-empty" data-edit-ex-notes="${currentEx.id}">+ añadir observación</div>` : ''}
               ${isSub ? `<div class="sub-note">🔄 Sustituye a: ${escapeHtml(plannedEx ? plannedEx.name : '?')}</div>` : ''}
               ${!isSub && lastSubEx ? `<div class="sub-quick" data-quick-sub="${slot.id}:${lastSubEx.id}">🔄 Hoy con ${escapeHtml(lastSubEx.name)} (como el ${fmtDateShort(lastSubDate)})</div>` : ''}
-              ${supersetNoteHtml(slot)}
+              ${transfer ? '' : supersetNoteHtml(slot)}
             </div>
             <button class="btn btn-ghost" data-swap="${slot.id}" style="font-size:13px;white-space:nowrap;">Sustituir</button>
           </div>
@@ -3315,7 +3448,9 @@ function renderSession(routineId) {
           </div>
         </div>
       `;
-    }).join('');
+    };
+    const blocks = routine.slots.map((slot, idx) => renderBlock(slot, idx, routine, null)).join('')
+      + transferItems.map((it, i) => renderBlock(it.slot, routine.slots.length + i, it.fromRoutine, it)).join('');
 
     app.innerHTML = `
       <div class="topbar">
@@ -3710,8 +3845,44 @@ function renderSession(routineId) {
         return;
       }
 
+      // Lo trasladado se escribe en la sesión de origen, con la fecha de hoy.
+      const transferBySlot = new Map(transferItems.map(it => [it.slot.id, it]));
+      const ownEntries = entries.filter(e => !transferBySlot.has(e.slotId));
+      const movedEntries = entries.filter(e => transferBySlot.has(e.slotId));
+      const applyMoved = () => {
+        if (!movedEntries.length) return [];
+        const now = new Date().toISOString();
+        const touched = [];
+        movedEntries.forEach(e => {
+          const it = transferBySlot.get(e.slotId);
+          const origin = db.sessions.find(x => x.id === it.transfer.fromSessionId);
+          if (!origin) return;
+          e.doneOn = now;
+          origin.entries.push(e);
+          it.transfer.slotIds = it.transfer.slotIds.filter(id => id !== e.slotId);
+          const fromRoutine = getRoutine(origin.routineId);
+          const done = new Set();
+          db.sessions.forEach(s2 => { if (s2.id === origin.id || s2.continuesSessionId === origin.id) s2.entries.forEach(x => done.add(x.slotId)); });
+          if (fromRoutine && fromRoutine.slots.every(sl => done.has(sl.id))) delete origin.partial;
+          touched.push(it.fromRoutine.name);
+        });
+        db.transfers = allTransfers().filter(t => t.slotIds.length);
+        return [...new Set(touched)];
+      };
+
+      if (!ownEntries.length) {
+        // Solo se hicieron los trasladados: no hay sesión nueva que crear.
+        const names = applyMoved();
+        saveDB();
+        clearSessionDraft(routineId);
+        showToast(names.length ? `Guardado en ${names.join(' y ')}` : 'Sesión guardada');
+        navigate('');
+        if (getGhToken()) setTimeout(() => pushBackupToGitHub(true), 2000);
+        return;
+      }
+
       const doneIds = draft.doneFrom ? draft.doneFrom.slotIds : [];
-      const savedIds = new Set(entries.map(e => e.slotId));
+      const savedIds = new Set(ownEntries.map(e => e.slotId));
       const missingCount = routine.slots.filter(sl => !doneIds.includes(sl.id) && !savedIds.has(sl.id)).length;
       openDurationPrompt(missingCount, (durationSec, partial, deload) => {
         const session = {
@@ -3720,8 +3891,9 @@ function renderSession(routineId) {
           date: new Date().toISOString(),
           durationSec,
           gym: canonicalGym(draft.gym || ''),
-          entries
+          entries: ownEntries
         };
+        applyMoved();
         if (partial) session.partial = true;
         if (deload) session.deload = true;
         if (draft.notes) session.notes = draft.notes;
@@ -3732,6 +3904,10 @@ function renderSession(routineId) {
         showToast('Sesión guardada');
         navigate('');
         if (getGhToken()) setTimeout(() => pushBackupToGitHub(true), 2000);
+        // Lo que falta: ¿se traslada a otra rutina o se deja para continuar?
+        if (partial && missingSlotsOf(session).length && db.routines.length > 1) {
+          setTimeout(() => openTransferDialog(session, renderHome), 400);
+        }
       });
     });
   }

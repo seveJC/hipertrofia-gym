@@ -420,6 +420,32 @@ html, body {
   white-space: normal;
 }
 
+.exercise-transfer { border: 1px dashed var(--accent); }
+.transfer-note { font-size: 11px; color: var(--accent); margin-top: 2px; }
+.transfer-tag-sm { font-size: 10px; color: var(--accent); font-weight: 600; margin-top: 2px; white-space: nowrap; }
+.transfer-bar {
+  margin: 0 0 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px dashed var(--accent);
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.transfer-bar b { color: var(--text); font-weight: 600; }
+.transfer-cancel { color: var(--accent); font-weight: 600; cursor: pointer; }
+.transfer-list { max-height: 40vh; overflow-y: auto; }
+.transfer-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+.transfer-item input { width: 20px; height: 20px; accent-color: var(--accent); }
+
 .uni-tag-sm { font-size: 10px; color: #6d9eeb; font-weight: 600; margin-top: 2px; white-space: nowrap; }
 
 .gym-tag-sm {
