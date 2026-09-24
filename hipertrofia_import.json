@@ -6682,6 +6682,31 @@
           ]
         }
       ]
+    },
+    {
+      "id": "mufsvc8kplmntz",
+      "routineId": "fa426a1afc5d",
+      "date": "2026-09-24T17:22:44.276Z",
+      "durationSec": 60,
+      "gym": "Basic-Fit Bravo Murillo",
+      "entries": [
+        {
+          "slotId": "d30f5ef595d9",
+          "exerciseId": "1b9297894d74",
+          "sets": [
+            {
+              "weight": 10,
+              "reps": 1,
+              "rir": null,
+              "rir2": null,
+              "reps2": 1,
+              "restSec": null
+            }
+          ],
+          "restNote": "90"
+        }
+      ],
+      "partial": true
     }
   ],
   "meta": {
