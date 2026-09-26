@@ -358,6 +358,20 @@ function escapeHtml(str) {
 
 // Acepta tanto "," como "." como separador decimal, y añade el 0 delante
 // cuando se deja el número empezando por el separador (".5" o ",5" -> "0.5").
+// "90" → 90 · "1:30" → 90 · "2 min" → 120 · "" → null (sin objetivo).
+// undefined = no se entiende, el que llama decide qué hacer (no borrar nunca).
+function parseSeconds(txt) {
+  const t = String(txt == null ? '' : txt).trim().toLowerCase().replace(',', '.');
+  if (!t) return null;
+  const mmss = t.match(/^(\d+)\s*[:'’]\s*(\d{1,2})$/);
+  if (mmss) return Number(mmss[1]) * 60 + Number(mmss[2]);
+  const m = t.match(/^(\d+(?:\.\d+)?)\s*(s|seg|segs|segundos|m|min|mins|minutos)?$/);
+  if (!m) return undefined;
+  const v = Number(m[1]);
+  if (!(v > 0)) return null;
+  return /^m/.test(m[2] || '') ? Math.round(v * 60) : Math.round(v);
+}
+
 function normalizeDecimal(str) {
   if (str == null) return str;
   let s = String(str).replace(',', '.');
@@ -1629,7 +1643,7 @@ function renderRoutineEditor(routineId) {
         <div class="slot-editor-row" data-idx="${idx}">
           <span class="drag-handle" data-drag-handle="${idx}">⠿</span>
           <div class="name">${idx + 1}. ${ex ? escapeHtml(ex.name) : '(ejercicio eliminado)'}${slot.supersetGroup ? ' <span class="ss-tag">SS</span>' : ''}</div>
-          <label class="slot-rest" title="Descanso objetivo">⏱ <input type="number" inputmode="numeric" data-slot-rest="${idx}" value="${slot.restSec ?? ''}" placeholder="s" />s</label>
+          <label class="slot-rest" title="Descanso objetivo">⏱ <input type="text" inputmode="numeric" data-slot-rest="${idx}" value="${slot.restSec ?? ''}" placeholder="s" />s</label>
           <label class="slot-rest" title="Repes objetivo (de–a)">🎯 <input type="number" inputmode="numeric" data-slot-replo="${idx}" value="${slot.repLo ?? ''}" placeholder="de" />–<input type="number" inputmode="numeric" data-slot-rephi="${idx}" value="${slot.repHi ?? ''}" placeholder="a" /></label>
           ${editing && draft.slots.length > 1 ? `<button class="rm" data-merge="${idx}" title="Fusionar con otro ejercicio de esta rutina">🔗</button>` : ''}
           <button class="rm" data-rm="${idx}">✕</button>
@@ -1676,8 +1690,9 @@ function renderRoutineEditor(routineId) {
     }));
 
     app.querySelectorAll('[data-slot-rest]').forEach(el => el.addEventListener('input', () => {
-      const n = Number(el.value);
-      draft.slots[Number(el.dataset.slotRest)].restSec = n > 0 ? n : null;
+      const n = parseSeconds(el.value);
+      if (n === undefined) return;
+      draft.slots[Number(el.dataset.slotRest)].restSec = n;
     }));
     app.querySelectorAll('[data-slot-replo]').forEach(el => el.addEventListener('input', () => {
       const n = Number(el.value);
@@ -3100,8 +3115,11 @@ function renderSession(routineId) {
   // Objetivo de descanso del ejercicio: vive en la rutina y se cambia sin
   // bloquear nada. Vacío = sin objetivo (no pita).
   function openRestTargetEditor(slotId) {
-    const slot = routine.slots.find(sl => sl.id === slotId);
+    // findSlotAnywhere: el hueco puede venir de otra rutina (ejercicio trasladado).
+    const found = findSlotAnywhere(slotId);
+    const slot = found ? found.slot : null;
     if (!slot) return;
+    const slotRoutine = found.routine;
     const ex = getExercise(draft.entries[slotId].exerciseId);
     const backdrop = document.createElement('div');
     backdrop.className = 'modal-backdrop';
@@ -3111,16 +3129,16 @@ function renderSession(routineId) {
         <p style="color:var(--text-dim);font-size:13px;margin-top:-8px;">${escapeHtml(ex ? ex.name : '')} — se guardan en la rutina.</p>
         <div class="field">
           <label>Descanso objetivo (segundos)</label>
-          <input id="rest-target-input" type="number" inputmode="numeric" placeholder="Ej. 90" value="${slot.restSec ?? ''}" />
+          <input id="rest-target-input" type="text" inputmode="numeric" placeholder="Ej. 90 · 1:30 · 2 min" value="${slot.restSec ?? ''}" />
         </div>
         <div class="field">
           <label>Repes objetivo (de – a)</label>
           <div style="display:flex;gap:8px;align-items:center;">
-            <input id="rep-lo-input" type="number" inputmode="numeric" placeholder="${repRangeOf(routine, slot).lo}" value="${slot.repLo ?? ''}" />
+            <input id="rep-lo-input" type="text" inputmode="numeric" placeholder="${repRangeOf(slotRoutine, slot).lo}" value="${slot.repLo ?? ''}" />
             <span style="color:var(--text-dim);">–</span>
-            <input id="rep-hi-input" type="number" inputmode="numeric" placeholder="${repRangeOf(routine, slot).hi}" value="${slot.repHi ?? ''}" />
+            <input id="rep-hi-input" type="text" inputmode="numeric" placeholder="${repRangeOf(slotRoutine, slot).hi}" value="${slot.repHi ?? ''}" />
           </div>
-          <div class="rest-note" style="margin-top:4px;">Vacío = el de la rutina (${repRangeOf(routine, slot).own ? 'ahora propio' : `${repRangeOf(routine, slot).lo}–${repRangeOf(routine, slot).hi}`}).</div>
+          <div class="rest-note" style="margin-top:4px;">Vacío = el de la rutina (${repRangeOf(slotRoutine, slot).own ? 'ahora propio' : `${repRangeOf(slotRoutine, slot).lo}–${repRangeOf(slotRoutine, slot).hi}`}).</div>
         </div>
         <button class="btn btn-primary btn-block" id="rest-target-ok">Guardar</button>
         <div style="height:8px;"></div>
@@ -3132,13 +3150,19 @@ function renderSession(routineId) {
     input.focus();
     input.select();
     const finish = () => {
-      const n = Number(input.value);
-      slot.restSec = n > 0 ? n : null;
-      const lo = Number(document.getElementById('rep-lo-input').value);
-      const hi = Number(document.getElementById('rep-hi-input').value);
-      if (lo > 0 && hi >= lo) { slot.repLo = lo; slot.repHi = hi; }
+      const n = parseSeconds(input.value);
+      if (n === undefined) { showToast('Pon los segundos: 90, 1:30 o 2 min'); return; }
+      slot.restSec = n;
+      const lo = firstNum(document.getElementById('rep-lo-input').value);
+      const hi = firstNum(document.getElementById('rep-hi-input').value);
+      if (lo > 0 && hi >= lo) { slot.repLo = Math.round(lo); slot.repHi = Math.round(hi); }
       else { delete slot.repLo; delete slot.repHi; }
       saveDB();
+      // Si el crono sigue en marcha y el objetivo se aleja, vuelve a armar el pitido.
+      if (draft.restStart != null && n) {
+        const elapsed = Math.floor((Date.now() - draft.restStart) / 1000);
+        if (elapsed < Math.max(n - 10, 0)) { draft.restAlerted = false; saveDraft(); }
+      }
       document.body.removeChild(backdrop);
       paint();
     };
@@ -3372,7 +3396,7 @@ function renderSession(routineId) {
         return `
         ${showGap ? `
           <div class="rest-gap">
-            ⏱ <input type="number" inputmode="numeric" class="rest-gap-input" data-restsec="${slot.id}:${sIdx}" value="${set.restSec ?? ''}" placeholder="—" /> s descanso
+            ⏱ <input type="text" inputmode="numeric" class="rest-gap-input" data-restsec="${slot.id}:${sIdx}" value="${set.restSec ?? ''}" placeholder="—" /> s descanso
           </div>
         ` : ''}
         <div class="set-row${entry.uni ? ' set-row-uni' : ''}">
@@ -3741,8 +3765,9 @@ function renderSession(routineId) {
     }));
     app.querySelectorAll('[data-restsec]').forEach(el => el.addEventListener('input', () => {
       const [slotId, sIdx] = el.dataset.restsec.split(':');
-      const v = normalizeDecimal(el.value);
-      draft.entries[slotId].sets[Number(sIdx)].restSec = v === '' ? null : Number(v);
+      const v = parseSeconds(el.value);
+      if (v === undefined) return; // texto a medias: no se toca lo que había
+      draft.entries[slotId].sets[Number(sIdx)].restSec = v;
       saveDraft();
     }));
     app.querySelectorAll('[data-toggle-uni]').forEach(el => el.addEventListener('click', () => {
