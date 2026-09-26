@@ -2978,7 +2978,7 @@ function renderSession(routineId) {
     if (draft.entries[slot.id]) return; // ya existía (sesión restaurada) o se acaba de añadir a la rutina
     const lastHistory = pastSessionsForSlot(slot.id, 1)[0];
     const defaultUni = !!(lastHistory && lastHistory.entry.sets.some(s => s.reps2 != null && s.reps2 !== ''));
-    draft.entries[slot.id] = { exerciseId: slot.exerciseId, sets: [], uni: defaultUni, _historyLimit: 5 };
+    draft.entries[slot.id] = { exerciseId: slot.exerciseId, sets: [], uni: defaultUni, _historyLimit: 3 };
   });
 
   // Huecos de otra rutina que hoy se hacen aquí (traslados pendientes).
@@ -2986,7 +2986,7 @@ function renderSession(routineId) {
     if (draft.entries[slot.id]) return;
     const lastHistory = pastSessionsForSlot(slot.id, 1)[0];
     const defaultUni = !!(lastHistory && lastHistory.entry.sets.some(s2 => s2.reps2 != null && s2.reps2 !== ''));
-    draft.entries[slot.id] = { exerciseId: slot.exerciseId, sets: [], uni: defaultUni, _historyLimit: 5 };
+    draft.entries[slot.id] = { exerciseId: slot.exerciseId, sets: [], uni: defaultUni, _historyLimit: 3 };
   });
 
   // draft.supersets[slotId] = idGrupo | null. La rutina guarda el plan habitual;
