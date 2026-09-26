@@ -2135,7 +2135,7 @@ function todayStamp() {
 
 // Una fila por serie. routineId opcional para exportar solo una rutina.
 function sessionsCsv(routineId) {
-  const header = ['Fecha', 'Hora', 'Rutina', 'Gimnasio', 'Parcial', 'Descarga', 'Duración min', 'Ejercicio', 'Músculo', 'Serie', 'Peso kg', 'Reps', 'Reps izq', 'RIR', 'RIR izq', 'Técnica', 'Parciales', 'Pausa s', 'Descanso s', 'Superserie', 'Notas'];
+  const header = ['Fecha', 'Hora', 'Rutina', 'Gimnasio', 'Parcial', 'Descarga', 'Duración min', 'Ejercicio', 'Músculo', 'Serie', 'Peso kg', 'Reps', 'Reps izq', 'RIR', 'RIR izq', 'Técnica', 'Parciales', 'Pausa s', 'Descanso s', 'Superserie', 'Orden real', 'Notas'];
   const rows = [];
   db.sessions
     .filter(ses => !routineId || ses.routineId === routineId)
@@ -2152,7 +2152,7 @@ function sessionsCsv(routineId) {
           ex ? ex.name : '', ex ? ex.muscle || '' : '', i + 1,
           st.weight, st.reps, st.reps2, st.rir, st.rir2,
           [st.dropset ? 'drop set' : null, st.restPause ? 'rest-pause' : null, st.partialReps != null ? 'parciales' : null].filter(Boolean).join(' + '), st.partialReps, st.pauseSec, st.restSec,
-          e.supersetGroup ? 'sí' : '', ses.notes || '',
+          e.supersetGroup ? 'sí' : '', e.doneOrder || '', ses.notes || '',
         ]));
       });
     });
@@ -2735,6 +2735,7 @@ function renderSessionDetail(sessionId) {
             <div>
               <h3>${eIdx + 1}. ${escapeHtml(ex ? ex.name : '(ejercicio eliminado)')}</h3>
               ${e.doneOn ? `<div class="transfer-note">↗ Hecho el ${fmtDate(e.doneOn)}, en otro entreno</div>` : ''}
+              ${e.doneOrder ? `<div class="order-tag order-changed">↕ Ese día lo hiciste el ${e.doneOrder}º</div>` : ''}
               ${ssPartners ? `<div class="superset-note">🔗 Superserie con ${ssPartners}</div>` : ''}
               ${e.restNote ? `<div class="rest-note">desc. obj: ${escapeHtml(e.restNote)}s</div>` : ''}
             </div>
@@ -2927,8 +2928,18 @@ function renderSession(routineId) {
   // Histórico de un hueco: lo hecho en este hueco de esta rutina y, además, el
   // mismo ejercicio hecho en cualquier otra rutina (marcado como "foreign"),
   // para que un ejercicio recién añadido no aparezca vacío.
+  // Hay rutinas que comparten ids de hueco (Pierna se dividió en dos copiando
+  // la original), por eso se mira siempre primero la rutina de hoy.
+  function resolveSlot(slotId) {
+    const own = routine.slots.find(sl => sl.id === slotId);
+    if (own) return { routine, slot: own };
+    const moved = transferItems.find(it => it.slot.id === slotId);
+    if (moved) return { routine: moved.fromRoutine, slot: moved.slot };
+    return findSlotAnywhere(slotId);
+  }
+
   function pastSessionsForSlot(slotId, limit) {
-    const found = findSlotAnywhere(slotId);
+    const found = resolveSlot(slotId);
     const slot = found ? found.slot : null;
     const ownRoutineId = found ? found.routine.id : routineId;
     const entryNow = draft.entries[slotId];
@@ -2953,6 +2964,7 @@ function renderSession(routineId) {
   // restSlotId dice de qué ejercicio sale el objetivo (slot.restSec).
   // La sesión en curso se autoguarda (ver saveDraft) para que sobreviva a
   // salir de esta pantalla (p. ej. para editar la rutina) sin perder datos.
+  const transferItems = pendingTransfersFor(routineId);
   const restoredDraft = loadSessionDraft(routineId);
   const draft = restoredDraft || {
     gym: (lastRoutineSession && lastRoutineSession.gym) || '',
@@ -2970,7 +2982,6 @@ function renderSession(routineId) {
   });
 
   // Huecos de otra rutina que hoy se hacen aquí (traslados pendientes).
-  const transferItems = pendingTransfersFor(routineId);
   transferItems.forEach(({ slot }) => {
     if (draft.entries[slot.id]) return;
     const lastHistory = pastSessionsForSlot(slot.id, 1)[0];
@@ -3115,8 +3126,8 @@ function renderSession(routineId) {
   // Objetivo de descanso del ejercicio: vive en la rutina y se cambia sin
   // bloquear nada. Vacío = sin objetivo (no pita).
   function openRestTargetEditor(slotId) {
-    // findSlotAnywhere: el hueco puede venir de otra rutina (ejercicio trasladado).
-    const found = findSlotAnywhere(slotId);
+    // El hueco puede venir de otra rutina (ejercicio trasladado).
+    const found = resolveSlot(slotId);
     const slot = found ? found.slot : null;
     if (!slot) return;
     const slotRoutine = found.routine;
@@ -3172,7 +3183,7 @@ function renderSession(routineId) {
   }
 
   function restTargetOf(slotId) {
-    const found = findSlotAnywhere(slotId);
+    const found = resolveSlot(slotId);
     const slot = found ? found.slot : null;
     return slot && slot.restSec > 0 ? slot.restSec : null;
   }
@@ -3305,9 +3316,64 @@ function renderSession(routineId) {
     backdrop.addEventListener('click', (e) => { if (e.target === backdrop) document.body.removeChild(backdrop); });
   }
 
+  // Posición en la que se ha hecho hoy cada ejercicio (1, 2, 3…).
+  function todayOrderMap() {
+    const map = {};
+    (draft.doneSeq || []).forEach((id, i) => { map[id] = i + 1; });
+    return map;
+  }
+
+  // Corregir a mano el orden de hoy: se mueve dentro de la lista, sin huecos.
+  function setDonePos(slotId, pos) {
+    const seq = (draft.doneSeq || []).filter(id => id !== slotId);
+    const target = Math.max(1, Math.min(seq.length + 1, pos)) - 1;
+    seq.splice(target, 0, slotId);
+    draft.doneSeq = seq;
+    saveDraft();
+    paint();
+  }
+
+  function openOrderEditor(slotId) {
+    const order = todayOrderMap();
+    const total = (draft.doneSeq || []).length;
+    const ex = getExercise(draft.entries[slotId].exerciseId);
+    const backdrop = document.createElement('div');
+    backdrop.className = 'modal-backdrop';
+    backdrop.innerHTML = `
+      <div class="modal-sheet">
+        <h2>↕ Orden de hoy</h2>
+        <p style="color:var(--text-dim);font-size:13px;margin-top:-8px;">${escapeHtml(ex ? ex.name : '')} — solo para esta sesión; la rutina mantiene su orden.</p>
+        <div class="order-list">
+          ${(draft.doneSeq || []).map((id, i) => {
+            const e2 = draft.entries[id];
+            const x = e2 && getExercise(e2.exerciseId);
+            return `<div class="order-row${id === slotId ? ' order-current' : ''}">${i + 1}. ${escapeHtml(x ? x.name : '?')}</div>`;
+          }).join('')}
+        </div>
+        <div class="field" style="margin-top:12px;">
+          <label>Hoy lo hice el número</label>
+          <input id="order-input" type="text" inputmode="numeric" value="${order[slotId] || total}" />
+        </div>
+        <button class="btn btn-primary btn-block" id="order-ok">Guardar</button>
+        <div style="height:8px;"></div>
+        <button class="btn btn-block" id="order-cancel">Cancelar</button>
+      </div>`;
+    document.body.appendChild(backdrop);
+    const close = () => { if (backdrop.parentNode) document.body.removeChild(backdrop); };
+    document.getElementById('order-ok').addEventListener('click', () => {
+      const n = firstNum(document.getElementById('order-input').value);
+      if (!n || n < 1) { showToast('Pon un número de 1 en adelante'); return; }
+      close();
+      setDonePos(slotId, Math.round(n));
+    });
+    document.getElementById('order-cancel').addEventListener('click', close);
+    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
+  }
+
   function paint() {
     saveDraft();
     const doneSlotIds = draft.doneFrom ? draft.doneFrom.slotIds : [];
+    const orderToday = todayOrderMap();
     const renderBlock = (slot, idx, slotRoutine, transfer) => {
       const plannedEx = getExercise(slot.exerciseId);
       const entry = draft.entries[slot.id];
@@ -3366,7 +3432,7 @@ function renderSession(routineId) {
                 const fromRoutine = foreign ? getRoutine(session.routineId) : null;
                 const cells = Array.from({ length: maxSets }, (_, i) => e.sets[i] ? `<td>${formatSetCell(e.sets[i])}</td>` : '<td>—</td>').join('');
                 return `<tr>
-                  <td class="date-cell">${fmtDate(e.doneOn || session.date)}${e.doneOn ? '<div class="transfer-tag-sm">↗ trasladado</div>' : ''}${foreign ? `<div class="from-routine">↗ ${escapeHtml(fromRoutine ? fromRoutine.name : 'otra rutina')}</div>` : ''}${session.gym ? `<div class="gym-tag-sm">📍 ${escapeHtml(session.gym)}</div>` : ''}${entryIsUni(e) ? '<div class="uni-tag-sm">🔀 unilateral</div>' : ''}${wasSub ? `<div class="sub-note-sm" title="Sustituye a ${escapeHtml(exUsed ? exUsed.name : '?')}">🔄 ${escapeHtml(exUsed ? exUsed.name : '?')}</div>` : ''}${e.restNote ? `<div class="rest-note">desc. obj: ${escapeHtml(e.restNote)}s</div>` : ''}</td>
+                  <td class="date-cell">${fmtDate(e.doneOn || session.date)}${e.doneOn ? '<div class="transfer-tag-sm">↗ trasladado</div>' : ''}${foreign ? `<div class="from-routine">↗ ${escapeHtml(fromRoutine ? fromRoutine.name : 'otra rutina')}</div>` : ''}${session.gym ? `<div class="gym-tag-sm">📍 ${escapeHtml(session.gym)}</div>` : ''}${entryIsUni(e) ? '<div class="uni-tag-sm">🔀 unilateral</div>' : ''}${!foreign && e.doneOrder ? `<div class="order-tag-sm">↕ ese día, el ${e.doneOrder}º</div>` : ''}${wasSub ? `<div class="sub-note-sm" title="Sustituye a ${escapeHtml(exUsed ? exUsed.name : '?')}">🔄 ${escapeHtml(exUsed ? exUsed.name : '?')}</div>` : ''}${e.restNote ? `<div class="rest-note">desc. obj: ${escapeHtml(e.restNote)}s</div>` : ''}</td>
                   ${cells}
                 </tr>`;
               }).join('')}
@@ -3452,6 +3518,7 @@ function renderSession(routineId) {
             <div>
               <h3>${transfer ? '↗' : idx + 1 + '.'} ${escapeHtml(currentEx ? currentEx.name : '(ejercicio eliminado)')}</h3>
               ${transfer ? `<div class="transfer-note">Pendiente de ${escapeHtml(transfer.fromRoutine.name)} · se guarda en la sesión del ${fmtDateShort(transfer.fromSession.date)}</div>` : ''}
+              ${!transfer && orderToday[slot.id] ? `<div class="order-tag${orderToday[slot.id] !== idx + 1 ? ' order-changed' : ''}" data-edit-order="${slot.id}">↕ hoy lo hice el ${orderToday[slot.id]}º${orderToday[slot.id] !== idx + 1 ? ' (en la rutina es el ' + (idx + 1) + 'º)' : ''}</div>` : ''}
               ${currentEx && currentEx.notes ? `<div class="notes-line" data-edit-ex-notes="${currentEx.id}">✎ ${escapeHtml(currentEx.notes)}</div>` : currentEx ? `<div class="notes-line notes-line-empty" data-edit-ex-notes="${currentEx.id}">+ añadir observación</div>` : ''}
               ${isSub ? `<div class="sub-note">🔄 Sustituye a: ${escapeHtml(plannedEx ? plannedEx.name : '?')}</div>` : ''}
               ${!isSub && lastSubEx ? `<div class="sub-quick" data-quick-sub="${slot.id}:${lastSubEx.id}">🔄 Hoy con ${escapeHtml(lastSubEx.name)} (como el ${fmtDateShort(lastSubDate)})</div>` : ''}
@@ -3575,6 +3642,10 @@ function renderSession(routineId) {
       const set = { weight: defaultWeight, reps: copySame && lastSet ? val(lastSet.reps) : '', rir: '', restSec };
       if (copySame && lastSet && entry.uni) set.reps2 = val(lastSet.reps2);
       entry.sets.push(set);
+      // El orden de hoy se apunta solo: el ejercicio entra en la lista la
+      // primera vez que se le añade una serie. La rutina no se toca.
+      draft.doneSeq = draft.doneSeq || [];
+      if (!draft.doneSeq.includes(slotId)) { draft.doneSeq.push(slotId); }
       unlockAudio();
       draft.restStart = now;
       draft.restSlotId = slotId;
@@ -3587,6 +3658,10 @@ function renderSession(routineId) {
 
     app.querySelectorAll('[data-edit-rest]').forEach(el => el.addEventListener('click', () => {
       openRestTargetEditor(el.dataset.editRest);
+    }));
+
+    app.querySelectorAll('[data-edit-order]').forEach(el => el.addEventListener('click', () => {
+      openOrderEditor(el.dataset.editOrder);
     }));
 
     const restStopBtn = document.getElementById('rest-stop');
@@ -3859,6 +3934,11 @@ function renderSession(routineId) {
           };
           const restTarget = restTargetOf(slotId);
           if (restTarget) entryOut.restNote = String(restTarget);
+          // Orden real de hoy, solo si no coincide con el de la rutina.
+          const seq = (draft.doneSeq || []).filter(id => draft.entries[id] && draft.entries[id].sets.some(hasData));
+          const donePos = seq.indexOf(slotId) + 1;
+          const planPos = routine.slots.findIndex(sl => sl.id === slotId) + 1;
+          if (donePos > 0 && planPos > 0 && donePos !== planPos) entryOut.doneOrder = donePos;
           // Lo de hoy, no el plan de la rutina: así una sesión guardada conserva
           // si ese día concreto la hiciste enlazada o suelta.
           if (draft.supersets[slotId]) entryOut.supersetGroup = draft.supersets[slotId];

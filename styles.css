@@ -421,6 +421,22 @@ html, body {
 }
 
 .exercise-transfer { border: 1px dashed var(--accent); }
+.order-tag {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--text-dim);
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  padding: 2px 7px;
+  cursor: pointer;
+}
+.order-tag.order-changed { color: var(--accent); border-color: var(--accent-dim, var(--accent)); font-weight: 600; }
+.order-tag-sm { font-size: 10px; color: var(--accent); font-weight: 600; margin-top: 2px; white-space: nowrap; }
+.order-list { max-height: 34vh; overflow-y: auto; }
+.order-row { font-size: 13px; padding: 5px 8px; border-bottom: 1px solid var(--border); color: var(--text-dim); }
+.order-row.order-current { color: var(--text); font-weight: 700; }
+
 .transfer-note { font-size: 11px; color: var(--accent); margin-top: 2px; }
 .transfer-tag-sm { font-size: 10px; color: var(--accent); font-weight: 600; margin-top: 2px; white-space: nowrap; }
 .transfer-bar {
