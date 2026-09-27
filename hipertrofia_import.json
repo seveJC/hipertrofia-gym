@@ -747,7 +747,8 @@
           "id": "301186ab5df6",
           "exerciseId": "33dbb0a5bd0d",
           "repLo": 8,
-          "repHi": 10
+          "repHi": 10,
+          "restSec": 90
         },
         {
           "id": "e0ea29e6f88f",
