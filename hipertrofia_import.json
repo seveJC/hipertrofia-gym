@@ -8307,6 +8307,176 @@
           "restNote": "60"
         }
       ]
+    },
+    {
+      "id": "muqt71ielw3hf1",
+      "routineId": "fa426a1afc5d",
+      "date": "2026-10-02T10:17:18.182Z",
+      "durationSec": 3960,
+      "gym": "Hi-Fitness",
+      "entries": [
+        {
+          "slotId": "d30f5ef595d9",
+          "exerciseId": "1b9297894d74",
+          "sets": [
+            {
+              "weight": 50,
+              "reps": 9,
+              "rir": 1.5,
+              "rir2": null,
+              "reps2": null,
+              "restSec": null
+            },
+            {
+              "weight": 50,
+              "reps": 9,
+              "rir": 1,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 83
+            },
+            {
+              "weight": 50,
+              "reps": 8,
+              "rir": 0.5,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 81
+            }
+          ],
+          "restNote": "90"
+        },
+        {
+          "slotId": "46eca9fae0fa",
+          "exerciseId": "064fc6a28c64",
+          "sets": [
+            {
+              "weight": 42.5,
+              "reps": 12,
+              "rir": 0.5,
+              "rir2": 1.5,
+              "reps2": 12,
+              "restSec": 170
+            },
+            {
+              "weight": 42.5,
+              "reps": 10,
+              "rir": 0.5,
+              "rir2": 1.5,
+              "reps2": 10,
+              "restSec": 58
+            },
+            {
+              "weight": 42.5,
+              "reps": 0,
+              "rir": null,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 52
+            }
+          ],
+          "restNote": "60",
+          "doneOrder": 3
+        },
+        {
+          "slotId": "f81e7022e628",
+          "exerciseId": "071deb7f5463",
+          "sets": [
+            {
+              "weight": 12.5,
+              "reps": 12,
+              "rir": 1.5,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 163
+            },
+            {
+              "weight": 12.5,
+              "reps": "8+3",
+              "rir": null,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 83,
+              "restPause": true,
+              "pauseSec": "10"
+            },
+            {
+              "weight": 12.5,
+              "reps": 0,
+              "rir": null,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 83
+            }
+          ],
+          "restNote": "90",
+          "doneOrder": 2
+        },
+        {
+          "slotId": "5fdb66c07d6c",
+          "exerciseId": "8ae221b7450b",
+          "sets": [
+            {
+              "weight": 65,
+              "reps": 10,
+              "rir": 0.5,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 147
+            },
+            {
+              "weight": 57.5,
+              "reps": 10,
+              "rir": 1,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 80
+            },
+            {
+              "weight": 57.5,
+              "reps": 0,
+              "rir": null,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 81
+            }
+          ],
+          "restNote": "90"
+        },
+        {
+          "slotId": "6455d356141e",
+          "exerciseId": "bf39f9d32035",
+          "sets": [
+            {
+              "weight": 35,
+              "reps": 13,
+              "rir": null,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 2106
+            },
+            {
+              "weight": 35,
+              "reps": 12,
+              "rir": null,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 14
+            },
+            {
+              "weight": 35,
+              "reps": 11,
+              "rir": null,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 3
+            }
+          ],
+          "restNote": "60",
+          "doneOrder": 5
+        }
+      ],
+      "partial": true
     }
   ],
   "meta": {
