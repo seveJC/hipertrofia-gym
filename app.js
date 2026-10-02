@@ -773,6 +773,23 @@ function runMigrations() {
   if (changed) saveDB();
 }
 
+// Orden en que se hicieron los ejercicios de una sesión; [] si se siguió el de
+// la rutina (saltarse ejercicios no es cambiar el orden). En sesiones antiguas
+// solo se guardó la posición de los que se movieron: la del resto se deduce de
+// la rutina, que es justo lo que significaba no tener marca.
+function sessionDoneOrder(session) {
+  const routine = getRoutine(session.routineId);
+  if (!routine) return [];
+  const rows = session.entries
+    .filter(e => !e.doneOn)
+    .map(e => ({ e, plan: routine.slots.findIndex(sl => sl.id === e.slotId) }))
+    .filter(x => x.plan >= 0);
+  if (rows.length < 2) return [];
+  const planOrder = rows.slice().sort((a, b) => a.plan - b.plan);
+  const seq = rows.slice().sort((a, b) => (a.e.doneOrder || a.plan + 1) - (b.e.doneOrder || b.plan + 1));
+  return seq.some((x, i) => x !== planOrder[i]) ? seq : [];
+}
+
 // Clave para comparar gimnasios sin mayúsculas, tildes, guiones ni espacios.
 function gymKey(name) {
   return String(name || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
@@ -2063,6 +2080,7 @@ function sessionRowHtml(s, showRoutine) {
     `${totalSets} series`,
     s.durationSec != null ? formatDurationHuman(s.durationSec) : null,
     s.partial ? '⏸ parcial' : null,
+    sessionDoneOrder(s).length ? '↕ otro orden' : null,
     s.deload ? '🪫 descarga' : null,
     s.continuesSessionId ? '↪ continuación' : null,
     s.gym ? `📍 ${s.gym}` : null,
@@ -2700,6 +2718,8 @@ function renderSessionDetail(sessionId) {
   const routine = getRoutine(session.routineId);
 
   function paint() {
+    const orderRows = sessionDoneOrder(session);
+    const donePosOf = new Map(orderRows.map((x, i) => [x.e, i + 1]));
     const blocks = session.entries.map((e, eIdx) => {
       const ex = getExercise(e.exerciseId);
       // Compañeros de superserie dentro de ESTA sesión guardada.
@@ -2735,7 +2755,7 @@ function renderSessionDetail(sessionId) {
             <div>
               <h3>${eIdx + 1}. ${escapeHtml(ex ? ex.name : '(ejercicio eliminado)')}</h3>
               ${e.doneOn ? `<div class="transfer-note">↗ Hecho el ${fmtDate(e.doneOn)}, en otro entreno</div>` : ''}
-              ${e.doneOrder ? `<div class="order-tag order-changed">↕ Ese día lo hiciste el ${e.doneOrder}º</div>` : ''}
+              ${donePosOf.has(e) ? `<div class="order-tag order-changed">↕ Ese día lo hiciste el ${donePosOf.get(e)}º</div>` : ''}
               ${ssPartners ? `<div class="superset-note">🔗 Superserie con ${ssPartners}</div>` : ''}
               ${e.restNote ? `<div class="rest-note">desc. obj: ${escapeHtml(e.restNote)}s</div>` : ''}
             </div>
@@ -2747,6 +2767,12 @@ function renderSessionDetail(sessionId) {
         </div>`;
     }).join('');
 
+    const orderHtml = orderRows.length ? `
+      <div class="order-summary">↕ Ese día lo hiciste en otro orden: ${orderRows.map((x, i) => {
+        const ox = getExercise(x.e.exerciseId);
+        return `<b>${i + 1}.</b> ${escapeHtml(ox ? ox.name : '?')}`;
+      }).join(' · ')}</div>` : '';
+
     app.innerHTML = `
       <div class="topbar">
         <button class="btn btn-ghost" id="sd-back">← Atrás</button>
@@ -2755,6 +2781,7 @@ function renderSessionDetail(sessionId) {
       <div class="container">
         <div class="card">
           <div style="font-size:13px;color:var(--text-dim);margin-bottom:10px;">${escapeHtml(routine ? routine.name : 'Rutina eliminada')}</div>
+          ${orderHtml}
           <div class="field">
             <label>Duración (minutos)</label>
             <input id="sd-duration" type="text" inputmode="numeric" value="${session.durationSec != null ? Math.round(session.durationSec / 60) : ''}" placeholder="Ej. 70" />
@@ -3934,11 +3961,15 @@ function renderSession(routineId) {
           };
           const restTarget = restTargetOf(slotId);
           if (restTarget) entryOut.restNote = String(restTarget);
-          // Orden real de hoy, solo si no coincide con el de la rutina.
+          // Orden real de hoy. Solo si de verdad lo cambiaste: saltarte
+          // ejercicios no cuenta. Si lo cambiaste, se guarda el de todos.
           const seq = (draft.doneSeq || []).filter(id => draft.entries[id] && draft.entries[id].sets.some(hasData));
-          const donePos = seq.indexOf(slotId) + 1;
-          const planPos = routine.slots.findIndex(sl => sl.id === slotId) + 1;
-          if (donePos > 0 && planPos > 0 && donePos !== planPos) entryOut.doneOrder = donePos;
+          const planOf = (id) => routine.slots.findIndex(sl => sl.id === id);
+          const inPlan = seq.filter(id => planOf(id) >= 0);
+          const asPlanned = inPlan.slice().sort((a, b) => planOf(a) - planOf(b));
+          const reordered = inPlan.some((id, i) => id !== asPlanned[i]);
+          const donePos = inPlan.indexOf(slotId) + 1;
+          if (reordered && donePos > 0) entryOut.doneOrder = donePos;
           // Lo de hoy, no el plan de la rutina: así una sesión guardada conserva
           // si ese día concreto la hiciste enlazada o suelta.
           if (draft.supersets[slotId]) entryOut.supersetGroup = draft.supersets[slotId];
