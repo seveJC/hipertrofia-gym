@@ -9591,6 +9591,16 @@
       "biceps": 34.2,
       "chest": 73.1,
       "shoulders": 117.4
+    },
+    {
+      "id": "muqnoi7v0c4khk",
+      "date": "2026-10-02",
+      "weight": 63.65,
+      "waist": 72.4,
+      "thigh": 52.3,
+      "biceps": null,
+      "chest": 74.4,
+      "shoulders": 117.6
     }
   ],
   "transfers": []
