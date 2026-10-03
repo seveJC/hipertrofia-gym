@@ -1,3 +1,5 @@
+/* Tema oscuro (el de siempre) y claro. El claro solo redefine colores: todo
+   lo demás usa estas variables. data-theme en <html> lo pone la app. */
 :root {
   --bg: #111318;
   --bg-elevated: #1a1d24;
@@ -8,8 +10,44 @@
   --accent: #ff5a36;
   --accent-dim: #7a2c1a;
   --green: #4caf7d;
+  --bg-blur: rgba(17, 19, 24, 0.92);
+  --bg-blur-solid: rgba(17, 19, 24, 0.96);
+  --gold: #e6b422;
+  --gold-dim: #b8862b;
+  --danger-border: #7a2c2c;
+  --danger-text: #ff8080;
+  --blue: #6d9eeb;
+  --on-accent: #fff;
+  --on-green: #06231a;
+  --overlay: rgba(0, 0, 0, 0.55);
+  --muscle-filter: none;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+:root[data-theme="light"] {
+  --bg: #f4f5f7;
+  --bg-elevated: #ffffff;
+  --bg-card: #ffffff;
+  --border: #d8dbe2;
+  --text: #15181e;
+  --text-dim: #5d6472;
+  --accent: #d63a16;
+  --accent-dim: #f3b9a9;
+  --green: #1f7a4d;
+  --bg-blur: rgba(244, 245, 247, 0.97);
+  --bg-blur-solid: #f4f5f7;
+  --gold: #8a6508;
+  --gold-dim: #c79a2e;
+  --danger-border: #e0a2a2;
+  --danger-text: #b3261e;
+  --blue: #2a5bb8;
+  --on-accent: #fff;
+  --on-green: #eafaf1;
+  --overlay: rgba(20, 22, 28, 0.35);
+  /* Los colores de músculo vienen en línea desde app.js, pensados para fondo
+     oscuro: en claro se oscurecen para que se lean. */
+  --muscle-filter: brightness(0.62) saturate(1.5);
 }
 
 * { box-sizing: border-box; }
@@ -37,7 +75,7 @@ html, body {
   align-items: center;
   gap: 8px;
   padding: 14px 16px;
-  background: rgba(17, 19, 24, 0.92);
+  background: var(--bg-blur);
   backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--border);
 }
@@ -84,8 +122,8 @@ html, body {
 
 .btn-danger {
   background: transparent;
-  border: 1px solid #7a2c2c;
-  color: #ff8080;
+  border: 1px solid var(--danger-border);
+  color: var(--danger-text);
 }
 
 .btn-block { width: 100%; }
@@ -130,7 +168,7 @@ html, body {
 .deload-bar.active {
   text-align: left;
   padding: 8px 12px;
-  border: 1px solid #b8862b;
+  border: 1px solid var(--gold-dim);
   background: rgba(214, 160, 50, 0.12);
   border-radius: 10px;
   color: var(--text);
@@ -143,7 +181,7 @@ html, body {
 }
 
 .deload-btn.active {
-  border-color: #b8862b;
+  border-color: var(--gold-dim);
   background: rgba(214, 160, 50, 0.16);
   color: var(--text);
 }
@@ -152,13 +190,13 @@ html, body {
   margin-top: 8px;
   padding: 8px 10px;
   border-radius: 10px;
-  border: 1px dashed #b8862b;
+  border: 1px dashed var(--gold-dim);
   font-size: 12px;
   color: var(--text);
 }
-.warmup b { color: #e6b422; }
+.warmup b { color: var(--gold); }
 .warmup-note { display: block; font-size: 10px; color: var(--text-dim); margin-top: 2px; }
-.warmup-link { display: inline-block; margin-top: 8px; font-size: 12px; color: #e6b422; cursor: pointer; }
+.warmup-link { display: inline-block; margin-top: 8px; font-size: 12px; color: var(--gold); cursor: pointer; }
 .measure-reminder {
   margin: 0 0 8px;
   padding: 8px 12px;
@@ -170,7 +208,7 @@ html, body {
   cursor: pointer;
 }
 
-.rec-deload { border-color: #b8862b; background: rgba(214, 160, 50, 0.12); }
+.rec-deload { border-color: var(--gold-dim); background: rgba(214, 160, 50, 0.12); }
 
 .weekly-card { padding: 12px 14px; }
 
@@ -190,7 +228,7 @@ html, body {
 .week-table th small { display: block; font-size: 8px; font-weight: 500; color: var(--text-dim); letter-spacing: 0; }
 .week-table td.vol-ok { color: var(--green) !important; }
 .week-table td.vol-low { color: var(--accent) !important; }
-.week-table td.vol-high { color: #e6b422 !important; }
+.week-table td.vol-high { color: var(--gold) !important; }
 .weekly-targets { float: right; font-size: 11px; font-weight: 600; color: var(--accent); cursor: pointer; }
 .vol-row { display: flex; align-items: center; gap: 6px; font-size: 13px; margin-bottom: 6px; }
 .vol-row span { flex: 1; }
@@ -283,7 +321,7 @@ html, body {
 }
 
 .progress-up { border-color: var(--green); background: rgba(76, 175, 125, 0.12); }
-.progress-down { border-color: #7a2c2c; background: rgba(255, 90, 54, 0.10); }
+.progress-down { border-color: var(--danger-border); background: rgba(255, 90, 54, 0.10); }
 .progress-keep { border-color: var(--border); }
 
 .progress-last {
@@ -473,7 +511,7 @@ html, body {
 }
 .transfer-item input { width: 20px; height: 20px; accent-color: var(--accent); }
 
-.uni-tag-sm { font-size: 10px; color: #6d9eeb; font-weight: 600; margin-top: 2px; white-space: nowrap; }
+.uni-tag-sm { font-size: 10px; color: var(--blue); font-weight: 600; margin-top: 2px; white-space: nowrap; }
 
 .gym-tag-sm {
   font-size: 10px;
@@ -669,7 +707,7 @@ html, body {
   z-index: 40;
   transform-origin: 0 0;
   padding: calc(6px + var(--safe-top)) 12px 5px;
-  background: rgba(17, 19, 24, 0.96);
+  background: var(--bg-blur-solid);
   border-bottom: 1px solid var(--border);
   box-sizing: border-box;
 }
@@ -696,7 +734,7 @@ html, body {
   padding: 0;
   border-radius: 12px;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .rest-bar-right .rest-bar-btn-ghost {
@@ -809,7 +847,7 @@ html, body {
 }
 
 .rec-up { border-color: var(--green); background: rgba(76, 175, 125, 0.12); }
-.rec-down { border-color: #7a2c2c; background: rgba(255, 90, 54, 0.10); }
+.rec-down { border-color: var(--danger-border); background: rgba(255, 90, 54, 0.10); }
 
 .rep-range-tag {
   font-size: 11px;
@@ -1056,9 +1094,9 @@ html, body {
   margin: 2px 0 6px 26px;
   font-size: 11px;
   font-weight: 700;
-  color: #e6b422;
+  color: var(--gold);
 }
-.progress-pr { color: #e6b422; }
+.progress-pr { color: var(--gold); }
 
 .partial-label { font-size: 11px; color: var(--text-dim); align-self: center; text-align: center; }
 .partial-edit input { width: 44px; padding: 3px 6px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text); font-size: 12px; text-align: center; }
@@ -1189,7 +1227,7 @@ html, body {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.55);
+  background: var(--overlay);
   display: flex;
   align-items: flex-end;
   z-index: 50;
@@ -1229,7 +1267,7 @@ html, body {
 }
 
 .pick-row-danger {
-  color: #ff5a5a;
+  color: var(--danger-text);
   font-weight: 600;
 }
 
@@ -1245,10 +1283,17 @@ html, body {
   left: 50%;
   transform: translateX(-50%);
   background: var(--green);
-  color: #06231a;
+  color: var(--on-green);
   padding: 10px 18px;
   border-radius: 12px;
   font-size: 14px;
   font-weight: 600;
   z-index: 60;
 }
+
+/* Colores de músculo (vienen en línea desde app.js) en tema claro */
+.muscle-chip[style], .muscle-badge[style], .week-table th[style], .rest-bar-muscles span[style] {
+  filter: var(--muscle-filter);
+}
+
+.theme-btn { font-size: 17px; }

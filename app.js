@@ -860,6 +860,46 @@ function render() {
   return renderHome();
 }
 
+// ---------- Tema (claro / oscuro / el del móvil) ----------
+const THEME_KEY = 'hipertrofia_theme_v1';
+const THEMES = ['auto', 'dark', 'light'];
+
+function getTheme() {
+  try { const t = localStorage.getItem(THEME_KEY); return THEMES.includes(t) ? t : 'auto'; } catch (e) { return 'auto'; }
+}
+
+function effectiveTheme(t) {
+  if (t !== 'auto') return t;
+  return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+}
+
+function applyTheme() {
+  const eff = effectiveTheme(getTheme());
+  document.documentElement.setAttribute('data-theme', eff);
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', eff === 'light' ? '#f4f5f7' : '#111318');
+}
+
+function themeIcon() {
+  return { auto: '◐', dark: '🌙', light: '☀️' }[getTheme()];
+}
+
+function cycleTheme() {
+  const next = THEMES[(THEMES.indexOf(getTheme()) + 1) % THEMES.length];
+  try { localStorage.setItem(THEME_KEY, next); } catch (e) {}
+  applyTheme();
+  showToast({ auto: 'Tema: el del móvil', dark: 'Tema oscuro', light: 'Tema claro' }[next]);
+  renderHome();
+}
+
+applyTheme();
+if (window.matchMedia) {
+  const mq = window.matchMedia('(prefers-color-scheme: light)');
+  const onChange = () => { if (getTheme() === 'auto') applyTheme(); };
+  if (mq.addEventListener) mq.addEventListener('change', onChange);
+  else if (mq.addListener) mq.addListener(onChange);
+}
+
 function showToast(msg) {
   const t = document.createElement('div');
   t.className = 'toast';
@@ -1370,6 +1410,7 @@ function renderHome() {
   app.innerHTML = `
     <div class="topbar">
       <h1>Mis rutinas</h1>
+      <button class="btn btn-icon theme-btn" id="theme-btn" title="Tema claro / oscuro">${themeIcon()}</button>
       <button class="btn btn-icon" data-nav="measures" title="Mediciones">📏</button>
       <button class="btn btn-icon" data-nav="history" title="Historial de sesiones">📅</button>
       <button class="btn btn-icon" data-nav="exercises" title="Ejercicios">🏋️</button>
@@ -1395,6 +1436,7 @@ function renderHome() {
   document.getElementById('backup-retry-btn').addEventListener('click', () => pushBackupToGitHub(true));
   bindDeloadToggle(renderHome);
   bindTransferCancel(renderHome);
+  document.getElementById('theme-btn').addEventListener('click', cycleTheme);
   const volBtn = document.getElementById('vol-targets-btn');
   if (volBtn) volBtn.addEventListener('click', openVolumeTargetsDialog);
   // El desplegable vive dentro de la tarjeta, que entera abre la sesión:
