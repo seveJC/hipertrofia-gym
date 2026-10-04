@@ -8903,6 +8903,180 @@
         }
       ],
       "continuesSessionId": "muqt71ielw3hf1"
+    },
+    {
+      "id": "muthxjqmeyc44w",
+      "routineId": "8a82112eb89a",
+      "date": "2026-10-04T07:25:17.999Z",
+      "durationSec": 3180,
+      "gym": "Basic-Fit Bravo Murillo",
+      "entries": [
+        {
+          "slotId": "5eb28636545d",
+          "exerciseId": "772ee2f51e71",
+          "sets": [
+            {
+              "weight": 36,
+              "reps": 4,
+              "rir": 1.5,
+              "rir2": null,
+              "reps2": null,
+              "restSec": null
+            },
+            {
+              "weight": 36,
+              "reps": 4,
+              "rir": 1.5,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 142
+            },
+            {
+              "weight": 36,
+              "reps": 4,
+              "rir": 1,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 140
+            },
+            {
+              "weight": 36,
+              "reps": 4,
+              "rir": 0.5,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 133
+            }
+          ],
+          "restNote": "180",
+          "doneOrder": 1
+        },
+        {
+          "slotId": "905ab8d9e862",
+          "exerciseId": "35feb6cc7030",
+          "sets": [
+            {
+              "weight": 26,
+              "reps": 7,
+              "rir": 1,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 150
+            },
+            {
+              "weight": 26,
+              "reps": 7,
+              "rir": 0.5,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 146
+            },
+            {
+              "weight": 26,
+              "reps": 6,
+              "rir": 1,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 131
+            }
+          ],
+          "restNote": "150",
+          "doneOrder": 2
+        },
+        {
+          "slotId": "301186ab5df6",
+          "exerciseId": "mu85wsmc258h6i",
+          "sets": [
+            {
+              "weight": "12/10",
+              "reps": "8/7",
+              "rir": null,
+              "rir2": null,
+              "reps2": "8/7",
+              "restSec": 70,
+              "dropset": true
+            },
+            {
+              "weight": "12/10",
+              "reps": "6/6",
+              "rir": null,
+              "rir2": null,
+              "reps2": "6/6",
+              "restSec": 74,
+              "dropset": true
+            },
+            {
+              "weight": 10,
+              "reps": 0,
+              "rir": null,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 75
+            }
+          ],
+          "restNote": "90",
+          "doneOrder": 4
+        },
+        {
+          "slotId": "e0ea29e6f88f",
+          "exerciseId": "a551ade607ad",
+          "sets": [
+            {
+              "weight": 9.1,
+              "reps": 9,
+              "rir": null,
+              "rir2": null,
+              "reps2": 9,
+              "restSec": 180
+            },
+            {
+              "weight": 6.8,
+              "reps": 12,
+              "rir": null,
+              "rir2": null,
+              "reps2": 12,
+              "restSec": 78
+            },
+            {
+              "weight": 6.8,
+              "reps": 10,
+              "rir": null,
+              "rir2": null,
+              "reps2": 10,
+              "restSec": 62,
+              "partialReps": 1,
+              "partialReps2": 1
+            }
+          ],
+          "doneOrder": 5
+        },
+        {
+          "slotId": "mutgvswjqqj7op",
+          "exerciseId": "3632be784b42",
+          "sets": [
+            {
+              "weight": 86,
+              "reps": 10,
+              "rir": 1.5,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 93
+            },
+            {
+              "weight": 86,
+              "reps": 9,
+              "rir": null,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 98,
+              "partialReps": 1
+            }
+          ],
+          "restNote": "90",
+          "doneOrder": 3
+        }
+      ],
+      "partial": true
     }
   ],
   "meta": {
