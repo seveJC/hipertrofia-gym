@@ -751,6 +751,10 @@
           "restSec": 90
         },
         {
+          "id": "mutgvswjqqj7op",
+          "exerciseId": "3632be784b42"
+        },
+        {
           "id": "e0ea29e6f88f",
           "exerciseId": "c935a6fa886c",
           "repLo": 10,
@@ -796,12 +800,6 @@
           "exerciseId": "a0d5d05caf04",
           "repLo": 12,
           "repHi": 15
-        },
-        {
-          "id": "0529b472180f",
-          "exerciseId": "311d1c4305b8",
-          "repLo": 8,
-          "repHi": 10
         },
         {
           "id": "befe1402c2e8",
