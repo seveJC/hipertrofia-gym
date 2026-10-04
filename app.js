@@ -770,6 +770,15 @@ function runMigrations() {
     changed = true;
   }
 
+  // 04/10/2026: nombre de la rutina de fuerza, a gusto del dueño.
+  if (!db.meta.renameFuerza20261004) {
+    db.routines.forEach(r => {
+      if (/^fuerza\s*\(push/i.test(String(r.name || '').trim())) r.name = 'Fuerza (push-pull)';
+    });
+    db.meta.renameFuerza20261004 = true;
+    changed = true;
+  }
+
   if (changed) saveDB();
 }
 
@@ -3197,6 +3206,45 @@ function renderSession(routineId) {
     });
   }
 
+  // Tras elegir el ejercicio nuevo: ¿solo hoy, o se queda en la rutina?
+  // El hueco es el mismo, así que el histórico y el progreso no se pierden.
+  function openSwapScopePrompt(slotId, exerciseId) {
+    const found = resolveSlot(slotId);
+    const slot = found ? found.slot : null;
+    const slotRoutine = found ? found.routine : routine;
+    const nuevo = getExercise(exerciseId);
+    const viejo = getExercise(slot ? slot.exerciseId : draft.entries[slotId].exerciseId);
+    const apply = (forever) => {
+      draft.entries[slotId].exerciseId = exerciseId;
+      if (forever && slot) {
+        slot.exerciseId = exerciseId;
+        saveDB();
+        showToast('Cambiado en la rutina');
+      }
+      paint();
+    };
+    // Si ya era el mismo de la rutina no hay nada que preguntar.
+    if (!slot || slot.exerciseId === exerciseId) { apply(false); return; }
+    const backdrop = document.createElement('div');
+    backdrop.className = 'modal-backdrop';
+    backdrop.innerHTML = `
+      <div class="modal-sheet">
+        <h2>🔄 ${escapeHtml(nuevo ? nuevo.name : '')}</h2>
+        <p style="color:var(--text-dim);font-size:13px;margin-top:-8px;">Sustituye a <b>${escapeHtml(viejo ? viejo.name : '?')}</b> en ${escapeHtml(slotRoutine.name)}. ¿Hasta cuándo?</p>
+        <div class="scope-toggle">
+          <button type="button" class="scope-btn active" id="swap-today">📅<br>Solo hoy<br><small>la rutina no cambia</small></button>
+          <button type="button" class="scope-btn" id="swap-forever">♾️<br>Para siempre<br><small>queda en la rutina</small></button>
+        </div>
+        <button class="btn btn-ghost btn-block" id="swap-cancel">Cancelar</button>
+      </div>`;
+    document.body.appendChild(backdrop);
+    const close = () => { if (backdrop.parentNode) document.body.removeChild(backdrop); };
+    document.getElementById('swap-today').addEventListener('click', () => { close(); apply(false); });
+    document.getElementById('swap-forever').addEventListener('click', () => { close(); apply(true); });
+    document.getElementById('swap-cancel').addEventListener('click', close);
+    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
+  }
+
   // Objetivo de descanso del ejercicio: vive en la rutina y se cambia sin
   // bloquear nada. Vacío = sin objetivo (no pita).
   function openRestTargetEditor(slotId) {
@@ -3966,9 +4014,8 @@ function renderSession(routineId) {
 
     app.querySelectorAll('[data-swap]').forEach(el => el.addEventListener('click', () => {
       const slotId = el.dataset.swap;
-      openExercisePicker('Sustituir ejercicio (solo esta sesión)', (exerciseId) => {
-        draft.entries[slotId].exerciseId = exerciseId;
-        paint();
+      openExercisePicker('Sustituir ejercicio', (exerciseId) => {
+        openSwapScopePrompt(slotId, exerciseId);
       }, {
         onDelete: () => {
           const ex = getExercise(draft.entries[slotId].exerciseId);
