@@ -752,7 +752,10 @@
         },
         {
           "id": "mutgvswjqqj7op",
-          "exerciseId": "3632be784b42"
+          "exerciseId": "3632be784b42",
+          "restSec": 90,
+          "repLo": 8,
+          "repHi": 10
         },
         {
           "id": "e0ea29e6f88f",
