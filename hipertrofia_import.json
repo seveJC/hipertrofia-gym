@@ -8934,15 +8934,7 @@
     "QFitness Aljaraque",
     "VivaGym Bravo Murillo"
   ],
-  "messages": [
-    {
-      "id": "mtx5b5iryfyvbs",
-      "routineId": "8a82112eb89a",
-      "fromRoutineId": null,
-      "text": "Hacer Gemelos y Abdominales",
-      "createdAt": "2026-09-11T20:00:00.000Z"
-    }
-  ],
+  "messages": [],
   "measures": [
     {
       "id": "mu494wwk373eq0",
