@@ -3262,6 +3262,12 @@ function renderSession(routineId) {
     return slot && slot.restSec > 0 ? slot.restSec : null;
   }
 
+  // "Empuje (Push)" → "Push": en los filtros el sitio es justo.
+  function shortRoutineName(name) {
+    const m = String(name || '').match(/\(([^)]+)\)/);
+    return m ? m[1] : String(name || '');
+  }
+
   function historyThresholds(total) {
     const steps = [3, 5, 10, 15, 20, 25, 30, 40, 50];
     const result = steps.filter(s => s < total);
@@ -3494,21 +3500,20 @@ function renderSession(routineId) {
       const hasFilters = !!(filters.routineId || filters.gym);
       const historyMoreHtml = (allRows.length > 3 || histRoutines.length > 1 || histGyms.length > 1) ? `
         <div class="history-more">
-          <label>Ver:</label>
           <select data-history-limit="${slot.id}">
-            ${historyThresholds(Math.max(totalHistoryCount, 1)).map(n => `<option value="${n}" ${n === entry._historyLimit || (entry._historyLimit >= totalHistoryCount && n === totalHistoryCount) ? 'selected' : ''}>${n === totalHistoryCount ? `Todas (${n})` : `últimas ${n}`}</option>`).join('')}
+            ${historyThresholds(Math.max(totalHistoryCount, 1)).map(n => `<option value="${n}" ${n === entry._historyLimit || (entry._historyLimit >= totalHistoryCount && n === totalHistoryCount) ? 'selected' : ''}>${n === totalHistoryCount ? `todas (${n})` : `últ. ${n}`}</option>`).join('')}
           </select>
           ${histRoutines.length > 1 ? `
           <select data-history-routine="${slot.id}">
-            <option value="">Toda rutina</option>
-            ${histRoutines.map(r => `<option value="${r.id}" ${r.id === filters.routineId ? 'selected' : ''}>${escapeHtml(r.name)}</option>`).join('')}
+            <option value="">rutina</option>
+            ${histRoutines.map(r => `<option value="${r.id}" ${r.id === filters.routineId ? 'selected' : ''}>${escapeHtml(shortRoutineName(r.name))}</option>`).join('')}
           </select>` : ''}
           ${histGyms.length > 1 ? `
           <select data-history-gym="${slot.id}">
-            <option value="">Todo gimnasio</option>
+            <option value="">gimnasio</option>
             ${histGyms.map(g => `<option value="${escapeHtml(g)}" ${g === filters.gym ? 'selected' : ''}>${escapeHtml(g)}</option>`).join('')}
           </select>` : ''}
-          ${hasFilters ? `<span class="history-clear" data-history-clear="${slot.id}">✕ filtros</span>` : ''}
+          ${hasFilters ? `<span class="history-clear" data-history-clear="${slot.id}">✕</span>` : ''}
         </div>
       ` : '';
       const historyHtml = !history.length && hasFilters ? '<div class="history-empty">Sin sesiones con ese filtro.</div>' : history.length ? `
