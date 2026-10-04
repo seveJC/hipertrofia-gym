@@ -3007,7 +3007,9 @@ function renderSession(routineId) {
     return findSlotAnywhere(slotId);
   }
 
-  function pastSessionsForSlot(slotId, limit) {
+  // filters: { routineId, gym } — para ver solo las sesiones de una rutina y/o
+  // de un gimnasio (p. ej. las últimas 3 de press banca en Push, Bravo Murillo).
+  function pastSessionsForSlot(slotId, limit, filters) {
     const found = resolveSlot(slotId);
     const slot = found ? found.slot : null;
     const ownRoutineId = found ? found.routine.id : routineId;
@@ -3020,7 +3022,10 @@ function renderSession(routineId) {
       if (!e && exId) { e = s.entries.find(x => x.exerciseId === exId); foreign = true; }
       if (e) rows.push({ session: s, entry: e, foreign });
     });
-    return rows.sort((a, b) => b.session.date.localeCompare(a.session.date)).slice(0, limit);
+    let out = rows.sort((a, b) => b.session.date.localeCompare(a.session.date));
+    if (filters && filters.routineId) out = out.filter(r => r.session.routineId === filters.routineId);
+    if (filters && filters.gym) out = out.filter(r => canonicalGym(r.session.gym || '') === filters.gym);
+    return out.slice(0, limit);
   }
 
   const lastRoutineSession = db.sessions
@@ -3476,18 +3481,37 @@ function renderSession(routineId) {
         </div>`;
       }
 
-      const totalHistoryCount = pastSessionsForSlot(slot.id, Infinity).length;
-      const history = pastSessionsForSlot(slot.id, entry._historyLimit);
+      const allRows = pastSessionsForSlot(slot.id, Infinity);
+      const filters = { routineId: entry._histRoutine || '', gym: entry._histGym || '' };
+      const filtered = pastSessionsForSlot(slot.id, Infinity, filters);
+      const totalHistoryCount = filtered.length;
+      const history = filtered.slice(0, entry._historyLimit);
       const maxSets = history.reduce((m, h) => Math.max(m, h.entry.sets.length), 0);
-      const historyMoreHtml = totalHistoryCount > 3 ? `
+      // Rutinas y gimnasios que aparecen en el histórico de este ejercicio.
+      const histRoutines = [...new Set(allRows.map(r => r.session.routineId))]
+        .map(id => ({ id, name: (getRoutine(id) || {}).name || 'Rutina eliminada' }));
+      const histGyms = [...new Set(allRows.map(r => canonicalGym(r.session.gym || '')).filter(Boolean))];
+      const hasFilters = !!(filters.routineId || filters.gym);
+      const historyMoreHtml = (allRows.length > 3 || histRoutines.length > 1 || histGyms.length > 1) ? `
         <div class="history-more">
-          <label>Mostrar últimas:</label>
+          <label>Ver:</label>
           <select data-history-limit="${slot.id}">
-            ${historyThresholds(totalHistoryCount).map(n => `<option value="${n}" ${n === entry._historyLimit || (entry._historyLimit >= totalHistoryCount && n === totalHistoryCount) ? 'selected' : ''}>${n === totalHistoryCount ? `Todas (${n})` : n}</option>`).join('')}
+            ${historyThresholds(Math.max(totalHistoryCount, 1)).map(n => `<option value="${n}" ${n === entry._historyLimit || (entry._historyLimit >= totalHistoryCount && n === totalHistoryCount) ? 'selected' : ''}>${n === totalHistoryCount ? `Todas (${n})` : `últimas ${n}`}</option>`).join('')}
           </select>
+          ${histRoutines.length > 1 ? `
+          <select data-history-routine="${slot.id}">
+            <option value="">Toda rutina</option>
+            ${histRoutines.map(r => `<option value="${r.id}" ${r.id === filters.routineId ? 'selected' : ''}>${escapeHtml(r.name)}</option>`).join('')}
+          </select>` : ''}
+          ${histGyms.length > 1 ? `
+          <select data-history-gym="${slot.id}">
+            <option value="">Todo gimnasio</option>
+            ${histGyms.map(g => `<option value="${escapeHtml(g)}" ${g === filters.gym ? 'selected' : ''}>${escapeHtml(g)}</option>`).join('')}
+          </select>` : ''}
+          ${hasFilters ? `<span class="history-clear" data-history-clear="${slot.id}">✕ filtros</span>` : ''}
         </div>
       ` : '';
-      const historyHtml = history.length ? `
+      const historyHtml = !history.length && hasFilters ? '<div class="history-empty">Sin sesiones con ese filtro.</div>' : history.length ? `
         <div class="history-table-wrap">
           <table class="history-table">
             <thead><tr>
@@ -3914,6 +3938,21 @@ function renderSession(routineId) {
       draft.entries[slotId].sets[Number(sIdx)].restSec = v;
       saveDraft();
     }));
+    app.querySelectorAll('[data-history-routine]').forEach(el => el.addEventListener('change', () => {
+      draft.entries[el.dataset.historyRoutine]._histRoutine = el.value;
+      paint();
+    }));
+    app.querySelectorAll('[data-history-gym]').forEach(el => el.addEventListener('change', () => {
+      draft.entries[el.dataset.historyGym]._histGym = el.value;
+      paint();
+    }));
+    app.querySelectorAll('[data-history-clear]').forEach(el => el.addEventListener('click', () => {
+      const entry = draft.entries[el.dataset.historyClear];
+      entry._histRoutine = '';
+      entry._histGym = '';
+      paint();
+    }));
+
     app.querySelectorAll('[data-toggle-uni]').forEach(el => el.addEventListener('click', () => {
       const entry = draft.entries[el.dataset.toggleUni];
       entry.uni = !entry.uni;

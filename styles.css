@@ -582,10 +582,19 @@ html, body {
 .history-more {
   display: flex;
   align-items: center;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 6px;
   padding: 8px 4px 4px;
   font-size: 12px;
   color: var(--text-dim);
+}
+
+.history-more select { max-width: 42vw; }
+
+.history-clear {
+  color: var(--accent);
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .history-more select {
