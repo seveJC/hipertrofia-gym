@@ -727,7 +727,7 @@
     },
     {
       "id": "8a82112eb89a",
-      "name": "Fuerza (Push+Pull)",
+      "name": "Fuerza (push-pull)",
       "slots": [
         {
           "id": "5eb28636545d",
@@ -9093,7 +9093,8 @@
     "repRangesAbsCalves20260914": true,
     "measuresSeeded20260916": true,
     "measuresSeeded20260916b": true,
-    "partialsLateral20260917": true
+    "partialsLateral20260917": true,
+    "renameFuerza20261004": true
   },
   "gyms": [
     "Basic-Fit Bravo Murillo",
