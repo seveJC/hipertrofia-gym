@@ -810,6 +810,13 @@
           "restSec": 60,
           "repLo": 10,
           "repHi": 16
+        },
+        {
+          "id": "muv6jofku2rc4l",
+          "exerciseId": "75411c7a4aa7",
+          "restSec": 75,
+          "repLo": 10,
+          "repHi": 16
         }
       ]
     }
