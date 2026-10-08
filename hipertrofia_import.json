@@ -455,6 +455,12 @@
       "name": "Polea alta",
       "muscle": "Pecho",
       "notes": ""
+    },
+    {
+      "id": "muzb8tnlr9e9hj",
+      "name": "Extensión Tríceps codo atrás",
+      "muscle": "Tríceps",
+      "notes": ""
     }
   ],
   "routines": [
@@ -506,7 +512,7 @@
         },
         {
           "id": "6b75a0c02f21",
-          "exerciseId": "c935a6fa886c",
+          "exerciseId": "muzb8tnlr9e9hj",
           "restSec": 60,
           "repLo": 10,
           "repHi": 12
