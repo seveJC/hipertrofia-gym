@@ -3310,10 +3310,18 @@ function renderSession(routineId) {
     return slot && slot.restSec > 0 ? slot.restSec : null;
   }
 
-  // "Empuje (Push)" → "Push": en los filtros el sitio es justo.
-  function shortRoutineName(name) {
-    const m = String(name || '').match(/\(([^)]+)\)/);
-    return m ? m[1] : String(name || '');
+  // Etiqueta corta para el filtro: "Fuerza (push-pull)" → "Fuerza". Si dos
+  // rutinas comparten esa parte ("Pierna (…)") se añade el paréntesis corto.
+  function shortRoutineNames(names) {
+    const base = (n) => String(n || '').split('(')[0].trim() || String(n || '');
+    const inner = (n) => (String(n || '').match(/\(([^)]+)\)/) || [, ''])[1];
+    const counts = {};
+    names.forEach(n => { const b = base(n); counts[b] = (counts[b] || 0) + 1; });
+    return names.map(n => {
+      const b = base(n);
+      if (counts[b] < 2 || !inner(n)) return b;
+      return b + ' ' + inner(n).slice(0, 3) + '.';
+    });
   }
 
   function historyThresholds(total) {
@@ -3542,8 +3550,12 @@ function renderSession(routineId) {
       const history = filtered.slice(0, entry._historyLimit);
       const maxSets = history.reduce((m, h) => Math.max(m, h.entry.sets.length), 0);
       // Rutinas y gimnasios que aparecen en el histórico de este ejercicio.
-      const histRoutines = [...new Set(allRows.map(r => r.session.routineId))]
-        .map(id => ({ id, name: (getRoutine(id) || {}).name || 'Rutina eliminada' }));
+      const histRoutines = (() => {
+        const ids = [...new Set(allRows.map(r => r.session.routineId))];
+        const names = ids.map(id => (getRoutine(id) || {}).name || 'Rutina eliminada');
+        const labels = shortRoutineNames(names);
+        return ids.map((id, i) => ({ id, name: names[i], label: labels[i] }));
+      })();
       const histGyms = [...new Set(allRows.map(r => canonicalGym(r.session.gym || '')).filter(Boolean))];
       const hasFilters = !!(filters.routineId || filters.gym);
       const historyMoreHtml = (allRows.length > 3 || histRoutines.length > 1 || histGyms.length > 1) ? `
@@ -3554,7 +3566,7 @@ function renderSession(routineId) {
           ${histRoutines.length > 1 ? `
           <select data-history-routine="${slot.id}">
             <option value="">rutina</option>
-            ${histRoutines.map(r => `<option value="${r.id}" ${r.id === filters.routineId ? 'selected' : ''}>${escapeHtml(shortRoutineName(r.name))}</option>`).join('')}
+            ${histRoutines.map(r => `<option value="${r.id}" ${r.id === filters.routineId ? 'selected' : ''}>${escapeHtml(r.label)}</option>`).join('')}
           </select>` : ''}
           ${histGyms.length > 1 ? `
           <select data-history-gym="${slot.id}">
