@@ -729,7 +729,7 @@
     },
     {
       "id": "8a82112eb89a",
-      "name": "Fuerza (push-pull)",
+      "name": "Fuerza push",
       "slots": [
         {
           "id": "5eb28636545d",
@@ -772,6 +772,19 @@
           "repLo": 10,
           "repHi": 14
         },
+        {
+          "id": "muv6jofku2rc4l",
+          "exerciseId": "75411c7a4aa7",
+          "restSec": 75,
+          "repLo": 10,
+          "repHi": 16
+        }
+      ]
+    },
+    {
+      "id": "mv599i0z7jb2yo",
+      "name": "Fuerza pull",
+      "slots": [
         {
           "id": "78e4e51c4571",
           "exerciseId": "1b9297894d74",
@@ -819,14 +832,10 @@
           "restSec": 60,
           "repLo": 10,
           "repHi": 16
-        },
-        {
-          "id": "muv6jofku2rc4l",
-          "exerciseId": "75411c7a4aa7",
-          "restSec": 75,
-          "repLo": 10,
-          "repHi": 16
         }
+      ],
+      "inheritsFrom": [
+        "8a82112eb89a"
       ]
     }
   ],
@@ -10813,7 +10822,8 @@
     "measuresSeeded20260916": true,
     "measuresSeeded20260916b": true,
     "partialsLateral20260917": true,
-    "renameFuerza20261004": true
+    "renameFuerza20261004": true,
+    "splitFuerza20261012": true
   },
   "gyms": [
     "Basic-Fit Bravo Murillo",
