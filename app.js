@@ -813,6 +813,16 @@ function runMigrations() {
     changed = true;
   }
 
+  // 12/10/2026: sin objetivo de descanso no sonaba el aviso. A los huecos que
+  // se quedaron sin él se les pone 90 s (se puede cambiar o vaciar desde 🎯).
+  if (!db.meta.restDefault20261012) {
+    db.routines.forEach(r => r.slots.forEach(sl => {
+      if (!(sl.restSec > 0)) { sl.restSec = 90; changed = true; }
+    }));
+    db.meta.restDefault20261012 = true;
+    changed = true;
+  }
+
   if (changed) saveDB();
 }
 
@@ -2124,6 +2134,10 @@ async function requestWakeLock() {
     if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen');
   } catch (e) { /* not available / denied, ignore */ }
 }
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') unlockAudio();
+});
+
 document.addEventListener('visibilitychange', async () => {
   if (wakeLock && document.visibilityState === 'visible') {
     try { wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
@@ -2138,10 +2152,43 @@ function unlockAudio() {
     if (audioCtx.state === 'suspended') audioCtx.resume();
   } catch (e) { /* Web Audio not available */ }
 }
-function playRestBeep() {
+let scheduledBeep = null; // { at: ms, nodes: [] }
+
+function cancelScheduledBeep() {
+  if (!scheduledBeep) return;
+  scheduledBeep.nodes.forEach(o => { try { o.stop(0); } catch (e) {} });
+  scheduledBeep = null;
+}
+
+function vibrateBeep() {
+  try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch (e) {}
+}
+
+// sec: segundos que faltan para avisar. Devuelve true si quedó programado.
+function scheduleRestBeep(sec) {
+  cancelScheduledBeep();
+  unlockAudio();
+  if (!audioCtx || audioCtx.state !== 'running' || !(sec > 0)) return false;
   try {
-    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-  } catch (e) { /* iOS Safari never implements the Vibration API — silent no-op */ }
+    const nodes = [0, 0.4].map(delay => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = 880;
+      gain.gain.value = 0.15;
+      osc.connect(gain).connect(audioCtx.destination);
+      const t = audioCtx.currentTime + sec + delay;
+      osc.start(t);
+      osc.stop(t + 0.25);
+      return osc;
+    });
+    scheduledBeep = { at: Date.now() + sec * 1000, nodes };
+    return true;
+  } catch (e) { return false; }
+}
+
+function playRestBeep() {
+  vibrateBeep();
   try {
     if (!audioCtx) return;
     [0, 400].forEach(delay => {
@@ -3035,6 +3082,7 @@ function renderSession(routineId) {
   window.addEventListener('pageshow', restoreScroll);
 
   currentCleanup = () => {
+    cancelScheduledBeep();
     Object.values(restIntervals).forEach(clearInterval);
     if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
     if (window.visualViewport) {
@@ -3884,12 +3932,14 @@ function renderSession(routineId) {
     });
 
     Object.keys(restIntervals).forEach(k => clearInterval(restIntervals[k]));
+    if (draft.restStart == null) cancelScheduledBeep();
     if (draft.restStart != null) {
       const since = draft.restStart;
       const targetSec = draft.restSlotId ? restTargetOf(draft.restSlotId) : null;
       const restEx = draft.restSlotId && draft.entries[draft.restSlotId] ? getExercise(draft.entries[draft.restSlotId].exerciseId) : null;
       const info = document.getElementById('rest-bar-info');
-      if (info) info.textContent = (targetSec ? `/ ${mmss(targetSec)}` : '') + (restEx ? ` · ${restEx.name}` : '');
+      if (info) info.textContent = (targetSec ? `/ ${mmss(targetSec)}` : '🔕 sin aviso') + (restEx ? ` · ${restEx.name}` : '');
+      const alertAt = targetSec ? Math.max(targetSec - 10, 0) : null;
       const tick = () => {
         const elapsed = Math.floor((Date.now() - since) / 1000);
         const live = document.getElementById('rest-live');
@@ -3899,12 +3949,25 @@ function renderSession(routineId) {
         }
         // El "ya he avisado" vive en el draft, no en esta función: si viviera aquí
         // se reiniciaría en cada repintado y volvería a pitar en cada toque.
-        if (targetSec && !draft.restAlerted && elapsed >= Math.max(targetSec - 10, 0)) {
+        if (alertAt != null && !draft.restAlerted && elapsed >= alertAt) {
           draft.restAlerted = true;
           saveDraft();
-          playRestBeep();
+          // Si ya estaba programado en la cola de audio, solo vibra: el sonido
+          // lo ha dado (o lo está dando) Web Audio.
+          if (scheduledBeep && Date.now() >= scheduledBeep.at - 300) vibrateBeep();
+          else playRestBeep();
+          cancelScheduledBeep();
         }
       };
+      // Pitido programado de antemano, inmune a que se congele la página.
+      if (alertAt != null && !draft.restAlerted) {
+        const falta = alertAt - Math.floor((Date.now() - since) / 1000);
+        // Si ya pasó la hora, no se cancela: el tick mirará si sonó desde la
+        // cola de audio (móvil dormido) para no pitar dos veces al volver.
+        if (falta > 0) scheduleRestBeep(falta);
+      } else {
+        cancelScheduledBeep();
+      }
       tick();
       restIntervals.global = setInterval(tick, 1000);
     }
