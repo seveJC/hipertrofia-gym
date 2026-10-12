@@ -779,6 +779,40 @@ function runMigrations() {
     changed = true;
   }
 
+  // 12/10/2026: la rutina de fuerza se parte en dos, que es como se entrena de
+  // hecho (parcial + continuación). La original se queda como "Fuerza push"
+  // (mismo id: las sesiones guardadas siguen colgando de ella) y "Fuerza pull"
+  // se lleva sus huecos con el mismo id, heredando histórico y progreso.
+  if (!db.meta.splitFuerza20261012) {
+    const vieja = db.routines.find(r => /^fuerza\s*\(push/i.test(String(r.name || '').trim()));
+    if (vieja) {
+      const norm = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+      const PULL = [
+        'remo pecho apoyado agarre prono',
+        'jalon al pecho agarre doble',
+        'curl biceps mancuernas',
+        'remo maquina dorsal agarre neutro',
+        'curl martillo mancuernas',
+        'facepull',
+        'crunch en polea alta con cuerda',
+      ];
+      const esPull = (sl) => {
+        const ex = getExercise(sl.exerciseId);
+        return !!ex && PULL.includes(norm(ex.name));
+      };
+      const pullSlots = vieja.slots.filter(esPull);
+      if (pullSlots.length) {
+        vieja.name = 'Fuerza push';
+        vieja.slots = vieja.slots.filter(sl => !esPull(sl));
+        const nueva = { id: uid(), name: 'Fuerza pull', slots: pullSlots, inheritsFrom: [vieja.id] };
+        db.routines.splice(db.routines.indexOf(vieja) + 1, 0, nueva);
+        changed = true;
+      }
+    }
+    db.meta.splitFuerza20261012 = true;
+    changed = true;
+  }
+
   if (changed) saveDB();
 }
 
@@ -1035,6 +1069,14 @@ function bindMessageDismiss(root, afterDismiss) {
 // pero las series se guardan en la sesión de origen (con su propia fecha).
 function allTransfers() { return db.transfers || []; }
 
+// Ids de rutina de los que hereda esta (la suya + las de las que salió).
+function routineLineage(routineId) {
+  const r = getRoutine(routineId);
+  const out = [routineId];
+  ((r && r.inheritsFrom) || []).forEach(id => { if (!out.includes(id)) out.push(id); });
+  return out;
+}
+
 function findSlotAnywhere(slotId) {
   for (const r of db.routines) {
     const sl = r.slots.find(x => x.id === slotId);
@@ -1144,7 +1186,10 @@ function openRoutineChoice(routineId) {
   const CONTINUE_WINDOW_MS = 4 * 24 * 60 * 60 * 1000;
   const resumable = !inProgress && last && last.partial
     && !db.sessions.some(s => s.continuesSessionId === last.id)
-    && (Date.now() - new Date(last.date).getTime()) < CONTINUE_WINDOW_MS ? last : null;
+    && (Date.now() - new Date(last.date).getTime()) < CONTINUE_WINDOW_MS
+    // Si ya no falta nada de esta rutina (p. ej. tras partirla en dos), no hay
+    // nada que continuar.
+    && missingSlotsOf(last).length ? last : null;
   const backdrop = document.createElement('div');
   backdrop.className = 'modal-backdrop';
   backdrop.innerHTML = `
@@ -2270,8 +2315,9 @@ function bestSetForExercise(exerciseId, uni) {
 // hueco no cuentan: una máquina distinta no es una bajada de peso.
 function slotProgressPoints(routine, slot, exerciseId, uni) {
   const exId = exerciseId || slot.exerciseId;
+  const lineage = routineLineage(routine.id);
   return db.sessions
-    .filter(ses => ses.routineId === routine.id)
+    .filter(ses => lineage.includes(ses.routineId))
     .sort((a, b) => a.date.localeCompare(b.date))
     .map(ses => {
       if (ses.deload) return null;
@@ -3022,11 +3068,12 @@ function renderSession(routineId) {
     const found = resolveSlot(slotId);
     const slot = found ? found.slot : null;
     const ownRoutineId = found ? found.routine.id : routineId;
+    const lineage = routineLineage(ownRoutineId);
     const entryNow = draft.entries[slotId];
     const exId = entryNow ? entryNow.exerciseId : (slot ? slot.exerciseId : null);
     const rows = [];
     db.sessions.forEach(s => {
-      let e = s.routineId === ownRoutineId ? s.entries.find(x => x.slotId === slotId) : null;
+      let e = lineage.includes(s.routineId) ? s.entries.find(x => x.slotId === slotId) : null;
       let foreign = false;
       if (!e && exId) { e = s.entries.find(x => x.exerciseId === exId); foreign = true; }
       if (e) rows.push({ session: s, entry: e, foreign });
