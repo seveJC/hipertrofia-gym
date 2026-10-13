@@ -526,7 +526,8 @@
         },
         {
           "id": "muebxdmwv4mmmi",
-          "exerciseId": "acd03ed6d5d9"
+          "exerciseId": "acd03ed6d5d9",
+          "restSec": 90
         }
       ]
     },
@@ -702,7 +703,8 @@
           "id": "990c371b755a",
           "exerciseId": "f2b4a44057d4",
           "repLo": 8,
-          "repHi": 10
+          "repHi": 10,
+          "restSec": 90
         },
         {
           "id": "7aca74a244b4",
@@ -763,7 +765,8 @@
           "id": "e0ea29e6f88f",
           "exerciseId": "a551ade607ad",
           "repLo": 10,
-          "repHi": 12
+          "repHi": 12,
+          "restSec": 90
         },
         {
           "id": "mv524s8wnicevn",
@@ -821,17 +824,23 @@
           "repHi": 10
         },
         {
-          "id": "2f8b255965e4",
-          "exerciseId": "a0d5d05caf04",
-          "repLo": 12,
-          "repHi": 15
-        },
-        {
           "id": "befe1402c2e8",
           "exerciseId": "fb5ccfe259d5",
           "restSec": 60,
           "repLo": 10,
           "repHi": 16
+        },
+        {
+          "id": "mv5amjagxfbt9p",
+          "exerciseId": "c8056279c040",
+          "restSec": 90
+        },
+        {
+          "id": "2f8b255965e4",
+          "exerciseId": "a0d5d05caf04",
+          "repLo": 12,
+          "repHi": 15,
+          "restSec": 90
         }
       ],
       "inheritsFrom": [
@@ -10823,7 +10832,8 @@
     "measuresSeeded20260916b": true,
     "partialsLateral20260917": true,
     "renameFuerza20261004": true,
-    "splitFuerza20261012": true
+    "splitFuerza20261012": true,
+    "restDefault20261012": true
   },
   "gyms": [
     "Basic-Fit Bravo Murillo",
