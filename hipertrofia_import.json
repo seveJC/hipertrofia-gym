@@ -461,6 +461,12 @@
       "name": "Extensión Tríceps codo atrás",
       "muscle": "Tríceps",
       "notes": ""
+    },
+    {
+      "id": "mv6drj4mpf03xu",
+      "name": "Elevación lateral Manc apoyado banco",
+      "muscle": "Deltoide lateral",
+      "notes": ""
     }
   ],
   "routines": [
@@ -523,6 +529,10 @@
           "restSec": 60,
           "repLo": 10,
           "repHi": 12
+        },
+        {
+          "id": "mv6drj4pge06uy",
+          "exerciseId": "mv6drj4mpf03xu"
         },
         {
           "id": "muebxdmwv4mmmi",
