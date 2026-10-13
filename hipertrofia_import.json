@@ -843,7 +843,9 @@
         {
           "id": "mv5amjagxfbt9p",
           "exerciseId": "c8056279c040",
-          "restSec": 90
+          "restSec": 90,
+          "repLo": 12,
+          "repHi": 20
         },
         {
           "id": "2f8b255965e4",
