@@ -10912,7 +10912,8 @@
               "rir": 1,
               "rir2": null,
               "reps2": null,
-              "restSec": 142
+              "restSec": 142,
+              "partialReps": 0
             },
             {
               "weight": 15,
@@ -10920,7 +10921,8 @@
               "rir": 0.5,
               "rir2": null,
               "reps2": null,
-              "restSec": 91
+              "restSec": 91,
+              "partialReps": 0
             },
             {
               "weight": "15/12.5",
@@ -10929,7 +10931,8 @@
               "rir2": null,
               "reps2": null,
               "restSec": 96,
-              "dropset": true
+              "dropset": true,
+              "partialReps": 0
             }
           ],
           "restNote": "90",
