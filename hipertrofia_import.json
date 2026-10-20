@@ -758,18 +758,18 @@
           "repHi": 8
         },
         {
-          "id": "301186ab5df6",
-          "exerciseId": "mu85wsmc258h6i",
-          "repLo": 8,
-          "repHi": 10,
-          "restSec": 90
-        },
-        {
           "id": "mutgvswjqqj7op",
           "exerciseId": "3632be784b42",
           "restSec": 90,
           "repLo": 8,
           "repHi": 10
+        },
+        {
+          "id": "301186ab5df6",
+          "exerciseId": "mu85wsmc258h6i",
+          "repLo": 8,
+          "repHi": 10,
+          "restSec": 90
         },
         {
           "id": "e0ea29e6f88f",
@@ -791,6 +791,10 @@
           "restSec": 75,
           "repLo": 10,
           "repHi": 16
+        },
+        {
+          "id": "mvgeqlm996xy8x",
+          "exerciseId": "3f14eb93ab36"
         }
       ]
     },
