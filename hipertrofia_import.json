@@ -460,7 +460,7 @@
       "id": "muzb8tnlr9e9hj",
       "name": "Extensión Tríceps codo atrás",
       "muscle": "Tríceps",
-      "notes": ""
+      "notes": "P17"
     },
     {
       "id": "mv6drj4mpf03xu",
@@ -12330,6 +12330,241 @@
           ],
           "restNote": "60",
           "doneOrder": 4
+        }
+      ]
+    },
+    {
+      "id": "mvghk8wt7qwauh",
+      "routineId": "8a82112eb89a",
+      "date": "2026-10-20T09:33:39.486Z",
+      "durationSec": 3780,
+      "gym": "Basic-Fit Bravo Murillo",
+      "entries": [
+        {
+          "slotId": "5eb28636545d",
+          "exerciseId": "772ee2f51e71",
+          "sets": [
+            {
+              "weight": 36,
+              "reps": 5,
+              "rir": 1,
+              "rir2": null,
+              "reps2": null,
+              "restSec": null
+            },
+            {
+              "weight": 36,
+              "reps": 5,
+              "rir": 1,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 153
+            },
+            {
+              "weight": 36,
+              "reps": 5,
+              "rir": 1,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 153
+            },
+            {
+              "weight": 36,
+              "reps": 5,
+              "rir": 0.5,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 154
+            }
+          ],
+          "restNote": "180",
+          "doneOrder": 1
+        },
+        {
+          "slotId": "905ab8d9e862",
+          "exerciseId": "35feb6cc7030",
+          "sets": [
+            {
+              "weight": 26,
+              "reps": 7,
+              "rir": null,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 136
+            },
+            {
+              "weight": 24,
+              "reps": 8,
+              "rir": 1.5,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 143
+            },
+            {
+              "weight": 24,
+              "reps": 7,
+              "rir": 0.5,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 140
+            }
+          ],
+          "restNote": "150",
+          "doneOrder": 2
+        },
+        {
+          "slotId": "301186ab5df6",
+          "exerciseId": "mu85wsmc258h6i",
+          "sets": [
+            {
+              "weight": 12,
+              "reps": "9+3",
+              "rir": null,
+              "rir2": null,
+              "reps2": "8+3",
+              "restSec": 74,
+              "restPause": true
+            },
+            {
+              "weight": 12,
+              "reps": "5+3+2",
+              "rir": null,
+              "rir2": null,
+              "reps2": "5+3+2",
+              "restSec": 76,
+              "restPause": true
+            },
+            {
+              "weight": 10,
+              "reps": 10,
+              "rir": null,
+              "rir2": null,
+              "reps2": 10,
+              "restSec": 30
+            }
+          ],
+          "restNote": "90",
+          "doneOrder": 3
+        },
+        {
+          "slotId": "mutgvswjqqj7op",
+          "exerciseId": "3632be784b42",
+          "sets": [
+            {
+              "weight": 93,
+              "reps": 10,
+              "rir": 1,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 148
+            },
+            {
+              "weight": 93,
+              "reps": 9,
+              "rir": null,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 87
+            }
+          ],
+          "restNote": "90",
+          "doneOrder": 4
+        },
+        {
+          "slotId": "e0ea29e6f88f",
+          "exerciseId": "a551ade607ad",
+          "sets": [
+            {
+              "weight": 11.3,
+              "reps": 16,
+              "rir": null,
+              "rir2": null,
+              "reps2": 16,
+              "restSec": 162
+            },
+            {
+              "weight": 11.3,
+              "reps": 11,
+              "rir": null,
+              "rir2": null,
+              "reps2": 11,
+              "restSec": 135
+            }
+          ],
+          "restNote": "90",
+          "doneOrder": 5
+        },
+        {
+          "slotId": "mv524s8wnicevn",
+          "exerciseId": "muzb8tnlr9e9hj",
+          "sets": [
+            {
+              "weight": 9.1,
+              "reps": 12.5,
+              "rir": null,
+              "rir2": null,
+              "reps2": 12,
+              "restSec": 142
+            },
+            {
+              "weight": 9.1,
+              "reps": 12,
+              "rir": null,
+              "rir2": null,
+              "reps2": 12,
+              "restSec": 38
+            }
+          ],
+          "restNote": "90",
+          "doneOrder": 6
+        },
+        {
+          "slotId": "mvgeqlm996xy8x",
+          "exerciseId": "3f14eb93ab36",
+          "sets": [
+            {
+              "weight": 54,
+              "reps": 14,
+              "rir": null,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 53
+            },
+            {
+              "weight": 54,
+              "reps": 12,
+              "rir": null,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 54,
+              "partialReps": 1
+            },
+            {
+              "weight": 52.3,
+              "reps": 11,
+              "rir": null,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 60
+            },
+            {
+              "weight": 50,
+              "reps": 10,
+              "rir": null,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 56
+            },
+            {
+              "weight": 50,
+              "reps": 8,
+              "rir": null,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 56
+            }
+          ],
+          "doneOrder": 7
         }
       ]
     }
