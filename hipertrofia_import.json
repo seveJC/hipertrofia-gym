@@ -532,7 +532,10 @@
         },
         {
           "id": "mv6drj4pge06uy",
-          "exerciseId": "mv6drj4mpf03xu"
+          "exerciseId": "mv6drj4mpf03xu",
+          "restSec": 90,
+          "repLo": 12,
+          "repHi": 15
         },
         {
           "id": "muebxdmwv4mmmi",
