@@ -102,6 +102,9 @@ html, body {
 
 .btn:active { transform: scale(0.97); }
 
+.btn:disabled { opacity: 0.45; cursor: default; }
+.btn:disabled:active { transform: none; }
+
 .btn-primary {
   background: var(--accent);
   color: white;
@@ -358,6 +361,37 @@ html, body {
 .measure-range { display: flex; gap: 4px; font-size: 11px; font-weight: 500; }
 .measure-range span { padding: 3px 8px; border-radius: 8px; border: 1px solid var(--border); color: var(--text-dim); cursor: pointer; }
 .measure-range span.active { border-color: var(--accent); color: var(--accent); }
+.export-chips {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.export-chips span {
+  padding: 7px 4px;
+  text-align: center;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-dim);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.export-chips span.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(255, 90, 54, 0.12);
+}
+
+.export-count {
+  font-size: 13px;
+  color: var(--text-dim);
+  margin: 2px 0 12px;
+}
+
 .measure-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
 .measure-grid .field:first-child { grid-column: 1 / -1; }
 .measure-grid .field input { box-sizing: border-box; }

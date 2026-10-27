@@ -2289,17 +2289,26 @@ async function downloadText(filename, text) {
   setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
 }
 
-function todayStamp() {
-  const d = new Date();
+function isoDay(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-// Una fila por serie. routineId opcional para exportar solo una rutina.
-function sessionsCsv(routineId) {
+function todayStamp() {
+  return isoDay(new Date());
+}
+
+// ses.date lleva hora, así que se compara solo la parte del día.
+function sessionDay(ses) {
+  return String(ses.date).slice(0, 10);
+}
+
+// Una fila por serie. routineId opcional para exportar solo una rutina,
+// fromIso para empezar en una fecha (incluida).
+function sessionsCsv(routineId, fromIso) {
   const header = ['Fecha', 'Hora', 'Rutina', 'Gimnasio', 'Parcial', 'Descarga', 'Duración min', 'Ejercicio', 'Músculo', 'Serie', 'Peso kg', 'Reps', 'Reps izq', 'RIR', 'RIR izq', 'Técnica', 'Parciales', 'Pausa s', 'Descanso s', 'Superserie', 'Orden real', 'Notas'];
   const rows = [];
   db.sessions
-    .filter(ses => !routineId || ses.routineId === routineId)
+    .filter(ses => (!routineId || ses.routineId === routineId) && (!fromIso || sessionDay(ses) >= fromIso))
     .sort((a, b) => a.date.localeCompare(b.date))
     .forEach(ses => {
       const r = getRoutine(ses.routineId);
@@ -2320,10 +2329,69 @@ function sessionsCsv(routineId) {
   return csvText(header, rows);
 }
 
-function measuresCsv() {
+function measuresCsv(fromIso) {
   const header = ['Fecha', ...MEASURE_FIELDS.map(f => `${f.label} ${f.unit}`)];
-  const rows = measuresSorted().map(m => [fmtDate(m.date), ...MEASURE_FIELDS.map(f => m[f.key])]);
+  const rows = measuresSorted()
+    .filter(m => !fromIso || m.date >= fromIso)
+    .map(m => [fmtDate(m.date), ...MEASURE_FIELDS.map(f => m[f.key])]);
   return csvText(header, rows);
+}
+
+// Diálogo de ⬇: desde qué fecha. Atajos para lo habitual y fecha libre para el
+// resto; el contador dice cuántos registros entran antes de descargar.
+// opts: { title, noun: [singular, plural], count(fromIso), onGo(fromIso) }
+function openExportDialog(opts) {
+  const hoy = new Date();
+  const mesesAtras = (n) => isoDay(new Date(hoy.getFullYear(), hoy.getMonth() - n, hoy.getDate()));
+  const presets = [
+    ['', 'Todo'],
+    [mesesAtras(3), '3 meses'],
+    [mesesAtras(6), '6 meses'],
+    [mesesAtras(12), '1 año'],
+  ];
+  let from = '';
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.innerHTML = `
+    <div class="modal-sheet">
+      <h2>⬇ ${escapeHtml(opts.title)}</h2>
+      <p style="color:var(--text-dim);font-size:13px;margin-top:-8px;">Desde qué fecha quieres el CSV.</p>
+      <div class="export-chips">
+        ${presets.map(([v, t]) => `<span data-exp="${v}">${t}</span>`).join('')}
+      </div>
+      <div class="field">
+        <label>Desde (incluida)</label>
+        <input id="exp-from" type="date" max="${isoDay(hoy)}" />
+      </div>
+      <div class="export-count" id="exp-count"></div>
+      <button class="btn btn-primary btn-block" id="exp-go">Descargar CSV</button>
+      <div style="height:8px;"></div>
+      <button class="btn btn-block" id="exp-cancel">Cancelar</button>
+    </div>`;
+  document.body.appendChild(backdrop);
+  const close = () => { if (backdrop.parentNode) document.body.removeChild(backdrop); };
+  const input = backdrop.querySelector('#exp-from');
+  const countEl = backdrop.querySelector('#exp-count');
+  const goBtn = backdrop.querySelector('#exp-go');
+  const refresh = () => {
+    backdrop.querySelectorAll('[data-exp]').forEach(el => el.classList.toggle('active', el.dataset.exp === from));
+    input.value = from;
+    const n = opts.count(from);
+    const noun = n === 1 ? opts.noun[0] : opts.noun[1];
+    countEl.textContent = n
+      ? `${n} ${noun}` + (from ? ` desde el ${fmtDate(from)}` : ' (histórico completo)')
+      : `Sin ${opts.noun[1]} desde esa fecha`;
+    goBtn.disabled = !n;
+  };
+  backdrop.querySelectorAll('[data-exp]').forEach(el => el.addEventListener('click', () => {
+    from = el.dataset.exp;
+    refresh();
+  }));
+  input.addEventListener('change', () => { from = input.value || ''; refresh(); });
+  goBtn.addEventListener('click', () => { close(); opts.onGo(from); });
+  backdrop.querySelector('#exp-cancel').addEventListener('click', close);
+  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
+  refresh();
 }
 
 // ---------- Récords (PR) ----------
@@ -2654,7 +2722,12 @@ function renderMeasures() {
   app.querySelectorAll('[data-nav]').forEach(el => el.addEventListener('click', () => navigate(el.dataset.nav)));
   ['measure-add', 'measure-add-2'].forEach(id => document.getElementById(id).addEventListener('click', () => openMeasureDialog(null)));
   const csvM = document.getElementById('csv-measures');
-  if (csvM) csvM.addEventListener('click', () => downloadText(`mediciones_${todayStamp()}.csv`, measuresCsv()));
+  if (csvM) csvM.addEventListener('click', () => openExportDialog({
+    title: 'Exportar mediciones',
+    noun: ['medición', 'mediciones'],
+    count: (from) => all.filter(m => !from || m.date >= from).length,
+    onGo: (from) => downloadText(`mediciones_${from ? 'desde_' + from : todayStamp()}.csv`, measuresCsv(from)),
+  }));
   app.querySelectorAll('[data-mkey]').forEach(el => el.addEventListener('click', () => { measuresChartKey = el.dataset.mkey; renderMeasures(); }));
   app.querySelectorAll('[data-mrange]').forEach(el => el.addEventListener('click', () => {
     measuresChartRange = el.dataset.mrange === 'all' ? 'all' : Number(el.dataset.mrange);
@@ -2843,7 +2916,12 @@ function renderHistory(routineId) {
   const csvBtn = document.getElementById('csv-sessions');
   if (csvBtn) csvBtn.addEventListener('click', () => {
     const name = routine ? routine.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-') : 'todas';
-    downloadText(`sesiones_${name}_${todayStamp()}.csv`, sessionsCsv(routine ? routine.id : null));
+    openExportDialog({
+      title: routine ? 'Exportar ' + routine.name : 'Exportar sesiones',
+      noun: ['sesión', 'sesiones'],
+      count: (from) => sessions.filter(ses => !from || sessionDay(ses) >= from).length,
+      onGo: (from) => downloadText(`sesiones_${name}_${from ? 'desde_' + from : todayStamp()}.csv`, sessionsCsv(routine ? routine.id : null, from)),
+    });
   });
 }
 
