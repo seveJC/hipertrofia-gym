@@ -505,9 +505,9 @@
         {
           "id": "cb317bf9a6c2",
           "exerciseId": "3632be784b42",
-          "restSec": 60,
-          "repLo": 12,
-          "repHi": 14
+          "restSec": 90,
+          "repLo": 10,
+          "repHi": 12
         },
         {
           "id": "15caf85ed384",
