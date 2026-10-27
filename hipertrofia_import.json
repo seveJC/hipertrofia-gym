@@ -477,7 +477,7 @@
         {
           "id": "5b54515fa82a",
           "exerciseId": "772ee2f51e71",
-          "restSec": 120,
+          "restSec": 150,
           "repLo": 6,
           "repHi": 8
         },
@@ -491,7 +491,7 @@
         {
           "id": "162ddbdcf606",
           "exerciseId": "3cb3bc12cec3",
-          "restSec": 90,
+          "restSec": 120,
           "repLo": 8,
           "repHi": 10
         },
