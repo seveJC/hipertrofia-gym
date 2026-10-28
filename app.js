@@ -3481,9 +3481,13 @@ function renderSession(routineId) {
   // para que un ejercicio recién añadido no aparezca vacío.
   // Hay rutinas que comparten ids de hueco (Pierna se dividió en dos copiando
   // la original), por eso se mira siempre primero la rutina de hoy.
+  function extraSlots() { return draft.extra || []; }
+
   function resolveSlot(slotId) {
     const own = routine.slots.find(sl => sl.id === slotId);
     if (own) return { routine, slot: own };
+    const suelto = extraSlots().find(sl => sl.id === slotId);
+    if (suelto) return { routine, slot: suelto, extra: true };
     const moved = transferItems.find(it => it.slot.id === slotId);
     if (moved) return { routine: moved.fromRoutine, slot: moved.slot };
     return findSlotAnywhere(slotId);
@@ -3680,6 +3684,48 @@ function renderSession(routineId) {
     });
   }
 
+  // Ejercicio añadido a mitad de sesión: ¿es cosa de hoy o entra en la rutina?
+  function openAddScopePrompt(exerciseId) {
+    const ex = getExercise(exerciseId);
+    const alta = (slot) => {
+      draft.entries[slot.id] = { exerciseId, sets: [], uni: false, _historyLimit: 3 };
+      saveDraft();
+      paint();
+      const btn = document.getElementById('add-extra-btn');
+      if (btn) btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    };
+    const backdrop = document.createElement('div');
+    backdrop.className = 'modal-backdrop';
+    backdrop.innerHTML = `
+      <div class="modal-sheet">
+        <h2>➕ ${escapeHtml(ex ? ex.name : '')}</h2>
+        <p style="color:var(--text-dim);font-size:13px;margin-top:-8px;">¿Lo añado solo a la sesión de hoy o a ${escapeHtml(routine.name)}?</p>
+        <div class="scope-toggle">
+          <button type="button" class="scope-btn active" id="add-today">📅<br>Solo hoy<br><small>la rutina no cambia</small></button>
+          <button type="button" class="scope-btn" id="add-forever">♾️<br>A la rutina<br><small>todas las veces</small></button>
+        </div>
+        <button class="btn btn-ghost btn-block" id="add-cancel">Cancelar</button>
+      </div>`;
+    document.body.appendChild(backdrop);
+    const close = () => { if (backdrop.parentNode) document.body.removeChild(backdrop); };
+    document.getElementById('add-today').addEventListener('click', () => {
+      close();
+      const slot = { id: uid(), exerciseId, restSec: 90 };
+      draft.extra = extraSlots().concat([slot]);
+      alta(slot);
+    });
+    document.getElementById('add-forever').addEventListener('click', () => {
+      close();
+      const slot = { id: uid(), exerciseId, restSec: 90 };
+      routine.slots.push(slot);
+      saveDB();
+      showToast('Añadido a ' + routine.name);
+      alta(slot);
+    });
+    document.getElementById('add-cancel').addEventListener('click', close);
+    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
+  }
+
   // Tras elegir el ejercicio nuevo: ¿solo hoy, o se queda en la rutina?
   // El hueco es el mismo, así que el histórico y el progreso no se pierden.
   function openSwapScopePrompt(slotId, exerciseId) {
@@ -3771,6 +3817,7 @@ function renderSession(routineId) {
       if (lo > 0 && hi >= lo) { slot.repLo = Math.round(lo); slot.repHi = Math.round(hi); }
       else { delete slot.repLo; delete slot.repHi; }
       saveDB();
+      saveDraft();
       // Si el crono sigue en marcha y el objetivo se aleja, vuelve a armar el pitido.
       if (draft.restStart != null && n) {
         const elapsed = Math.floor((Date.now() - draft.restStart) / 1000);
@@ -4181,8 +4228,10 @@ function renderSession(routineId) {
         </div>
       `;
     };
+    const base = routine.slots.length + transferItems.length;
     const blocks = routine.slots.map((slot, idx) => renderBlock(slot, idx, routine, null)).join('')
-      + transferItems.map((it, i) => renderBlock(it.slot, routine.slots.length + i, it.fromRoutine, it)).join('');
+      + transferItems.map((it, i) => renderBlock(it.slot, routine.slots.length + i, it.fromRoutine, it)).join('')
+      + extraSlots().map((sl, i) => renderBlock(sl, base + i, routine, null)).join('');
 
     app.innerHTML = `
       <div class="topbar">
@@ -4201,6 +4250,7 @@ function renderSession(routineId) {
       ${pendingMessagesHtml(routineId) ? `<div class="msg-wrap">${pendingMessagesHtml(routineId)}</div>` : ''}
       <div class="container">
         ${blocks}
+        <button class="btn btn-block add-extra-btn" id="add-extra-btn">➕ Añadir ejercicio</button>
       </div>
       <div class="save-bar">
         <button class="btn btn-primary btn-block" id="finish-session-btn">Guardar sesión</button>
@@ -4523,6 +4573,12 @@ function renderSession(routineId) {
       paint();
     }));
 
+    document.getElementById('add-extra-btn').addEventListener('click', () => {
+      openExercisePicker('Añadir ejercicio', (exerciseId) => {
+        openAddScopePrompt(exerciseId);
+      });
+    });
+
     app.querySelectorAll('[data-swap]').forEach(el => el.addEventListener('click', () => {
       const slotId = el.dataset.swap;
       openExercisePicker('Sustituir ejercicio', (exerciseId) => {
@@ -4554,7 +4610,8 @@ function renderSession(routineId) {
 
     app.querySelectorAll('[data-revert]').forEach(el => el.addEventListener('click', () => {
       const slotId = el.dataset.revert;
-      draft.entries[slotId].exerciseId = routine.slots.find(s => s.id === slotId).exerciseId;
+      const found = resolveSlot(slotId);
+      if (found) draft.entries[slotId].exerciseId = found.slot.exerciseId;
       paint();
     }));
 

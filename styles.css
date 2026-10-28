@@ -1463,3 +1463,9 @@ html, body {
 .old-routines[open] > summary::before { content: '▾ '; }
 
 .rest-target-done { color: var(--green); border-color: var(--green); }
+
+.add-extra-btn {
+  margin: 2px 0 10px;
+  border-style: dashed;
+  color: var(--text-dim);
+}
