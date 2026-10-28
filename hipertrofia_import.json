@@ -297,7 +297,7 @@
     {
       "id": "67946a78fc00",
       "name": "Peso muerto rumano",
-      "muscle": "Isquiotibiales",
+      "muscle": "Isquiotibiales + Glúteo",
       "notes": ""
     },
     {
@@ -309,7 +309,7 @@
     {
       "id": "3c812538cc33",
       "name": "Hip thrust con barra",
-      "muscle": "Isquiotibiales",
+      "muscle": "Glúteo",
       "notes": ""
     },
     {
@@ -467,6 +467,11 @@
       "name": "Elevación lateral Manc apoyado banco",
       "muscle": "Deltoide lateral",
       "notes": ""
+    },
+    {
+      "id": "mvs0zpb25i9w89",
+      "name": "Press inclinado en máquina convergente",
+      "muscle": "Pecho"
     }
   ],
   "routines": [
@@ -542,7 +547,8 @@
           "exerciseId": "acd03ed6d5d9",
           "restSec": 90
         }
-      ]
+      ],
+      "archived": true
     },
     {
       "id": "fa426a1afc5d",
@@ -618,7 +624,8 @@
           "repLo": 12,
           "repHi": 15
         }
-      ]
+      ],
+      "archived": true
     },
     {
       "id": "064f9dc0095e",
@@ -680,7 +687,8 @@
           "repLo": 12,
           "repHi": 14
         }
-      ]
+      ],
+      "archived": true
     },
     {
       "id": "mtwxbr0umc3b96",
@@ -748,7 +756,8 @@
           "id": "mvkv58qrcf1yct",
           "exerciseId": "146318284d1b"
         }
-      ]
+      ],
+      "archived": true
     },
     {
       "id": "8a82112eb89a",
@@ -807,7 +816,8 @@
           "id": "mvgeqlm996xy8x",
           "exerciseId": "3f14eb93ab36"
         }
-      ]
+      ],
+      "archived": true
     },
     {
       "id": "mv599i0z7jb2yo",
@@ -876,6 +886,411 @@
       ],
       "inheritsFrom": [
         "8a82112eb89a"
+      ],
+      "archived": true
+    },
+    {
+      "id": "mvs0zpb4hrglzh",
+      "name": "Pierna A",
+      "weekday": 1,
+      "slots": [
+        {
+          "id": "mvs0zpb3wizslk",
+          "exerciseId": "cdc3611eb981",
+          "sets": 3,
+          "repLo": 6,
+          "repHi": 8,
+          "restSec": 180
+        },
+        {
+          "id": "mvs0zpb3jnsi1n",
+          "exerciseId": "618526128189",
+          "sets": 3,
+          "repLo": 8,
+          "repHi": 10,
+          "restSec": 150
+        },
+        {
+          "id": "mvs0zpb4qxyt41",
+          "exerciseId": "e3ae6e10d14e",
+          "sets": 3,
+          "repLo": 10,
+          "repHi": 12,
+          "restSec": 90
+        },
+        {
+          "id": "mvs0zpb4gsjivf",
+          "exerciseId": "cea8cd3691f5",
+          "sets": 3,
+          "repLo": 8,
+          "repHi": 10,
+          "restSec": 90
+        },
+        {
+          "id": "mvs0zpb45rzrnn",
+          "exerciseId": "660e3d73da5e",
+          "sets": 4,
+          "repLo": 10,
+          "repHi": 12,
+          "restSec": 90
+        },
+        {
+          "id": "mvs0zpb4oj4co9",
+          "exerciseId": "8b251ada8a8e",
+          "sets": 3,
+          "repLo": 12,
+          "repHi": 15,
+          "restSec": 75
+        }
+      ],
+      "inheritsFrom": [
+        "e471c3c406ab",
+        "fa426a1afc5d",
+        "064f9dc0095e",
+        "mtwxbr0umc3b96",
+        "8a82112eb89a",
+        "mv599i0z7jb2yo"
+      ]
+    },
+    {
+      "id": "mvs0zpb5yszw74",
+      "name": "Tirón A",
+      "weekday": 2,
+      "slots": [
+        {
+          "id": "mvs0zpb4uhr2vs",
+          "exerciseId": "1b9297894d74",
+          "sets": 3,
+          "repLo": 6,
+          "repHi": 8,
+          "restSec": 150
+        },
+        {
+          "id": "mvs0zpb4xc69k2",
+          "exerciseId": "64626f37b998",
+          "sets": 3,
+          "repLo": 8,
+          "repHi": 10,
+          "restSec": 150
+        },
+        {
+          "id": "mvs0zpb4hbp8ri",
+          "exerciseId": "8abb81651a6d",
+          "sets": 3,
+          "repLo": 10,
+          "repHi": 12,
+          "restSec": 120
+        },
+        {
+          "id": "mvs0zpb5eajme9",
+          "exerciseId": "36341586fc97",
+          "sets": 3,
+          "repLo": 12,
+          "repHi": 15,
+          "restSec": 75
+        },
+        {
+          "id": "mvs0zpb5ghj3dn",
+          "exerciseId": "071deb7f5463",
+          "sets": 3,
+          "repLo": 8,
+          "repHi": 10,
+          "restSec": 90
+        },
+        {
+          "id": "mvs0zpb5f9tgjb",
+          "exerciseId": "311d1c4305b8",
+          "sets": 2,
+          "repLo": 10,
+          "repHi": 12,
+          "restSec": 75
+        }
+      ],
+      "inheritsFrom": [
+        "e471c3c406ab",
+        "fa426a1afc5d",
+        "064f9dc0095e",
+        "mtwxbr0umc3b96",
+        "8a82112eb89a",
+        "mv599i0z7jb2yo"
+      ]
+    },
+    {
+      "id": "mvs0zpb5zuj8x4",
+      "name": "Empuje A",
+      "weekday": 3,
+      "slots": [
+        {
+          "id": "mvs0zpb5a7nl5j",
+          "exerciseId": "772ee2f51e71",
+          "sets": 3,
+          "repLo": 6,
+          "repHi": 8,
+          "restSec": 180
+        },
+        {
+          "id": "mvs0zpb5lizk1o",
+          "exerciseId": "35feb6cc7030",
+          "sets": 3,
+          "repLo": 8,
+          "repHi": 10,
+          "restSec": 150
+        },
+        {
+          "id": "mvs0zpb5jorfv1",
+          "exerciseId": "3cb3bc12cec3",
+          "sets": 2,
+          "repLo": 8,
+          "repHi": 10,
+          "restSec": 120
+        },
+        {
+          "id": "mvs0zpb5tnnexl",
+          "exerciseId": "3632be784b42",
+          "sets": 2,
+          "repLo": 10,
+          "repHi": 12,
+          "restSec": 90
+        },
+        {
+          "id": "mvs0zpb5p1npep",
+          "exerciseId": "4757b985cef6",
+          "sets": 4,
+          "repLo": 12,
+          "repHi": 15,
+          "restSec": 75
+        },
+        {
+          "id": "mvs0zpb5evqd6x",
+          "exerciseId": "mu85wsmc258h6i",
+          "sets": 3,
+          "repLo": 8,
+          "repHi": 10,
+          "restSec": 90
+        },
+        {
+          "id": "mvs0zpb5vxxr48",
+          "exerciseId": "a551ade607ad",
+          "sets": 2,
+          "repLo": 12,
+          "repHi": 15,
+          "restSec": 75
+        }
+      ],
+      "inheritsFrom": [
+        "e471c3c406ab",
+        "fa426a1afc5d",
+        "064f9dc0095e",
+        "mtwxbr0umc3b96",
+        "8a82112eb89a",
+        "mv599i0z7jb2yo"
+      ]
+    },
+    {
+      "id": "mvs0zpb6c10rp5",
+      "name": "Hombro y brazos",
+      "weekday": 4,
+      "slots": [
+        {
+          "id": "mvs0zpb6ywz5mf",
+          "exerciseId": "75411c7a4aa7",
+          "sets": 5,
+          "repLo": 12,
+          "repHi": 15,
+          "restSec": 75
+        },
+        {
+          "id": "mvs0zpb6avqlbm",
+          "exerciseId": "fb5ccfe259d5",
+          "sets": 3,
+          "repLo": 12,
+          "repHi": 15,
+          "restSec": 75
+        },
+        {
+          "id": "mvs0zpb6rbx0ef",
+          "exerciseId": "bf39f9d32035",
+          "sets": 3,
+          "repLo": 10,
+          "repHi": 12,
+          "restSec": 90
+        },
+        {
+          "id": "mvs0zpb6vmke4j",
+          "exerciseId": "muzb8tnlr9e9hj",
+          "sets": 3,
+          "repLo": 10,
+          "repHi": 12,
+          "restSec": 75
+        },
+        {
+          "id": "mvs0zpb6gjrz77",
+          "exerciseId": "a0d5d05caf04",
+          "sets": 3,
+          "repLo": 10,
+          "repHi": 15,
+          "restSec": 60
+        }
+      ],
+      "inheritsFrom": [
+        "e471c3c406ab",
+        "fa426a1afc5d",
+        "064f9dc0095e",
+        "mtwxbr0umc3b96",
+        "8a82112eb89a",
+        "mv599i0z7jb2yo"
+      ]
+    },
+    {
+      "id": "mvs0zpb6lzznuh",
+      "name": "Pierna B",
+      "weekday": 5,
+      "slots": [
+        {
+          "id": "mvs0zpb6fenfb7",
+          "exerciseId": "67946a78fc00",
+          "sets": 3,
+          "repLo": 8,
+          "repHi": 10,
+          "restSec": 150
+        },
+        {
+          "id": "mvs0zpb6javh0d",
+          "exerciseId": "3c812538cc33",
+          "sets": 3,
+          "repLo": 8,
+          "repHi": 10,
+          "restSec": 150
+        },
+        {
+          "id": "mvs0zpb6b2cx3f",
+          "exerciseId": "be4bc6e0fff8",
+          "sets": 3,
+          "repLo": 10,
+          "repHi": 12,
+          "restSec": 90
+        },
+        {
+          "id": "mvs0zpb6v4n71d",
+          "exerciseId": "618526128189",
+          "sets": 3,
+          "repLo": 10,
+          "repHi": 12,
+          "restSec": 150
+        },
+        {
+          "id": "mvs0zpb6kzu5tj",
+          "exerciseId": "e3ae6e10d14e",
+          "sets": 2,
+          "repLo": 12,
+          "repHi": 15,
+          "restSec": 90
+        },
+        {
+          "id": "mvs0zpb6l2vw17",
+          "exerciseId": "660e3d73da5e",
+          "sets": 4,
+          "repLo": 10,
+          "repHi": 12,
+          "restSec": 90
+        },
+        {
+          "id": "mvs0zpb6y3fczz",
+          "exerciseId": "3f14eb93ab36",
+          "sets": 3,
+          "repLo": 10,
+          "repHi": 15,
+          "restSec": 60
+        }
+      ],
+      "inheritsFrom": [
+        "e471c3c406ab",
+        "fa426a1afc5d",
+        "064f9dc0095e",
+        "mtwxbr0umc3b96",
+        "8a82112eb89a",
+        "mv599i0z7jb2yo"
+      ]
+    },
+    {
+      "id": "mvs0zpb7n1d02r",
+      "name": "Torso B",
+      "weekday": 6,
+      "slots": [
+        {
+          "id": "mvs0zpb68iyrbx",
+          "exerciseId": "mvs0zpb25i9w89",
+          "sets": 3,
+          "repLo": 8,
+          "repHi": 10,
+          "restSec": 150
+        },
+        {
+          "id": "mvs0zpb6a20jhj",
+          "exerciseId": "8ae221b7450b",
+          "sets": 3,
+          "repLo": 8,
+          "repHi": 10,
+          "restSec": 150
+        },
+        {
+          "id": "mvs0zpb66oq6gp",
+          "exerciseId": "cd6d3b85bdeb",
+          "sets": 3,
+          "repLo": 6,
+          "repHi": 10,
+          "restSec": 150
+        },
+        {
+          "id": "mvs0zpb7aftomt",
+          "exerciseId": "2e3364723bce",
+          "sets": 3,
+          "repLo": 8,
+          "repHi": 12,
+          "restSec": 120
+        },
+        {
+          "id": "mvs0zpb7ob235f",
+          "exerciseId": "8b251ada8a8e",
+          "sets": 4,
+          "repLo": 12,
+          "repHi": 15,
+          "restSec": 75
+        },
+        {
+          "id": "mvs0zpb7s0y8kq",
+          "exerciseId": "36341586fc97",
+          "sets": 2,
+          "repLo": 12,
+          "repHi": 15,
+          "restSec": 75
+        },
+        {
+          "id": "mvs0zpb7eecq8s",
+          "exerciseId": "bf39f9d32035",
+          "sets": 2,
+          "repLo": 10,
+          "repHi": 12,
+          "restSec": 75,
+          "supersetGroup": "ss1"
+        },
+        {
+          "id": "mvs0zpb7bjay9m",
+          "exerciseId": "a551ade607ad",
+          "sets": 2,
+          "repLo": 10,
+          "repHi": 12,
+          "restSec": 75,
+          "supersetGroup": "ss1"
+        }
+      ],
+      "inheritsFrom": [
+        "e471c3c406ab",
+        "fa426a1afc5d",
+        "064f9dc0095e",
+        "mtwxbr0umc3b96",
+        "8a82112eb89a",
+        "mv599i0z7jb2yo"
       ]
     }
   ],
@@ -14498,7 +14913,8 @@
     "partialsLateral20260917": true,
     "renameFuerza20261004": true,
     "splitFuerza20261012": true,
-    "restDefault20261012": true
+    "restDefault20261012": true,
+    "planVolumen20261101": true
   },
   "gyms": [
     "Basic-Fit Bravo Murillo",
@@ -15800,5 +16216,97 @@
       "shoulders": 118.2
     }
   ],
-  "transfers": []
+  "transfers": [],
+  "volumeTargets": {
+    "Deltoide lateral": [
+      14,
+      22
+    ],
+    "Espalda": [
+      14,
+      20
+    ],
+    "Pecho": [
+      12,
+      18
+    ],
+    "Cuádriceps": [
+      12,
+      18
+    ],
+    "Isquiotibiales": [
+      8,
+      14
+    ],
+    "Glúteo": [
+      3,
+      8
+    ],
+    "Bíceps": [
+      10,
+      16
+    ],
+    "Tríceps": [
+      10,
+      16
+    ],
+    "Deltoide posterior": [
+      6,
+      12
+    ],
+    "Gemelos": [
+      8,
+      12
+    ],
+    "Abdominales": [
+      6,
+      10
+    ],
+    "Deltoide anterior": [
+      0,
+      4
+    ]
+  },
+  "block": {
+    "name": "Mesociclo 1",
+    "start": "2026-11-02",
+    "weeks": [
+      {
+        "label": "S1",
+        "multi": "3",
+        "iso": "2",
+        "techShort": "sin técnicas",
+        "tech": "No. Semana de fijar cargas de referencia en los rangos nuevos."
+      },
+      {
+        "label": "S2",
+        "multi": "2",
+        "iso": "1",
+        "techShort": "sin técnicas",
+        "tech": "No."
+      },
+      {
+        "label": "S3",
+        "multi": "2",
+        "iso": "1 (última 0)",
+        "techShort": "1 aisl.",
+        "tech": "Solo la última serie de un aislamiento por sesión."
+      },
+      {
+        "label": "S4",
+        "multi": "1–2",
+        "iso": "0–1",
+        "techShort": "aislamientos",
+        "tech": "Última serie de los aislamientos. Nunca en multiarticulares."
+      },
+      {
+        "label": "Descarga",
+        "multi": "3–4",
+        "iso": "3",
+        "techShort": "sin técnicas",
+        "tech": "No. Mitad de series, mismas cargas o un 10 % menos.",
+        "deload": true
+      }
+    ]
+  }
 }
