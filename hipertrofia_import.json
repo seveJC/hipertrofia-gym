@@ -15607,17 +15607,5 @@
       "shoulders": 118.2
     }
   ],
-  "transfers": [
-    {
-      "id": "mvp34nrpevwm72",
-      "fromSessionId": "mvp34b8cts0ri9",
-      "fromRoutineId": "mtwxbr0umc3b96",
-      "toRoutineId": "8a82112eb89a",
-      "slotIds": [
-        "mvkty69u6h3l3q",
-        "mvkv58qrcf1yct"
-      ],
-      "createdAt": "2026-10-26T09:59:33.205Z"
-    }
-  ]
+  "transfers": []
 }
