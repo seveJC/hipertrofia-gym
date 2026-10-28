@@ -1228,7 +1228,17 @@ html, body {
   opacity: 0.85;
 }
 
-.slot-editor-row .name { flex: 1; font-size: 15px; }
+.slot-editor-main { flex: 1; min-width: 0; }
+.slot-editor-row .name { font-size: 15px; }
+
+.slot-targets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  margin-top: 6px;
+}
+
+.slot-targets input { width: 38px; }
 .slot-editor-row .rm {
   background: none;
   border: none;
@@ -1348,3 +1358,108 @@ html, body {
 }
 
 .theme-btn { font-size: 17px; }
+
+/* ---------- Mesociclo y plan semanal ---------- */
+.meso-chip {
+  margin: 0 0 10px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--accent);
+  background: rgba(255, 90, 54, 0.1);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.meso-chip-deload {
+  border-color: var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-dim);
+}
+
+.meso-intro {
+  margin: 2px 0 8px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.meso-week {
+  padding: 9px 0 10px;
+  border-top: 1px solid var(--border);
+}
+
+.meso-week:first-of-type { border-top: none; }
+
+.meso-week-head {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  font-size: 14px;
+}
+
+.meso-week-head small { color: var(--text-dim); font-size: 12px; font-weight: 500; }
+
+.meso-rir {
+  margin-left: auto;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.meso-week-tech {
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.meso-now { background: rgba(255, 90, 54, 0.1); border-radius: 10px; padding-left: 8px; padding-right: 8px; }
+.meso-now .meso-rir { color: var(--accent); }
+
+.meso-notes {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+.meso-notes li { margin-bottom: 6px; }
+.meso-notes b { color: var(--text); }
+
+.day-tag {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+.day-tag-today {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.routine-today { border-color: var(--accent); }
+
+.old-routines { margin-bottom: 12px; }
+
+.old-routines > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 8px 2px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.old-routines > summary::-webkit-details-marker { display: none; }
+.old-routines > summary::before { content: '▸ '; }
+.old-routines[open] > summary::before { content: '▾ '; }
+
+.rest-target-done { color: var(--green); border-color: var(--green); }

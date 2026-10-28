@@ -255,6 +255,7 @@ const MUSCLE_COLORS = {
   'Deltoide lateral': '#6d9eeb',
   'Cuádriceps': '#e06666',
   'Isquiotibiales': '#f4b183',
+  'Glúteo': '#d5a6bd',
   'Gemelos': '#b7b7b7',
   'Abdominales': '#c27ba0',
 };
@@ -270,6 +271,7 @@ const MUSCLE_ABBR = {
   'Espalda': 'Back',
   'Cuádriceps': 'Quad',
   'Isquiotibiales': 'Isq',
+  'Glúteo': 'Glú',
   'Gemelos': 'Gem',
   'Abdominales': 'Abd',
 };
@@ -823,7 +825,160 @@ function runMigrations() {
     changed = true;
   }
 
+  // 01/11/2026: plan de volumen limpio. Seis sesiones fijas por día de la
+  // semana, series y repes del plan, y el mesociclo 1 con sus RIR. Las rutinas
+  // antiguas se quedan tal cual (su histórico sigue intacto); las nuevas
+  // heredan de ellas para que el progreso por ejercicio no empiece de cero.
+  if (!db.meta.planVolumen20261101) {
+    const norm = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+    const exNamed = (n) => db.exercises.find(e => norm(e.name) === norm(n));
+    if (!exNamed('Press inclinado en máquina convergente')) {
+      db.exercises.push({ id: uid(), name: 'Press inclinado en máquina convergente', muscle: 'Pecho' });
+    }
+    // El plan cuenta glúteo aparte; el rumano reparte entre isquios y glúteo.
+    const hip = exNamed('Hip thrust con barra');
+    if (hip) hip.muscle = 'Glúteo';
+    const rdl = exNamed('Peso muerto rumano');
+    if (rdl) rdl.muscle = 'Isquiotibiales + Glúteo';
+
+    // Rangos de trabajo de la sección 5 del plan.
+    db.volumeTargets = Object.assign({}, db.volumeTargets, {
+      'Deltoide lateral': [14, 22], 'Espalda': [14, 20], 'Pecho': [12, 18], 'Cuádriceps': [12, 18],
+      'Isquiotibiales': [8, 14], 'Glúteo': [3, 8], 'Bíceps': [10, 16], 'Tríceps': [10, 16],
+      'Deltoide posterior': [6, 12], 'Gemelos': [8, 12], 'Abdominales': [6, 10], 'Deltoide anterior': [0, 4],
+    });
+
+    // [ejercicio, series, repLo, repHi, descanso s, superserie]
+    const PLAN = [
+      ['Pierna A', 1, [
+        ['Sentadilla hack / pendular', 3, 6, 8, 180],
+        ['Prensa 45º', 3, 8, 10, 150],
+        ['Extensión de cuádriceps', 3, 10, 12, 90],
+        ['Curl femoral sentado', 3, 8, 10, 90],
+        ['Elevación de talones en prensa', 4, 10, 12, 90],
+        ['Elevación lateral polea', 3, 12, 15, 75],
+      ]],
+      ['Tirón A', 2, [
+        ['Remo pecho apoyado agarre prono', 3, 6, 8, 150],
+        ['Jalón al pecho agarre doble', 3, 8, 10, 150],
+        ['Remo Maquina Dorsal agarre neutro', 3, 10, 12, 120],
+        ['Peck deck invertido', 3, 12, 15, 75],
+        ['Curl bíceps mancuernas', 3, 8, 10, 90],
+        ['Curl martillo polea', 2, 10, 12, 75],
+      ]],
+      ['Empuje A', 3, [
+        ['Press Banca Mancuernas', 3, 6, 8, 180],
+        ['Press banca inclinado', 3, 8, 10, 150],
+        ['Press hombro mancuernas', 2, 8, 10, 120],
+        ['Peck deck / Contractora', 2, 10, 12, 90],
+        ['Elevación lateral tumbado polea', 4, 12, 15, 75],
+        ['Francés mancuerna', 3, 8, 10, 90],
+        ['Extensión tríceps cuerda', 2, 12, 15, 75],
+      ]],
+      ['Hombro y brazos', 4, [
+        ['Elevación lateral en máquina', 5, 12, 15, 75],
+        ['Facepull', 3, 12, 15, 75],
+        ['Curl biceps Polea', 3, 10, 12, 90],
+        ['Extensión Tríceps codo atrás', 3, 10, 12, 75],
+        ['Crunch en polea alta con cuerda', 3, 10, 15, 60],
+      ]],
+      ['Pierna B', 5, [
+        ['Peso muerto rumano', 3, 8, 10, 150],
+        ['Hip thrust con barra', 3, 8, 10, 150],
+        ['Curl femoral tumbado', 3, 10, 12, 90],
+        ['Prensa 45º', 3, 10, 12, 150],
+        ['Extensión de cuádriceps', 2, 12, 15, 90],
+        ['Elevación de talones en prensa', 4, 10, 12, 90],
+        ['Máquina abdominales', 3, 10, 15, 60],
+      ]],
+      ['Torso B', 6, [
+        ['Press inclinado en máquina convergente', 3, 8, 10, 150],
+        ['Remo en máquina', 3, 8, 10, 150],
+        ['Dominadas', 3, 6, 10, 150],
+        ['Fondos en paralelas', 3, 8, 12, 120],
+        ['Elevación lateral polea', 4, 12, 15, 75],
+        ['Peck deck invertido', 2, 12, 15, 75],
+        ['Curl biceps Polea', 2, 10, 12, 75, 'ss1'],
+        ['Extensión tríceps cuerda', 2, 10, 12, 75, 'ss1'],
+      ]],
+    ];
+    // Heredan de todo lo anterior: el histórico y el progreso de cada ejercicio
+    // siguen donde estaban aunque el hueco sea nuevo.
+    const previas = db.routines.map(r => r.id);
+    PLAN.forEach(([name, weekday, filas]) => {
+      if (db.routines.some(r => norm(r.name) === norm(name))) return;
+      const slots = filas.map(([exName, sets, lo, hi, rest, ss]) => {
+        const ex = exNamed(exName);
+        if (!ex) return null;
+        const sl = { id: uid(), exerciseId: ex.id, sets, repLo: lo, repHi: hi, restSec: rest };
+        if (ss) sl.supersetGroup = ss;
+        return sl;
+      }).filter(Boolean);
+      db.routines.push({ id: uid(), name, weekday, slots, inheritsFrom: previas.slice() });
+    });
+    // Las de antes quedan fuera del plan semanal, pero visibles y con su histórico.
+    db.routines.forEach(r => { if (previas.includes(r.id)) r.archived = true; });
+
+    db.block = db.block || {
+      name: 'Mesociclo 1',
+      start: '2026-11-02',
+      weeks: [
+        { label: 'S1', multi: '3', iso: '2', techShort: 'sin técnicas', tech: 'No. Semana de fijar cargas de referencia en los rangos nuevos.' },
+        { label: 'S2', multi: '2', iso: '1', techShort: 'sin técnicas', tech: 'No.' },
+        { label: 'S3', multi: '2', iso: '1 (última 0)', techShort: '1 aisl.', tech: 'Solo la última serie de un aislamiento por sesión.' },
+        { label: 'S4', multi: '1–2', iso: '0–1', techShort: 'aislamientos', tech: 'Última serie de los aislamientos. Nunca en multiarticulares.' },
+        { label: 'Descarga', multi: '3–4', iso: '3', techShort: 'sin técnicas', tech: 'No. Mitad de series, mismas cargas o un 10 % menos.', deload: true },
+      ],
+    };
+    db.meta.planVolumen20261101 = true;
+    changed = true;
+  }
+
   if (changed) saveDB();
+}
+
+// Mesociclo en curso: semanas de lunes a domingo desde block.start.
+// weekOf() dice en cuál estás; null si el bloque no ha empezado o ya acabó.
+function currentBlock() {
+  return db.block || null;
+}
+
+function blockWeekIndex(block, when) {
+  if (!block || !block.start) return null;
+  const start = new Date(block.start + 'T00:00:00');
+  const d = when ? new Date(when) : new Date();
+  const today = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const días = Math.floor((today - start) / 86400000);
+  if (días < 0) return -1; // aún no ha empezado
+  const i = Math.floor(días / 7);
+  return i < block.weeks.length ? i : null; // null = terminado
+}
+
+function blockWeek(block, i) {
+  if (!block || i == null || i < 0) return null;
+  return block.weeks[i] || null;
+}
+
+// Fechas de la semana i del bloque, "2–8 nov".
+function blockWeekDates(block, i) {
+  const start = new Date(block.start + 'T00:00:00');
+  const a = new Date(start.getTime() + i * 7 * 86400000);
+  const b = new Date(a.getTime() + 6 * 86400000);
+  const mes = (d) => d.toLocaleDateString('es-ES', { month: 'short' }).replace('.', '');
+  return a.getMonth() === b.getMonth()
+    ? `${a.getDate()}–${b.getDate()} ${mes(b)}`
+    : `${a.getDate()} ${mes(a)} – ${b.getDate()} ${mes(b)}`;
+}
+
+// Resumen de una línea para la cabecera de la sesión y la home.
+function blockChipHtml() {
+  const block = currentBlock();
+  if (!block) return '';
+  const i = blockWeekIndex(block);
+  if (i === null) return `<div class="meso-chip" data-nav="meso">📅 ${escapeHtml(block.name)} terminado · toca planificar el siguiente ›</div>`;
+  if (i === -1) return `<div class="meso-chip" data-nav="meso">📅 ${escapeHtml(block.name)} empieza el ${fmtDateShort(block.start)} ›</div>`;
+  const w = block.weeks[i];
+  return `<div class="meso-chip${w.deload ? ' meso-chip-deload' : ''}" data-nav="meso">${w.deload ? '🪫' : '📅'} ${escapeHtml(w.label)} · RIR ${escapeHtml(w.multi)} multi / ${escapeHtml(w.iso)} aisl · ${escapeHtml(w.techShort)} ›</div>`;
 }
 
 // Orden en que se hicieron los ejercicios de una sesión; [] si se siguió el de
@@ -906,6 +1061,7 @@ function render() {
   if (parts[0] === 'history') return renderHistory(parts[1] || null);
   if (parts[0] === 'progress' && parts[1]) return renderProgress(parts[1]);
   if (parts[0] === 'measures') return renderMeasures();
+  if (parts[0] === 'meso') return renderMeso();
   if (parts[0] === 'session-view' && parts[1]) return renderSessionDetail(parts[1]);
   if (parts[0] === 'routine-new') return renderRoutineEditor(null);
   if (parts[0] === 'routine-edit' && parts[1]) return renderRoutineEditor(parts[1]);
@@ -1325,7 +1481,7 @@ function weeklyStats(fromMs, toMs) {
 const DEFAULT_VOLUME_TARGETS = {
   'Pecho': [10, 20], 'Espalda': [10, 20], 'Cuádriceps': [10, 20], 'Isquiotibiales': [8, 16],
   'Tríceps': [8, 16], 'Bíceps': [8, 16], 'Deltoide lateral': [8, 16], 'Deltoide posterior': [6, 12],
-  'Deltoide anterior': [0, 8], 'Gemelos': [6, 12], 'Abdominales': [6, 12],
+  'Deltoide anterior': [0, 8], 'Gemelos': [6, 12], 'Abdominales': [6, 12], 'Glúteo': [3, 8],
 };
 
 function volumeTargetOf(m) {
@@ -1413,8 +1569,22 @@ function weeklySummaryHtml() {
     </div>`;
 }
 
+const DIAS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+// Las rutinas del plan van por día de la semana, empezando por hoy: lo que
+// toca hoy queda arriba del todo y lo de ayer, al final.
+function planRoutinesOrdered() {
+  const hoy = new Date().getDay();
+  return db.routines
+    .filter(r => r.weekday != null)
+    .sort((a, b) => ((a.weekday - hoy + 7) % 7) - ((b.weekday - hoy + 7) % 7));
+}
+
 function renderHome() {
-  const routines = db.routines;
+  const plan = planRoutinesOrdered();
+  const otras = db.routines.filter(r => r.weekday == null);
+  const routines = plan.concat(otras);
+  const hoyDia = new Date().getDay();
 
   const cards = routines.map(r => {
     const lastSession = db.sessions
@@ -1456,12 +1626,16 @@ function renderHome() {
       </div>
     ` : '';
 
+    const esHoy = r.weekday === hoyDia;
+    const diaTag = r.weekday != null
+      ? `<span class="day-tag${esHoy ? ' day-tag-today' : ''}">${esHoy ? 'HOY' : DIAS[r.weekday].slice(0, 3)}</span>`
+      : '';
     return `
-      <div class="card routine-card" data-open-routine="${r.id}">
+      <div class="card routine-card${esHoy ? ' routine-today' : ''}" data-open-routine="${r.id}">
         <div style="width:100%;">
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <div>
-              <h3>${escapeHtml(r.name)}</h3>
+              <h3>${diaTag}${escapeHtml(r.name)}</h3>
               <p>${r.slots.length} ejercicio${r.slots.length === 1 ? '' : 's'} · ${lastText}</p>
             </div>
             <div class="chevron">›</div>
@@ -1469,7 +1643,7 @@ function renderHome() {
           ${summaryHtml}
         </div>
       </div>`;
-  }).join('');
+  });
 
   app.innerHTML = `
     <div class="topbar">
@@ -1485,9 +1659,16 @@ function renderHome() {
     <div class="container">
       ${transfersBannerHtml()}
       ${measureReminderHtml()}
+      ${blockChipHtml()}
       ${deloadBannerHtml()}
       ${weeklySummaryHtml()}
-      ${routines.length ? cards : '<div class="empty-state">Todavía no tienes rutinas.<br>Crea la primera para empezar.</div>'}
+      ${plan.length ? cards.slice(0, plan.length).join('') : ''}
+      ${otras.length ? `
+        <details class="old-routines"${plan.length ? '' : ' open'}>
+          <summary>${plan.length ? `Rutinas anteriores (${otras.length})` : `Mis rutinas (${otras.length})`}</summary>
+          ${cards.slice(plan.length).join('')}
+        </details>` : ''}
+      ${routines.length ? '' : '<div class="empty-state">Todavía no tienes rutinas.<br>Crea la primera para empezar.</div>'}
       <div class="fab-row">
         <button class="btn btn-primary btn-block" data-nav="routine-new">+ Nueva rutina</button>
       </div>
@@ -1723,6 +1904,64 @@ function importDBFile(file) {
   reader.readAsText(file);
 }
 
+// ---------- Mesociclo: RIR por semana ----------
+function renderMeso() {
+  const block = currentBlock();
+  if (!block) {
+    app.innerHTML = `
+      <div class="topbar">
+        <button class="btn btn-ghost" data-nav="">← Atrás</button>
+        <h1>📅 Mesociclo</h1>
+      </div>
+      <div class="container"><div class="empty-state">No hay ningún bloque en marcha.</div></div>`;
+    app.querySelectorAll('[data-nav]').forEach(el => el.addEventListener('click', () => navigate(el.dataset.nav)));
+    return;
+  }
+  const actual = blockWeekIndex(block);
+  const filas = block.weeks.map((w, i) => `
+    <div class="meso-week${i === actual ? ' meso-now' : ''}">
+      <div class="meso-week-head">
+        <b>${escapeHtml(w.label)}</b>
+        <small>${escapeHtml(blockWeekDates(block, i))}</small>
+        <span class="meso-rir">RIR ${escapeHtml(w.multi)} <small>multi</small> · ${escapeHtml(w.iso)} <small>aisl</small></span>
+      </div>
+      <div class="meso-week-tech">Técnicas: ${escapeHtml(w.tech)}</div>
+    </div>`).join('');
+
+  const cabecera = actual === -1
+    ? `Empieza el ${fmtDateShort(block.start)}.`
+    : actual === null
+      ? 'Bloque terminado: toca planificar el siguiente.'
+      : `Vas por <b>${escapeHtml(block.weeks[actual].label)}</b> (${escapeHtml(blockWeekDates(block, actual))}).`;
+
+  app.innerHTML = `
+    <div class="topbar">
+      <button class="btn btn-ghost" data-nav="">← Atrás</button>
+      <h1>📅 ${escapeHtml(block.name)}</h1>
+    </div>
+    <div class="container">
+      <div class="card">
+        <div class="weekly-head">RIR objetivo por semana</div>
+        <p class="meso-intro">${cabecera}</p>
+        ${filas}
+      </div>
+      <div class="card">
+        <div class="weekly-head">Cómo se aplica</div>
+        <ul class="meso-notes">
+          <li><b>Multiarticulares</b> (press, remo, jalón, hack, prensa, dominadas, fondos, rumano, hip thrust): no bajan de RIR 1 en todo el bloque.</li>
+          <li><b>Descansos</b>: 2–3 min en multiarticulares, 60–90 s en aislamientos.</li>
+          <li><b>Progresión</b>: mantienes carga y subes repes hasta el tope del rango al RIR de la semana; entonces +1–2 kg por mancuerna, siguiente placa o +2,5–5 % en prensa y hack, y vuelves al suelo del rango.</li>
+          <li><b>Técnicas</b> (drop set, rest-pause, parciales): solo cuando lo diga la tabla, y nunca en multiarticulares.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="weekly-head">Ejercicios índice</div>
+        <p class="meso-intro">Los que se miran cada semana para decidir: press banca mancuernas, press banca inclinado, remo pecho apoyado, jalón agarre doble, sentadilla hack, curl femoral sentado y elevación lateral en máquina.</p>
+      </div>
+    </div>`;
+  app.querySelectorAll('[data-nav]').forEach(el => el.addEventListener('click', () => navigate(el.dataset.nav)));
+}
+
 // ---------- Editor de rutina (crear / editar plantilla) ----------
 function renderRoutineEditor(routineId) {
   const editing = routineId ? getRoutine(routineId) : null;
@@ -1765,9 +2004,14 @@ function renderRoutineEditor(routineId) {
       return `
         <div class="slot-editor-row" data-idx="${idx}">
           <span class="drag-handle" data-drag-handle="${idx}">⠿</span>
-          <div class="name">${idx + 1}. ${ex ? escapeHtml(ex.name) : '(ejercicio eliminado)'}${slot.supersetGroup ? ' <span class="ss-tag">SS</span>' : ''}</div>
-          <label class="slot-rest" title="Descanso objetivo">⏱ <input type="text" inputmode="numeric" data-slot-rest="${idx}" value="${slot.restSec ?? ''}" placeholder="s" />s</label>
-          <label class="slot-rest" title="Repes objetivo (de–a)">🎯 <input type="number" inputmode="numeric" data-slot-replo="${idx}" value="${slot.repLo ?? ''}" placeholder="de" />–<input type="number" inputmode="numeric" data-slot-rephi="${idx}" value="${slot.repHi ?? ''}" placeholder="a" /></label>
+          <div class="slot-editor-main">
+            <div class="name">${idx + 1}. ${ex ? escapeHtml(ex.name) : '(ejercicio eliminado)'}${slot.supersetGroup ? ' <span class="ss-tag">SS</span>' : ''}</div>
+            <div class="slot-targets">
+              <label class="slot-rest" title="Series objetivo">✖ <input type="number" inputmode="numeric" data-slot-sets="${idx}" value="${slot.sets ?? ''}" placeholder="ser" /></label>
+              <label class="slot-rest" title="Descanso objetivo">⏱ <input type="text" inputmode="numeric" data-slot-rest="${idx}" value="${slot.restSec ?? ''}" placeholder="s" />s</label>
+              <label class="slot-rest" title="Repes objetivo (de–a)">🎯 <input type="number" inputmode="numeric" data-slot-replo="${idx}" value="${slot.repLo ?? ''}" placeholder="de" />–<input type="number" inputmode="numeric" data-slot-rephi="${idx}" value="${slot.repHi ?? ''}" placeholder="a" /></label>
+            </div>
+          </div>
           ${editing && draft.slots.length > 1 ? `<button class="rm" data-merge="${idx}" title="Fusionar con otro ejercicio de esta rutina">🔗</button>` : ''}
           <button class="rm" data-rm="${idx}">✕</button>
         </div>`;
@@ -1812,6 +2056,11 @@ function renderRoutineEditor(routineId) {
       paint();
     }));
 
+    app.querySelectorAll('[data-slot-sets]').forEach(el => el.addEventListener('input', () => {
+      const n = Number(el.value);
+      const slot = draft.slots[Number(el.dataset.slotSets)];
+      if (n > 0) slot.sets = Math.round(n); else delete slot.sets;
+    }));
     app.querySelectorAll('[data-slot-rest]').forEach(el => el.addEventListener('input', () => {
       const n = parseSeconds(el.value);
       if (n === undefined) return;
@@ -2436,7 +2685,9 @@ function slotProgressPoints(routine, slot, exerciseId, uni) {
     .sort((a, b) => a.date.localeCompare(b.date))
     .map(ses => {
       if (ses.deload) return null;
-      const e = ses.entries.find(x => x.slotId === slot.id && x.exerciseId === exId);
+      const e = ses.routineId === routine.id
+        ? ses.entries.find(x => x.slotId === slot.id && x.exerciseId === exId)
+        : ses.entries.find(x => x.exerciseId === exId);
       if (!e) return null;
       if (uni != null && entryIsUni(e) !== uni) return null;
       const sets = e.sets.map(st => ({ w: firstNum(st.weight), r: firstNum(st.reps), rir: firstNum(st.rir) }))
@@ -2465,6 +2716,18 @@ function slotProgressPoints(routine, slot, exerciseId, uni) {
 
 // Rango de repes objetivo de un hueco: el suyo si lo tiene; si no, por el
 // nombre de la rutina (Fuerza → 4–6, resto → 8–12).
+// Series objetivo de un hueco (las del plan). null si no se ha fijado.
+function setsTargetOf(slot) {
+  return slot && slot.sets > 0 ? slot.sets : null;
+}
+
+// "3×6–8" para las cabeceras.
+function slotTargetText(routine, slot) {
+  const r = repRangeOf(routine, slot);
+  const n = setsTargetOf(slot);
+  return (n ? n + '×' : '') + r.lo + '–' + r.hi;
+}
+
 function repRangeOf(routine, slot) {
   if (slot && slot.repLo > 0 && slot.repHi >= slot.repLo) return { lo: slot.repLo, hi: slot.repHi, own: true };
   const fuerza = /fuerza/i.test(routine.name);
@@ -2886,7 +3149,7 @@ function renderHistory(routineId) {
           return `
           <div class="list-item">
             <div style="flex:1;">
-              <div class="name">${idx + 1}. ${ex ? escapeHtml(ex.name) : '(ejercicio eliminado)'}${slot.supersetGroup ? ' <span class="ss-tag">SS</span>' : ''}</div>
+              <div class="name">${idx + 1}. ${ex ? escapeHtml(ex.name) : '(ejercicio eliminado)'} <span class="rep-range-tag">${slotTargetText(routine, slot)}</span>${slot.supersetGroup ? ' <span class="ss-tag">SS</span>' : ''}</div>
               ${ex && ex.muscle ? `<div class="muscle">${escapeHtml(ex.muscle)}</div>` : ''}
             </div>
           </div>`;
@@ -3434,6 +3697,10 @@ function renderSession(routineId) {
         <h2>🎯 Objetivos del ejercicio</h2>
         <p style="color:var(--text-dim);font-size:13px;margin-top:-8px;">${escapeHtml(ex ? ex.name : '')} — se guardan en la rutina.</p>
         <div class="field">
+          <label>Series objetivo</label>
+          <input id="sets-target-input" type="text" inputmode="numeric" placeholder="las que hagan falta" value="${slot.sets ?? ''}" />
+        </div>
+        <div class="field">
           <label>Descanso objetivo (segundos)</label>
           <input id="rest-target-input" type="text" inputmode="numeric" placeholder="Ej. 90 · 1:30 · 2 min" value="${slot.restSec ?? ''}" />
         </div>
@@ -3459,6 +3726,8 @@ function renderSession(routineId) {
       const n = parseSeconds(input.value);
       if (n === undefined) { showToast('Pon los segundos: 90, 1:30 o 2 min'); return; }
       slot.restSec = n;
+      const ser = firstNum(document.getElementById('sets-target-input').value);
+      if (ser > 0) slot.sets = Math.round(ser); else delete slot.sets;
       const lo = firstNum(document.getElementById('rep-lo-input').value);
       const hi = firstNum(document.getElementById('rep-hi-input').value);
       if (lo > 0 && hi >= lo) { slot.repLo = Math.round(lo); slot.repHi = Math.round(hi); }
@@ -3774,7 +4043,10 @@ function renderSession(routineId) {
 
       const target = restTargetOf(slot.id);
       const range = repRangeOf(slotRoutine, slot);
-      const targetTag = `<button class="btn-ghost rest-target-tag" data-edit-rest="${slot.id}">🎯 ${target ? `${target}s` : 'sin desc.'} · ${range.lo}–${range.hi} reps</button>`;
+      const hechas = entry.sets.length;
+      const objetivo = setsTargetOf(slot);
+      const seriesTxt = objetivo ? `${hechas}/${objetivo} ser` : `${hechas} ser`;
+      const targetTag = `<button class="btn-ghost rest-target-tag${objetivo && hechas >= objetivo ? ' rest-target-done' : ''}" data-edit-rest="${slot.id}">🎯 ${seriesTxt} · ${range.lo}–${range.hi} reps · ${target ? `${target}s` : 'sin desc.'}</button>`;
       // Recomendación de Progreso, aquí mismo, que es donde se decide el peso.
       const ptsToday = slotProgressPoints(slotRoutine, slot, entry.exerciseId, !!entry.uni);
       const rec = recommendForSlot(slotRoutine, slot, ptsToday);
@@ -3887,6 +4159,7 @@ function renderSession(routineId) {
       <div class="gym-field gym-field-notes">
         📝 <input id="session-notes" placeholder="Notas de hoy (ej. hombro molestando)" value="${escapeHtml(draft.notes || '')}" />
       </div>
+      ${blockChipHtml()}
       ${pendingMessagesHtml(routineId) ? `<div class="msg-wrap">${pendingMessagesHtml(routineId)}</div>` : ''}
       <div class="container">
         ${blocks}
