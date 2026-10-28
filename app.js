@@ -934,6 +934,44 @@ function runMigrations() {
     changed = true;
   }
 
+  // 28/10/2026: Pierna B se queda sin rumano y entra el femoral sentado, y los
+  // traslados que quedaron apuntando a rutinas archivadas se cancelan (esas
+  // sesiones ya no se van a hacer).
+  if (!db.meta.piernaB20261028) {
+    const norm = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+    const piernaB = db.routines.find(r => norm(r.name) === 'pierna b');
+    if (piernaB) {
+      const exNamed = (n) => db.exercises.find(e => norm(e.name) === norm(n));
+      const slotDe = (n) => { const ex = exNamed(n); return ex ? piernaB.slots.find(sl => sl.exerciseId === ex.id) : null; };
+      // [ejercicio, series, repLo, repHi, descanso]: el hueco que ya existía se
+      // reaprovecha (conserva su id y su histórico); el que falta se crea.
+      const NUEVA = [
+        ['Hip thrust con barra', 3, 8, 10, 150],
+        ['Curl femoral sentado', 3, 8, 10, 90],
+        ['Curl femoral tumbado', 3, 10, 12, 90],
+        ['Prensa 45º', 3, 10, 12, 150],
+        ['Extensión de cuádriceps', 2, 12, 15, 90],
+        ['Elevación de talones en prensa', 4, 10, 12, 90],
+        ['Máquina abdominales', 3, 10, 15, 60],
+      ];
+      const slots = NUEVA.map(([name, sets, lo, hi, rest]) => {
+        const ex = exNamed(name);
+        if (!ex) return null;
+        const sl = slotDe(name) || { id: uid(), exerciseId: ex.id };
+        sl.exerciseId = ex.id;
+        sl.sets = sets; sl.repLo = lo; sl.repHi = hi; sl.restSec = rest;
+        return sl;
+      }).filter(Boolean);
+      if (slots.length === NUEVA.length) { piernaB.slots = slots; changed = true; }
+    }
+    const archivadas = db.routines.filter(r => r.archived).map(r => r.id);
+    const antes = allTransfers().length;
+    db.transfers = allTransfers().filter(t => !archivadas.includes(t.toRoutineId));
+    if (db.transfers.length !== antes) changed = true;
+    db.meta.piernaB20261028 = true;
+    changed = true;
+  }
+
   if (changed) saveDB();
 }
 
