@@ -551,9 +551,9 @@
         {
           "id": "d30f5ef595d9",
           "exerciseId": "1b9297894d74",
-          "restSec": 90,
-          "repLo": 8,
-          "repHi": 10
+          "restSec": 150,
+          "repLo": 6,
+          "repHi": 8
         },
         {
           "id": "46eca9fae0fa",
