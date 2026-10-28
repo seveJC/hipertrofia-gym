@@ -607,9 +607,9 @@
         {
           "id": "202dcf9f89a1",
           "exerciseId": "311d1c4305b8",
-          "restSec": 60,
-          "repLo": 12,
-          "repHi": 14
+          "restSec": 90,
+          "repLo": 10,
+          "repHi": 12
         },
         {
           "id": "mtvjajrqy95cok",
