@@ -472,6 +472,12 @@
       "id": "mvs0zpb25i9w89",
       "name": "Press inclinado en máquina convergente",
       "muscle": "Pecho"
+    },
+    {
+      "id": "mvtd2nqyg9uj7k",
+      "name": "Hip-trust máquina BF",
+      "muscle": "Glúteo",
+      "notes": ""
     }
   ],
   "routines": [
