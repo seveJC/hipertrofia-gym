@@ -1147,20 +1147,20 @@
       "weekday": 5,
       "slots": [
         {
-          "id": "mvs0zpb6fenfb7",
-          "exerciseId": "67946a78fc00",
-          "sets": 3,
-          "repLo": 8,
-          "repHi": 10,
-          "restSec": 150
-        },
-        {
           "id": "mvs0zpb6javh0d",
           "exerciseId": "3c812538cc33",
           "sets": 3,
           "repLo": 8,
           "repHi": 10,
           "restSec": 150
+        },
+        {
+          "id": "mvt9w0g76izksd",
+          "exerciseId": "cea8cd3691f5",
+          "sets": 3,
+          "repLo": 8,
+          "repHi": 10,
+          "restSec": 90
         },
         {
           "id": "mvs0zpb6b2cx3f",
@@ -14914,7 +14914,8 @@
     "renameFuerza20261004": true,
     "splitFuerza20261012": true,
     "restDefault20261012": true,
-    "planVolumen20261101": true
+    "planVolumen20261101": true,
+    "piernaB20261028": true
   },
   "gyms": [
     "Basic-Fit Bravo Murillo",
