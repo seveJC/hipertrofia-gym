@@ -15391,6 +15391,193 @@
           "restNote": "75"
         }
       ]
+    },
+    {
+      "id": "mw20oyv4bqrz9e",
+      "routineId": "mvs0zpb5yszw74",
+      "date": "2026-11-04T11:12:22.145Z",
+      "durationSec": 3240,
+      "gym": "Hi-Fitness",
+      "entries": [
+        {
+          "slotId": "mvs0zpb4uhr2vs",
+          "exerciseId": "1b9297894d74",
+          "sets": [
+            {
+              "weight": 55,
+              "reps": 8,
+              "rir": 2,
+              "rir2": null,
+              "reps2": null,
+              "restSec": null
+            },
+            {
+              "weight": 55,
+              "reps": 7,
+              "rir": 2,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 133
+            },
+            {
+              "weight": 55,
+              "reps": 7,
+              "rir": 1.5,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 132
+            }
+          ],
+          "restNote": "150"
+        },
+        {
+          "slotId": "mvs0zpb4xc69k2",
+          "exerciseId": "64626f37b998",
+          "sets": [
+            {
+              "weight": 50,
+              "reps": 10,
+              "rir": 3,
+              "rir2": 3,
+              "reps2": 9,
+              "restSec": 4
+            },
+            {
+              "weight": 50,
+              "reps": 9,
+              "rir": 2.5,
+              "rir2": 3,
+              "reps2": 9,
+              "restSec": 118
+            },
+            {
+              "weight": 50,
+              "reps": 8,
+              "rir": 3,
+              "rir2": 3,
+              "reps2": 8,
+              "restSec": 140
+            }
+          ],
+          "restNote": "150"
+        },
+        {
+          "slotId": "mvs0zpb4hbp8ri",
+          "exerciseId": "8abb81651a6d",
+          "sets": [
+            {
+              "weight": 65,
+              "reps": 10,
+              "rir": 2,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 137
+            },
+            {
+              "weight": 57.5,
+              "reps": 10,
+              "rir": 3,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 83
+            },
+            {
+              "weight": 57.5,
+              "reps": 10,
+              "rir": 2,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 120
+            }
+          ],
+          "restNote": "120"
+        },
+        {
+          "slotId": "mvs0zpb5eajme9",
+          "exerciseId": "36341586fc97",
+          "sets": [
+            {
+              "weight": 50,
+              "reps": 15,
+              "rir": 2,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 100
+            },
+            {
+              "weight": 50,
+              "reps": 13,
+              "rir": 2,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 87
+            },
+            {
+              "weight": 50,
+              "reps": 11,
+              "rir": 2,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 89
+            }
+          ],
+          "restNote": "75"
+        },
+        {
+          "slotId": "mvs0zpb5ghj3dn",
+          "exerciseId": "071deb7f5463",
+          "sets": [
+            {
+              "weight": 12.5,
+              "reps": 11,
+              "rir": 2,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 100
+            },
+            {
+              "weight": 12.5,
+              "reps": 9,
+              "rir": 2,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 98
+            },
+            {
+              "weight": 12.5,
+              "reps": 8,
+              "rir": 1.5,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 5
+            }
+          ],
+          "restNote": "90"
+        },
+        {
+          "slotId": "mvs0zpb5f9tgjb",
+          "exerciseId": "311d1c4305b8",
+          "sets": [
+            {
+              "weight": 15,
+              "reps": 10,
+              "rir": 2,
+              "rir2": 2,
+              "reps2": 10,
+              "restSec": 120
+            },
+            {
+              "weight": 12.5,
+              "reps": 10,
+              "rir": 2,
+              "rir2": 1.5,
+              "reps2": 10,
+              "restSec": 76
+            }
+          ],
+          "restNote": "75"
+        }
+      ]
     }
   ],
   "meta": {
