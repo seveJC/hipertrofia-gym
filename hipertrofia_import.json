@@ -15797,6 +15797,78 @@
           "doneOrder": 7
         }
       ]
+    },
+    {
+      "id": "mw3esrcahlr1nb",
+      "routineId": "mvs0zpb6c10rp5",
+      "date": "2026-11-05T10:34:59.820Z",
+      "durationSec": 720,
+      "gym": "Basic-Fit Bravo Murillo",
+      "entries": [
+        {
+          "slotId": "mvs0zpb6avqlbm",
+          "exerciseId": "fb5ccfe259d5",
+          "sets": [
+            {
+              "weight": 4.5,
+              "reps": 11,
+              "rir": 2,
+              "rir2": null,
+              "reps2": null,
+              "restSec": null
+            },
+            {
+              "weight": 4.5,
+              "reps": 9,
+              "rir": 2,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 114
+            },
+            {
+              "weight": 2.3,
+              "reps": 12,
+              "rir": 2,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 76
+            }
+          ],
+          "restNote": "75"
+        },
+        {
+          "slotId": "mvs0zpb6gjrz77",
+          "exerciseId": "acd03ed6d5d9",
+          "sets": [
+            {
+              "weight": 34,
+              "reps": 12,
+              "rir": 2,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 145
+            },
+            {
+              "weight": 34,
+              "reps": 11,
+              "rir": 2,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 57
+            },
+            {
+              "weight": 34,
+              "reps": 11,
+              "rir": 1.5,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 61
+            }
+          ],
+          "restNote": "60"
+        }
+      ],
+      "partial": true
     }
   ],
   "meta": {
