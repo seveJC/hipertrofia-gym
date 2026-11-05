@@ -115,10 +115,28 @@ function retryBackupIfPending() {
 window.addEventListener('online', retryBackupIfPending);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') retryBackupIfPending(); });
 
+// Sin token (móvil nuevo) nada se reintenta: el aviso lleva directo a ponerlo.
+function backupBannerHtml() {
+  return getGhToken()
+    ? '☁️ Hay cambios sin copiar a GitHub · <span class="backup-retry" id="backup-retry-btn">subir ahora</span>'
+    : '⚠️ Copia en GitHub sin configurar: tus últimos cambios solo están en este dispositivo · <span class="backup-retry" id="backup-retry-btn">añadir token</span>';
+}
+
 function updateBackupBanner() {
   const el = document.getElementById('backup-banner');
   if (!el) return;
-  el.hidden = !(getGhToken() && isBackupPending());
+  el.hidden = !isBackupPending();
+  el.classList.toggle('backup-banner-warn', !getGhToken());
+  el.innerHTML = backupBannerHtml();
+}
+
+function onBackupBannerClick(e) {
+  if (e.target.id !== 'backup-retry-btn') return;
+  if (getGhToken()) { pushBackupToGitHub(true); return; }
+  openGhConfigPrompt(() => {
+    updateBackupBanner();
+    pushBackupToGitHub(true);
+  });
 }
 
 let backupInFlight = false;
@@ -224,6 +242,8 @@ async function ensureDB() {
     db = { exercises: [], routines: [], sessions: [] };
   }
   saveDB();
+  // Lo recién sembrado ya viene de la copia publicada: no hay nada que subir.
+  clearBackupPending();
 }
 
 // Además de la siembra inicial, en cada carga se añaden a la biblioteca los
@@ -1691,8 +1711,8 @@ function renderHome() {
       <button class="btn btn-icon" data-nav="history" title="Historial de sesiones">📅</button>
       <button class="btn btn-icon" data-nav="exercises" title="Ejercicios">🏋️</button>
     </div>
-    <div class="backup-banner" id="backup-banner"${getGhToken() && isBackupPending() ? '' : ' hidden'}>
-      ☁️ Hay cambios sin copiar a GitHub · <span class="backup-retry" id="backup-retry-btn">subir ahora</span>
+    <div class="backup-banner${getGhToken() ? '' : ' backup-banner-warn'}" id="backup-banner"${isBackupPending() ? '' : ' hidden'}>
+      ${backupBannerHtml()}
     </div>
     <div class="container">
       ${transfersBannerHtml()}
@@ -1716,7 +1736,7 @@ function renderHome() {
   app.querySelectorAll('[data-open-routine]').forEach(el => {
     el.addEventListener('click', () => openRoutineChoice(el.dataset.openRoutine));
   });
-  document.getElementById('backup-retry-btn').addEventListener('click', () => pushBackupToGitHub(true));
+  document.getElementById('backup-banner').addEventListener('click', onBackupBannerClick);
   bindDeloadToggle(renderHome);
   bindTransferCancel(renderHome);
   document.getElementById('theme-btn').addEventListener('click', cycleTheme);

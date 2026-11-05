@@ -141,6 +141,11 @@ html, body {
   color: var(--text-dim);
 }
 
+.backup-banner-warn {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
 .backup-retry {
   color: var(--accent);
   font-weight: 600;
