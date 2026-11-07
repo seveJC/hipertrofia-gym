@@ -484,6 +484,12 @@
       "name": "Remo pecho apoyado agarre neutro",
       "muscle": "Espalda",
       "notes": ""
+    },
+    {
+      "id": "mw6p527wpavqo3",
+      "name": "Press máquina hi-fitness",
+      "muscle": "Pecho",
+      "notes": "Agarré neutro"
     }
   ],
   "routines": [
@@ -1255,7 +1261,7 @@
         },
         {
           "id": "mvs0zpb7aftomt",
-          "exerciseId": "2e3364723bce",
+          "exerciseId": "mw6p527wpavqo3",
           "sets": 3,
           "repLo": 8,
           "repHi": 12,
