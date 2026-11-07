@@ -478,6 +478,12 @@
       "name": "Hip-trust máquina BF",
       "muscle": "Glúteo",
       "notes": ""
+    },
+    {
+      "id": "mw6nynx1nkh684",
+      "name": "Remo pecho apoyado agarre neutro",
+      "muscle": "Espalda",
+      "notes": ""
     }
   ],
   "routines": [
@@ -1233,7 +1239,7 @@
         },
         {
           "id": "mvs0zpb6a20jhj",
-          "exerciseId": "8ae221b7450b",
+          "exerciseId": "mw6nynx1nkh684",
           "sets": 3,
           "repLo": 8,
           "repHi": 10,
