@@ -27,11 +27,22 @@ function loadSessionDrafts() {
   try { return JSON.parse(localStorage.getItem(SESSION_DRAFTS_KEY)) || {}; } catch (e) { return {}; }
 }
 
+function draftHasSeries(draft) {
+  const hasData = s => (s.weight !== '' && s.weight != null) || (s.reps !== '' && s.reps != null);
+  return Object.values(draft.entries || {}).some(e => (e.sets || []).some(hasData));
+}
+
+function isDraftStale(draft) {
+  return Date.now() - (draft.sessionStartedAt || 0) > DRAFT_MAX_AGE_MS;
+}
+
+// Un borrador viejo sin series se descarta; con series nunca se borra solo:
+// se avisa al abrir la rutina para guardarlo o descartarlo a mano.
 function loadSessionDraft(routineId) {
   const all = loadSessionDrafts();
   const draft = all[routineId];
   if (!draft) return null;
-  if (Date.now() - (draft.sessionStartedAt || 0) > DRAFT_MAX_AGE_MS) {
+  if (isDraftStale(draft) && !draftHasSeries(draft)) {
     clearSessionDraft(routineId);
     return null;
   }
@@ -1404,7 +1415,10 @@ function bindTransferCancel(afterChange) {
 function openRoutineChoice(routineId) {
   const routine = getRoutine(routineId);
   if (!routine) return;
-  const inProgress = !!loadSessionDraft(routineId);
+  const draftInProgress = loadSessionDraft(routineId);
+  const inProgress = !!draftInProgress;
+  const staleSince = draftInProgress && isDraftStale(draftInProgress)
+    ? new Date(draftInProgress.lastActivityAt || draftInProgress.sessionStartedAt).toISOString() : null;
   // Última sesión parcial, reciente y aún sin continuar: se ofrece terminarla.
   const last = db.sessions.filter(s => s.routineId === routineId).sort((a, b) => b.date.localeCompare(a.date))[0];
   const CONTINUE_WINDOW_MS = 4 * 24 * 60 * 60 * 1000;
@@ -1420,7 +1434,8 @@ function openRoutineChoice(routineId) {
     <div class="modal-sheet">
       <h2>${escapeHtml(routine.name)}</h2>
       ${pendingMessagesHtml(routineId)}
-      ${inProgress ? '<p style="color:var(--green);font-size:13px;margin-top:-8px;">Tienes un entreno en curso de esta rutina.</p>' : ''}
+      ${staleSince ? `<p style="color:var(--accent);font-size:13px;margin-top:-8px;">⚠️ Tienes un entreno sin guardar del ${fmtDateShort(staleSince)}. Entra para guardarlo o descartarlo (🗑).</p>`
+        : inProgress ? '<p style="color:var(--green);font-size:13px;margin-top:-8px;">Tienes un entreno en curso de esta rutina.</p>' : ''}
       ${resumable ? `<button class="btn btn-primary btn-block" id="choice-resume">↪ Continuar la sesión del ${fmtDateShort(resumable.date)}</button><div style="height:8px;"></div>` : ''}
       ${resumable && missingSlotsOf(resumable).length && db.routines.length > 1 ? `<button class="btn btn-block" id="choice-transfer">↗ Trasladar lo que falta a otra rutina</button><div style="height:8px;"></div>` : ''}
       <button class="btn ${resumable ? '' : 'btn-primary'} btn-block" id="choice-train">🏋️ ${inProgress ? 'Continuar entreno' : 'Empezar entreno'}</button>
@@ -2219,7 +2234,7 @@ function openMuscleGroupPicker(title, onPickMuscle, opts = {}) {
   backdrop.className = 'modal-backdrop';
   const groups = Object.keys(MUSCLE_COLORS);
   const deleteRow = opts.onDelete
-    ? `<div class="pick-row pick-row-danger" data-group="__DELETE__">🗑 Eliminar este ejercicio de la rutina</div>`
+    ? `<div class="pick-row pick-row-danger" data-group="__DELETE__">${escapeHtml(opts.deleteLabel || '🗑 Eliminar este ejercicio de la rutina')}</div>`
     : '';
   const groupRows = groups.map(m => `<div class="pick-row" data-group="${escapeHtml(m)}" style="color:${MUSCLE_COLORS[m]};">${escapeHtml(m)}</div>`).join('');
   backdrop.innerHTML = `
@@ -4054,6 +4069,9 @@ function renderSession(routineId) {
   }
 
   function paint() {
+    // Un ejercicio de "solo hoy" sin entrada rompía el pintado y, como el
+    // borrador ya estaba guardado, la sesión no se podía volver a abrir.
+    if (draft.extra) draft.extra = draft.extra.filter(sl => draft.entries[sl.id]);
     saveDraft();
     const doneSlotIds = draft.doneFrom ? draft.doneFrom.slotIds : [];
     const orderToday = todayOrderMap();
@@ -4601,19 +4619,29 @@ function renderSession(routineId) {
 
     app.querySelectorAll('[data-swap]').forEach(el => el.addEventListener('click', () => {
       const slotId = el.dataset.swap;
+      const isExtra = extraSlots().some(sl => sl.id === slotId);
+      const inRoutine = routine.slots.some(sl => sl.id === slotId);
+      // Solo hoy: se quita de la sesión sin tocar la rutina. Trasladado: no se
+      // ofrece borrar (no es de esta rutina).
+      const onDelete = isExtra ? () => {
+        const ex = getExercise(draft.entries[slotId].exerciseId);
+        if (!confirm(`¿Quitar "${ex ? ex.name : 'este ejercicio'}" de la sesión de hoy? Se perderán sus series de hoy.`)) return;
+        draft.extra = extraSlots().filter(sl => sl.id !== slotId);
+        delete draft.entries[slotId];
+        showToast('Quitado de la sesión de hoy');
+        paint();
+      } : inRoutine ? () => {
+        const ex = getExercise(draft.entries[slotId].exerciseId);
+        if (!confirm(`¿Eliminar "${ex ? ex.name : 'este ejercicio'}" de la rutina "${routine.name}"? El histórico ya guardado no se borra, pero dejará de aparecer aquí.`)) return;
+        routine.slots = routine.slots.filter(s => s.id !== slotId);
+        delete draft.entries[slotId];
+        saveDB();
+        showToast('Ejercicio eliminado de la rutina');
+        paint();
+      } : null;
       openExercisePicker('Sustituir ejercicio', (exerciseId) => {
         openSwapScopePrompt(slotId, exerciseId);
-      }, {
-        onDelete: () => {
-          const ex = getExercise(draft.entries[slotId].exerciseId);
-          if (!confirm(`¿Eliminar "${ex ? ex.name : 'este ejercicio'}" de la rutina "${routine.name}"? El histórico ya guardado no se borra, pero dejará de aparecer aquí.`)) return;
-          routine.slots = routine.slots.filter(s => s.id !== slotId);
-          delete draft.entries[slotId];
-          saveDB();
-          showToast('Ejercicio eliminado de la rutina');
-          paint();
-        }
-      });
+      }, onDelete ? { onDelete, deleteLabel: isExtra ? '🗑 Quitar de la sesión de hoy' : null } : {});
     }));
 
     app.querySelectorAll('[data-warmup]').forEach(el => el.addEventListener('click', () => {
@@ -4745,7 +4773,8 @@ function renderSession(routineId) {
         const session = {
           id: uid(),
           routineId,
-          date: new Date().toISOString(),
+          // Un entreno que se guarda días después lleva la fecha en que se hizo.
+          date: (isDraftStale(draft) && draft.lastActivityAt ? new Date(draft.lastActivityAt) : new Date()).toISOString(),
           durationSec,
           gym: canonicalGym(draft.gym || ''),
           entries: ownEntries
