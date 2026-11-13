@@ -490,6 +490,12 @@
       "name": "Press máquina hi-fitness",
       "muscle": "Pecho",
       "notes": "Agarré neutro"
+    },
+    {
+      "id": "mwf1kukmurupib",
+      "name": "Curl predicador máquina",
+      "muscle": "Bíceps",
+      "notes": ""
     }
   ],
   "routines": [
