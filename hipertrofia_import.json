@@ -496,6 +496,12 @@
       "name": "Curl predicador máquina",
       "muscle": "Bíceps",
       "notes": ""
+    },
+    {
+      "id": "mwj9ltbhm9cio6",
+      "name": "Extensión de cadera en banco romano 45°",
+      "muscle": "Glúteo",
+      "notes": ""
     }
   ],
   "routines": [
@@ -965,6 +971,11 @@
           "repLo": 12,
           "repHi": 15,
           "restSec": 75
+        },
+        {
+          "id": "mwj9lusil55cqv",
+          "exerciseId": "mwj9ltbhm9cio6",
+          "restSec": 90
         }
       ],
       "inheritsFrom": [
