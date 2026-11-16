@@ -17764,6 +17764,239 @@
           "supersetGroup": "ss1"
         }
       ]
+    },
+    {
+      "id": "mwj9zmnsp26jn1",
+      "routineId": "mvs0zpb4hrglzh",
+      "date": "2026-11-16T13:04:41.081Z",
+      "durationSec": 4200,
+      "gym": "Basic-Fit Bravo Murillo",
+      "entries": [
+        {
+          "slotId": "mvs0zpb3wizslk",
+          "exerciseId": "cdc3611eb981",
+          "sets": [
+            {
+              "weight": 65,
+              "reps": 6,
+              "rir": 2,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 297
+            },
+            {
+              "weight": 60,
+              "reps": 9,
+              "rir": 2,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 213
+            },
+            {
+              "weight": 60,
+              "reps": 8,
+              "rir": 2,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 211
+            }
+          ],
+          "restNote": "180",
+          "doneOrder": 2
+        },
+        {
+          "slotId": "mvs0zpb3jnsi1n",
+          "exerciseId": "618526128189",
+          "sets": [
+            {
+              "weight": 170,
+              "reps": 10,
+              "rir": 3.5,
+              "rir2": null,
+              "reps2": null,
+              "restSec": null
+            },
+            {
+              "weight": 170,
+              "reps": 10,
+              "rir": 3,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 173
+            },
+            {
+              "weight": 170,
+              "reps": 10,
+              "rir": 2.5,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 188
+            }
+          ],
+          "restNote": "150",
+          "doneOrder": 1
+        },
+        {
+          "slotId": "mvs0zpb4qxyt41",
+          "exerciseId": "e3ae6e10d14e",
+          "sets": [
+            {
+              "weight": 59,
+              "reps": 14,
+              "rir": 2,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 105
+            },
+            {
+              "weight": 59,
+              "reps": 10,
+              "rir": 2,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 102
+            },
+            {
+              "weight": 52,
+              "reps": 11,
+              "rir": 2,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 105
+            }
+          ],
+          "restNote": "90",
+          "doneOrder": 4
+        },
+        {
+          "slotId": "mvs0zpb4gsjivf",
+          "exerciseId": "cea8cd3691f5",
+          "sets": [
+            {
+              "weight": 52,
+              "reps": 10,
+              "rir": 2.5,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 134
+            },
+            {
+              "weight": 45,
+              "reps": 12,
+              "rir": 2,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 117
+            },
+            {
+              "weight": 45,
+              "reps": 10,
+              "rir": 2,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 121
+            }
+          ],
+          "restNote": "90",
+          "doneOrder": 3
+        },
+        {
+          "slotId": "mvs0zpb45rzrnn",
+          "exerciseId": "660e3d73da5e",
+          "sets": [
+            {
+              "weight": 79,
+              "reps": 12,
+              "rir": 2,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 92
+            },
+            {
+              "weight": 79,
+              "reps": 12,
+              "rir": 1.5,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 61
+            },
+            {
+              "weight": 79,
+              "reps": 12,
+              "rir": 1,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 73
+            },
+            {
+              "weight": 79,
+              "reps": 11,
+              "rir": 1,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 69
+            }
+          ],
+          "restNote": "90",
+          "doneOrder": 5
+        },
+        {
+          "slotId": "mvs0zpb4oj4co9",
+          "exerciseId": "mv6drj4mpf03xu",
+          "sets": [
+            {
+              "weight": 8,
+              "reps": 16,
+              "rir": 2,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 116
+            },
+            {
+              "weight": 8,
+              "reps": 14,
+              "rir": 2,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 145
+            },
+            {
+              "weight": 8,
+              "reps": 12,
+              "rir": 2,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 99
+            }
+          ],
+          "restNote": "75",
+          "doneOrder": 6
+        },
+        {
+          "slotId": "mwj9lusil55cqv",
+          "exerciseId": "mwj9ltbhm9cio6",
+          "sets": [
+            {
+              "weight": 0,
+              "reps": 10,
+              "rir": 5,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 154
+            },
+            {
+              "weight": 0,
+              "reps": 10,
+              "rir": 4,
+              "rir2": null,
+              "reps2": null,
+              "restSec": 123
+            }
+          ],
+          "restNote": "90",
+          "doneOrder": 7
+        }
+      ]
     }
   ],
   "meta": {
